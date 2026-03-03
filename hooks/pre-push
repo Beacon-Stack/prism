@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# pre-push hook — runs Go lint and TypeScript type-check before every push.
+# Install: make install-hooks
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "▶ golangci-lint..."
+golangci-lint run
+
+echo "▶ TypeScript type-check..."
+cd web/ui && npx tsc --noEmit
+cd "$REPO_ROOT"
+
+echo "✓ pre-push checks passed"

@@ -14,7 +14,7 @@ LDFLAGS   := -ldflags "\
 IMAGE ?= ghcr.io/davidfic/luminarr
 
 .PHONY: build run dev test test/unit test/integration test/cover test/race \
-        lint generate migrate clean docker docker/push help
+        lint check install-hooks generate migrate clean docker docker/push help
 
 ## build: Compile the binary into ./bin/luminarr
 build:
@@ -54,6 +54,16 @@ test/race:
 ## lint: Run golangci-lint
 lint:
 	golangci-lint run
+
+## check: Run all pre-push checks (Go lint + TypeScript type-check)
+check: lint
+	cd web/ui && npx tsc --noEmit
+
+## install-hooks: Install git hooks from the hooks/ directory
+install-hooks:
+	cp hooks/pre-push .git/hooks/pre-push
+	chmod +x .git/hooks/pre-push
+	@echo "pre-push hook installed"
 
 ## generate: Regenerate sqlc query code
 generate:

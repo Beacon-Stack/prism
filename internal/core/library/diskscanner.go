@@ -42,7 +42,7 @@ func scanDisk(root string, knownPaths map[string]bool) ([]DiskFile, error) {
 		}
 		info, err := d.Info()
 		if err != nil {
-			return nil // skip files we cannot stat
+			return nil //nolint:nilerr // returning nil in WalkDir callback continues the walk; we intentionally skip unreadable files
 		}
 		title, year := parseFilename(filepath.Base(path))
 		files = append(files, DiskFile{

@@ -73,6 +73,31 @@ If it is not fixed, document the "hard-refresh after restart" requirement explic
 
 ---
 
+## Lint — mandatory before every push
+
+**Rule: `make check` must pass before any `git push`. No exceptions.**
+
+`make check` runs:
+1. `golangci-lint run` — Go linting (errcheck, govet, staticcheck, unused, gosec, etc.)
+2. `cd web/ui && npx tsc --noEmit` — TypeScript type-check
+
+The git pre-push hook in `hooks/pre-push` enforces this automatically. Install once per
+checkout with `make install-hooks`.
+
+If lint fails:
+- Fix the issue. Do not use `//nolint` unless the linter is genuinely wrong, in which case
+  add a comment explaining why.
+- Do not push with `--no-verify` to bypass the hook.
+- Do not leave lint errors and note "fix later".
+
+When writing new Go code:
+- Always handle errors (don't `_ = err` without a comment explaining why it's intentional).
+- Always close response bodies (`defer resp.Body.Close()`).
+- Use `context.Context` as the first parameter on any function that does I/O.
+- Imports: stdlib first, then third-party, then internal (`github.com/davidfic/luminarr/...`).
+
+---
+
 ## Checklist before any change
 
 1. Have I read the files I am about to modify?
@@ -82,3 +107,4 @@ If it is not fixed, document the "hard-refresh after restart" requirement explic
    `/config` and that the API key situation is documented.
 4. Am I within the scope of what was asked? If I am adding anything extra, stop
    and ask first.
+5. Does `make check` pass? Run it before pushing.

@@ -3,6 +3,7 @@ module github.com/davidfic/luminarr
 go 1.25.0
 
 require (
+	github.com/coder/websocket v1.8.14
 	github.com/danielgtaylor/huma/v2 v2.37.2
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/uuid v1.6.0
@@ -42,5 +43,4 @@ require (
 	modernc.org/libc v1.68.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	nhooyr.io/websocket v1.8.17 // indirect
 )
