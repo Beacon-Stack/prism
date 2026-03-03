@@ -64,6 +64,9 @@ func buildFeedXML() string {
 
 // newTestIndexer starts an httptest.Server, registers a single handler, and
 // returns an Indexer pointed at that server along with a cleanup function.
+//
+// The indexer's HTTP client is replaced with a plain client that bypasses the
+// SSRF-blocking safe dialer so tests can connect to 127.0.0.1.
 func newTestIndexer(t *testing.T, handlerFn http.HandlerFunc) (*Indexer, *httptest.Server) {
 	t.Helper()
 	srv := httptest.NewServer(handlerFn)
@@ -71,6 +74,7 @@ func newTestIndexer(t *testing.T, handlerFn http.HandlerFunc) (*Indexer, *httpte
 		URL:    srv.URL,
 		APIKey: "testapikey",
 	})
+	idx.client = &http.Client{Timeout: 30 * time.Second} // bypass safedialer for tests
 	return idx, srv
 }
 

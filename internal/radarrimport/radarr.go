@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/davidfic/luminarr/internal/safedialer"
 )
 
 // ── Radarr API types ──────────────────────────────────────────────────────────
@@ -130,12 +132,14 @@ type Client struct {
 }
 
 // NewClient creates a new Radarr API client. baseURL should be the root URL
-// of the Radarr instance, e.g. "http://localhost:7878".
+// of the Radarr instance, e.g. "http://radarr.local:7878".
+//
+// The client uses safedialer.Transport() to block SSRF to internal addresses.
 func NewClient(baseURL, apiKey string) *Client {
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
 		apiKey:  apiKey,
-		http:    &http.Client{Timeout: 30 * time.Second},
+		http:    &http.Client{Timeout: 30 * time.Second, Transport: safedialer.Transport()},
 	}
 }
 

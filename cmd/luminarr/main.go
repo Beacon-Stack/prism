@@ -74,12 +74,18 @@ func run() error {
 	// functions (slog.Info, slog.Error, etc.) pick up the configured handler.
 	slog.SetDefault(logger)
 
-	// Advisory config file permission check.
-	if cfgFile != "" {
-		if info, err := os.Stat(cfgFile); err == nil {
+	// Advisory config file permission check — use the resolved path so the
+	// warning fires whether the file was specified explicitly or found at the
+	// default location (~/.config/luminarr/config.yaml).
+	checkPath := cfg.ConfigFile
+	if checkPath == "" {
+		checkPath = cfgFile // may also be "" if no file was found at all
+	}
+	if checkPath != "" {
+		if info, statErr := os.Stat(checkPath); statErr == nil {
 			if info.Mode()&0o004 != 0 {
 				logger.Warn("config file is world-readable — recommend chmod 600",
-					"path", cfgFile,
+					"path", checkPath,
 				)
 			}
 		}
@@ -96,15 +102,23 @@ func run() error {
 		// volume at /config). If it fails we log a warning and continue —
 		// the key still works for this session but will change on restart.
 		if _, persistErr := config.WriteConfigKey(cfg.ConfigFile, "auth.api_key", cfg.Auth.APIKey.Value()); persistErr != nil {
+			// Print the key to stderr directly — it must be visible to the operator
+			// so they can configure clients, but we do NOT put it in structured logs
+			// (which are often shipped to log aggregators and retained long-term).
+			fmt.Fprintf(os.Stderr, "\n  !! API key generated but could not be saved to disk.\n"+
+				"  !! It will change on next restart. Set it now in your client:\n"+
+				"  !!\n"+
+				"  !!   API key: %s\n"+
+				"  !!\n"+
+				"  !! Hint: mount a writable volume at /config (Docker) or ensure\n"+
+				"  !!        ~/.config/luminarr/ is writable.\n\n",
+				cfg.Auth.APIKey.Value())
 			logger.Warn("API key generated but could not be persisted — it will change on next restart",
-				"key", cfg.Auth.APIKey.Value(),
 				"hint", "mount a writable volume at /config (Docker) or ensure ~/.config/luminarr/ is writable",
 				"error", persistErr,
 			)
 		} else {
-			logger.Info("API key generated and saved to config — stable across restarts",
-				"key", cfg.Auth.APIKey.Value(),
-			)
+			logger.Info("API key generated and saved to config — stable across restarts")
 		}
 	} else {
 		key := cfg.Auth.APIKey.Value()

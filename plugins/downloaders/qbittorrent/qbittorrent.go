@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/davidfic/luminarr/internal/registry"
+	"github.com/davidfic/luminarr/internal/safedialer"
 	"github.com/davidfic/luminarr/pkg/plugin"
 )
 
@@ -62,12 +63,21 @@ type Client struct {
 }
 
 // New creates a new qBittorrent client. Call Test to verify connectivity.
+// Outbound HTTP uses safedialer.Transport() to block connections to private
+// network addresses. For unit tests that use httptest.Server, use NewWithHTTPClient.
 func New(cfg Config) *Client {
 	jar, _ := cookiejar.New(nil)
 	return &Client{
 		cfg:  cfg,
-		http: &http.Client{Jar: jar, Timeout: 30 * time.Second},
+		http: &http.Client{Jar: jar, Timeout: 30 * time.Second, Transport: safedialer.Transport()},
 	}
+}
+
+// NewWithHTTPClient creates a Client with a caller-supplied http.Client.
+// Intended for unit tests that need to bypass the SSRF-blocking safe dialer
+// and connect to httptest.Server instances on 127.0.0.1.
+func NewWithHTTPClient(cfg Config, client *http.Client) *Client {
+	return &Client{cfg: cfg, http: client}
 }
 
 func (c *Client) Name() string             { return "qBittorrent" }
@@ -199,7 +209,7 @@ func (c *Client) login(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<10)) // 1 KiB — response is "Ok." or "Fails."
 	bodyStr := strings.TrimSpace(string(body))
 
 	if resp.StatusCode != http.StatusOK || bodyStr == "Fails." {
@@ -229,7 +239,7 @@ func (c *Client) addMagnet(ctx context.Context, magnetURL string) (string, error
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<10)) // 1 KiB — response is "Ok." or error message
 	if strings.TrimSpace(string(body)) != "Ok." {
 		return "", fmt.Errorf("qbittorrent: add magnet returned %q", string(body))
 	}
@@ -264,7 +274,7 @@ func (c *Client) addTorrentURL(ctx context.Context, torrentURL string) (string, 
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<10)) // 1 KiB — response is "Ok." or error message
 	if strings.TrimSpace(string(body)) != "Ok." {
 		return "", fmt.Errorf("qbittorrent: add torrent returned %q", string(body))
 	}
@@ -283,7 +293,8 @@ func (c *Client) addTorrentURL(ctx context.Context, torrentURL string) (string, 
 // errMagnetRedirect instead of following it (Go's HTTP client cannot do so).
 func (c *Client) fetchURL(ctx context.Context, rawURL string) ([]byte, error) {
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Transport: safedialer.Transport(),
+		Timeout:   30 * time.Second,
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 			if strings.HasPrefix(req.URL.String(), "magnet:") {
 				return errMagnetRedirect{magnetURL: req.URL.String()}
@@ -311,7 +322,7 @@ func (c *Client) fetchURL(ctx context.Context, rawURL string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d fetching torrent", resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10 MiB — same limit as Deluge plugin
 }
 
 // uploadTorrentFile posts torrent file bytes to qBittorrent as a multipart upload.

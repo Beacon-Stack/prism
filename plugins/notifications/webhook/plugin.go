@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/davidfic/luminarr/internal/registry"
+	"github.com/davidfic/luminarr/internal/safedialer"
 	"github.com/davidfic/luminarr/pkg/plugin"
 )
 
@@ -68,7 +69,7 @@ func New(cfg Config) *Notifier {
 	}
 	return &Notifier{
 		cfg:    cfg,
-		client: &http.Client{Timeout: 15 * time.Second},
+		client: &http.Client{Timeout: 15 * time.Second, Transport: safedialer.Transport()},
 	}
 }
 

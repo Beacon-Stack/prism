@@ -9,6 +9,38 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// writeAtomic writes data to path atomically: it writes to a temp file in the
+// same directory, then renames it over the target. On POSIX filesystems rename
+// is atomic, so the target is never left in a partially-written state.
+func writeAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".luminarr-config-*.tmp")
+	if err != nil {
+		return fmt.Errorf("creating temp file: %w", err)
+	}
+	tmpName := tmp.Name()
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return fmt.Errorf("writing temp file: %w", err)
+	}
+	if err := tmp.Chmod(perm); err != nil {
+		tmp.Close()
+		os.Remove(tmpName)
+		return fmt.Errorf("setting temp file permissions: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmpName)
+		return fmt.Errorf("closing temp file: %w", err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		os.Remove(tmpName)
+		return fmt.Errorf("renaming temp file: %w", err)
+	}
+	return nil
+}
+
 // WriteConfigKey writes a single dot-notation key (e.g. "tmdb.api_key") to the
 // given YAML config file, creating the file and parent directories if needed.
 // If configFile is empty, the default path (~/.config/luminarr/config.yaml, or
@@ -57,7 +89,7 @@ func WriteConfigKey(configFile, key, value string) (writePath string, err error)
 		return "", fmt.Errorf("marshaling config: %w", err)
 	}
 
-	if err := os.WriteFile(path, raw, 0o600); err != nil {
+	if err := writeAtomic(path, raw, 0o600); err != nil {
 		return "", fmt.Errorf("writing config file: %w", err)
 	}
 

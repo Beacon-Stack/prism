@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -189,12 +190,49 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	return nil
 }
 
+// sensitivePathPrefixes lists path prefixes that content_path must never
+// overlap with. These are checked before any filesystem operations.
+var sensitivePathPrefixes = []string{
+	"/config",
+	"/etc",
+	"/proc",
+	"/sys",
+	"/dev",
+	"/run",
+	"/var",
+}
+
+// validateContentPath rejects paths that are not absolute, contain traversal
+// components after cleaning, or overlap with sensitive system directories.
+func validateContentPath(p string) error {
+	if p == "" {
+		return errors.New("empty content_path")
+	}
+	if !filepath.IsAbs(p) {
+		return fmt.Errorf("content_path must be absolute, got %q", p)
+	}
+	clean := filepath.Clean(p)
+	for _, prefix := range sensitivePathPrefixes {
+		if clean == prefix || strings.HasPrefix(clean, prefix+"/") {
+			return fmt.Errorf("content_path %q is within a restricted directory", clean)
+		}
+	}
+	// Also reject the Luminarr config directory if $HOME is resolvable.
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		configDir := filepath.Join(home, ".config", "luminarr")
+		if clean == configDir || strings.HasPrefix(clean, configDir+"/") {
+			return fmt.Errorf("content_path %q is within the Luminarr config directory", clean)
+		}
+	}
+	return nil
+}
+
 // resolveSourceFile returns the path to the video file to import.
 // If contentPath is a regular file, it is returned directly.
 // If it is a directory, the largest video file inside it is returned.
 func resolveSourceFile(contentPath string) (string, error) {
-	if contentPath == "" {
-		return "", errors.New("empty content_path")
+	if err := validateContentPath(contentPath); err != nil {
+		return "", err
 	}
 
 	info, err := os.Stat(contentPath)

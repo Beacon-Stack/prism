@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/subtle"
 	"log/slog"
 	"net/http"
 	"time"
@@ -54,6 +55,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// Global middleware — applied to every request including /health.
 	r.Use(chimiddleware.RequestID)
+	r.Use(middleware.SecurityHeaders)
+	r.Use(middleware.MaxRequestBodySize(1 << 20)) // 1 MiB max request body
 	r.Use(middleware.RequestLogger(cfg.Logger))
 	r.Use(middleware.Recovery(cfg.Logger))
 
@@ -64,10 +67,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Mount huma on the outer router so /api/docs and the OpenAPI spec are
-	// accessible without authentication (useful for exploration and tooling).
+	// Docs and OpenAPI spec are disabled — they expose the full API surface
+	// without authentication. Use the Go source or run locally with a client
+	// that supports OpenAPI to explore the API.
 	humaConfig := huma.DefaultConfig("Luminarr API", version.Version)
-	humaConfig.DocsPath = "/api/docs"
+	humaConfig.DocsPath = ""
 	humaConfig.Info.Description = "Luminarr movie collection manager API. " +
 		"All endpoints require the X-Api-Key header."
 
@@ -92,9 +96,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	// Auth is enforced via huma middleware, which runs only for registered
 	// operations — huma's own docs/spec routes are served directly on the chi
 	// router and are therefore unaffected.
-	apiKey := cfg.Auth.Value()
+	apiKeyBytes := []byte(cfg.Auth.Value())
 	humaAPI.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
-		if ctx.Header("X-Api-Key") != apiKey {
+		if subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKeyBytes) != 1 {
 			huma.WriteErr(humaAPI, ctx, http.StatusUnauthorized, "A valid X-Api-Key header is required.")
 			return
 		}

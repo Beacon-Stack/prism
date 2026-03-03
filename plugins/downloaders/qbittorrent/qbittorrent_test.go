@@ -3,6 +3,7 @@ package qbittorrent_test
 import (
 	"context"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"testing"
 
@@ -21,6 +22,13 @@ func newTestServer(t *testing.T, handlers map[string]http.HandlerFunc) *httptest
 	return httptest.NewServer(mux)
 }
 
+// newTestClient returns an http.Client that bypasses the SSRF-blocking safe
+// dialer so tests can connect to httptest.Server on 127.0.0.1.
+func newTestClient() *http.Client {
+	jar, _ := cookiejar.New(nil)
+	return &http.Client{Jar: jar}
+}
+
 func loginOK(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("Ok."))
@@ -28,12 +36,12 @@ func loginOK(w http.ResponseWriter, _ *http.Request) {
 
 func TestTest(t *testing.T) {
 	srv := newTestServer(t, map[string]http.HandlerFunc{
-		"/api/v2/auth/login":    loginOK,
-		"/api/v2/app/version":   func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("5.0.0")) },
+		"/api/v2/auth/login":  loginOK,
+		"/api/v2/app/version": func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("5.0.0")) },
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL, Username: "admin", Password: "pass"})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL, Username: "admin", Password: "pass"}, newTestClient())
 	if err := c.Test(context.Background()); err != nil {
 		t.Fatalf("Test() error: %v", err)
 	}
@@ -48,7 +56,7 @@ func TestTest_AuthFailure(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 	if err := c.Test(context.Background()); err == nil {
 		t.Fatal("expected auth failure error, got nil")
 	}
@@ -63,7 +71,7 @@ func TestAdd_MagnetLink(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 	id, err := c.Add(context.Background(), plugin.Release{DownloadURL: magnet})
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
@@ -87,7 +95,7 @@ func TestAdd_MagnetBase32Hash(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 	id, err := c.Add(context.Background(), plugin.Release{DownloadURL: magnet})
 	if err != nil {
 		t.Fatalf("Add() error: %v", err)
@@ -104,7 +112,7 @@ func TestGetQueue(t *testing.T) {
 	]`
 
 	srv := newTestServer(t, map[string]http.HandlerFunc{
-		"/api/v2/auth/login":  loginOK,
+		"/api/v2/auth/login": loginOK,
 		"/api/v2/torrents/info": func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(queueJSON))
@@ -112,7 +120,7 @@ func TestGetQueue(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 	items, err := c.GetQueue(context.Background())
 	if err != nil {
 		t.Fatalf("GetQueue() error: %v", err)
@@ -155,7 +163,7 @@ func TestStatus(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 	item, err := c.Status(context.Background(), "abc123")
 	if err != nil {
 		t.Fatalf("Status() error: %v", err)
@@ -181,7 +189,7 @@ func TestRemove(t *testing.T) {
 	})
 	defer srv.Close()
 
-	c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+	c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 	if err := c.Remove(context.Background(), "abc123", true); err != nil {
 		t.Fatalf("Remove() error: %v", err)
 	}
@@ -224,7 +232,7 @@ func TestStateMapping(t *testing.T) {
 			},
 		})
 
-		c := qbittorrent.New(qbittorrent.Config{URL: srv.URL})
+		c := qbittorrent.NewWithHTTPClient(qbittorrent.Config{URL: srv.URL}, newTestClient())
 		items, err := c.GetQueue(context.Background())
 		srv.Close()
 
