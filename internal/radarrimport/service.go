@@ -326,12 +326,12 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 			result.Errors = append(result.Errors, fmt.Sprintf("fetch movies: %v", err))
 		} else {
 			for _, m := range rdxMovies {
-				if m.TmdbId == 0 {
+				if m.TmdbID == 0 {
 					result.Movies.Skipped++
 					continue
 				}
 				// Map Radarr quality profile ID → Luminarr UUID.
-				profileID := profileIDMap[m.QualityProfileId]
+				profileID := profileIDMap[m.QualityProfileID]
 				if profileID == "" {
 					profileID = firstProfileID
 				}
@@ -346,11 +346,11 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 				}
 				if libID == "" {
 					result.Movies.Skipped++
-					result.Errors = append(result.Errors, fmt.Sprintf("movie %q (tmdb:%d): no library available", m.Title, m.TmdbId))
+					result.Errors = append(result.Errors, fmt.Sprintf("movie %q (tmdb:%d): no library available", m.Title, m.TmdbID))
 					continue
 				}
 				req := movie.AddRequest{
-					TMDBID:           m.TmdbId,
+					TMDBID:           m.TmdbID,
 					LibraryID:        libID,
 					QualityProfileID: profileID,
 					Monitored:        m.Monitored,
@@ -360,7 +360,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 						result.Movies.Skipped++
 					} else {
 						result.Movies.Failed++
-						result.Errors = append(result.Errors, fmt.Sprintf("movie %q (tmdb:%d): %v", m.Title, m.TmdbId, err))
+						result.Errors = append(result.Errors, fmt.Sprintf("movie %q (tmdb:%d): %v", m.Title, m.TmdbID, err))
 					}
 					continue
 				}

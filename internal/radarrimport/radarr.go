@@ -115,10 +115,10 @@ type radarrDownloadClient struct {
 
 type radarrMovie struct {
 	ID               int    `json:"id"`
-	TmdbId           int    `json:"tmdbId"`
+	TmdbID           int    `json:"tmdbId"`
 	Title            string `json:"title"`
 	Monitored        bool   `json:"monitored"`
-	QualityProfileId int    `json:"qualityProfileId"`
+	QualityProfileID int    `json:"qualityProfileId"`
 	RootFolderPath   string `json:"rootFolderPath"`
 }
 

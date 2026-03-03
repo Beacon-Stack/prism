@@ -240,7 +240,7 @@ func diskFreeBytes(path string) (uint64, error) {
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return 0, fmt.Errorf("statfs: %w", err)
 	}
-	return stat.Bavail * uint64(stat.Bsize), nil
+	return stat.Bavail * uint64(stat.Bsize), nil //nolint:gosec // G115: Bsize is always positive on Linux
 }
 
 // formatBytes returns a human-readable byte count (e.g. "1.2 GB").

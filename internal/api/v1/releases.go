@@ -56,10 +56,6 @@ type grabHistoryBody struct {
 	GrabbedAt        time.Time `json:"grabbed_at"`
 }
 
-type grabHistoryListOutput struct {
-	Body []*grabHistoryBody
-}
-
 // grabInput carries the release the client wants to grab.
 type grabInput struct {
 	MovieID string `path:"id"`

@@ -91,6 +91,9 @@ jobs:
     # Only build and push images on pushes to main (not PRs).
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, build]
+    permissions:
+      contents: read
+      packages: write  # required to push to ghcr.io
     steps:
       - uses: actions/checkout@v4
 

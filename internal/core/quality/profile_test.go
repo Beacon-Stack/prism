@@ -33,9 +33,6 @@ func q2160pWEB() plugin.Quality {
 	return plugin.Quality{Resolution: plugin.Resolution2160p, Source: plugin.SourceWEBDL, Codec: plugin.CodecX265}
 }
 
-func q2160pRemux() plugin.Quality {
-	return plugin.Quality{Resolution: plugin.Resolution2160p, Source: plugin.SourceRemux, Codec: plugin.CodecX265}
-}
 
 func ptr(q plugin.Quality) *plugin.Quality { return &q }
 

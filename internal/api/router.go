@@ -99,7 +99,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	apiKeyBytes := []byte(cfg.Auth.Value())
 	humaAPI.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		if subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKeyBytes) != 1 {
-			huma.WriteErr(humaAPI, ctx, http.StatusUnauthorized, "A valid X-Api-Key header is required.")
+			_ = huma.WriteErr(humaAPI, ctx, http.StatusUnauthorized, "A valid X-Api-Key header is required.")
 			return
 		}
 		next(ctx)

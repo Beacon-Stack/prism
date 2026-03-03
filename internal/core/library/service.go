@@ -274,7 +274,7 @@ func diskFree(path string) int64 {
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return -1
 	}
-	return int64(stat.Bfree) * int64(stat.Bsize)
+	return int64(stat.Bfree) * int64(stat.Bsize) //nolint:gosec // G115: disk free bytes fit well within int64 range
 }
 
 // marshalTags encodes a tag slice as a JSON array string. A nil or empty slice
