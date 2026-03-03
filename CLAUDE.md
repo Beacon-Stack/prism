@@ -16,6 +16,12 @@ reworking a wrong implementation.
 Fix the stated issue. Do not refactor surrounding code, add features, or "improve"
 things that were not mentioned. Scope creep breaks working code.
 
+### Commit and push after every logical unit of work.
+Do not batch unrelated changes into one large commit. Each commit should be a single
+coherent change: one migration, one service, one API handler, one frontend component.
+After every commit, push immediately. `make check` must pass before the push (the
+pre-push hook enforces this). Never accumulate a pile of uncommitted changes.
+
 ---
 
 ## Auth — the API key
