@@ -15,6 +15,7 @@ import NotificationList from "@/pages/settings/notifications/NotificationList";
 import ImportPage from "@/pages/settings/import/ImportPage";
 import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import HistoryPage from "@/pages/history/HistoryPage";
+import WantedPage from "@/pages/wanted/WantedPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="movies/:id" element={<ErrorBoundary><MovieDetail /></ErrorBoundary>} />
               <Route path="queue" element={<ErrorBoundary><Queue /></ErrorBoundary>} />
               <Route path="history" element={<ErrorBoundary><HistoryPage /></ErrorBoundary>} />
+              <Route path="wanted" element={<ErrorBoundary><WantedPage /></ErrorBoundary>} />
               <Route path="settings">
                 <Route path="libraries" element={<ErrorBoundary><LibraryList /></ErrorBoundary>} />
                 <Route path="quality-profiles" element={<ErrorBoundary><QualityProfileList /></ErrorBoundary>} />

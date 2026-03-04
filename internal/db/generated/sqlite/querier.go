@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	ClearBlocklist(ctx context.Context) error
 	CountBlocklist(ctx context.Context) (int64, error)
+	CountMonitoredMoviesWithoutFile(ctx context.Context) (int64, error)
 	CountMovies(ctx context.Context) (int64, error)
 	CountMoviesByLibrary(ctx context.Context, libraryID string) (int64, error)
 	CountMoviesInLibrary(ctx context.Context, libraryID string) (int64, error)
@@ -54,6 +55,8 @@ type Querier interface {
 	ListIndexerConfigs(ctx context.Context) ([]IndexerConfig, error)
 	ListLibraries(ctx context.Context) ([]Library, error)
 	ListMonitoredMovies(ctx context.Context) ([]Movie, error)
+	ListMonitoredMoviesWithFiles(ctx context.Context) ([]ListMonitoredMoviesWithFilesRow, error)
+	ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMonitoredMoviesWithoutFileParams) ([]Movie, error)
 	ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error)
 	ListMovieFilesByLibrary(ctx context.Context, libraryID string) ([]MovieFile, error)
 	ListMovies(ctx context.Context, arg ListMoviesParams) ([]Movie, error)

@@ -13,6 +13,7 @@ import {
   Server,
   ArrowDownToLine,
   Ban,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
   Activity,
@@ -30,6 +31,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { to: "/",        icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/wanted",  icon: Bookmark,        label: "Wanted" },
   { to: "/queue",   icon: Download,        label: "Queue" },
   { to: "/history", icon: History,         label: "History" },
 ];

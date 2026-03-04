@@ -112,3 +112,27 @@ ORDER BY mf.path ASC;
 
 -- name: GetMovieFileByPath :one
 SELECT * FROM movie_files WHERE path = ?;
+
+-- name: ListMonitoredMoviesWithoutFile :many
+SELECT m.*
+FROM movies m
+LEFT JOIN movie_files mf ON mf.movie_id = m.id
+WHERE m.monitored = 1
+  AND mf.id IS NULL
+ORDER BY m.title ASC
+LIMIT ? OFFSET ?;
+
+-- name: CountMonitoredMoviesWithoutFile :one
+SELECT COUNT(*)
+FROM movies m
+LEFT JOIN movie_files mf ON mf.movie_id = m.id
+WHERE m.monitored = 1
+  AND mf.id IS NULL;
+
+-- name: ListMonitoredMoviesWithFiles :many
+SELECT m.*, mf.quality_json, qp.cutoff_json
+FROM movies m
+JOIN movie_files mf ON mf.movie_id = m.id
+JOIN quality_profiles qp ON qp.id = m.quality_profile_id
+WHERE m.monitored = 1
+ORDER BY m.title ASC;

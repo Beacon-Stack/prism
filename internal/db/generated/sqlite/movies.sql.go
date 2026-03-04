@@ -9,6 +9,21 @@ import (
 	"context"
 )
 
+const countMonitoredMoviesWithoutFile = `-- name: CountMonitoredMoviesWithoutFile :one
+SELECT COUNT(*)
+FROM movies m
+LEFT JOIN movie_files mf ON mf.movie_id = m.id
+WHERE m.monitored = 1
+  AND mf.id IS NULL
+`
+
+func (q *Queries) CountMonitoredMoviesWithoutFile(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countMonitoredMoviesWithoutFile)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countMovies = `-- name: CountMovies :one
 SELECT COUNT(*) FROM movies
 `
@@ -299,6 +314,145 @@ ORDER BY title ASC
 
 func (q *Queries) ListMonitoredMovies(ctx context.Context) ([]Movie, error) {
 	rows, err := q.db.QueryContext(ctx, listMonitoredMovies)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Movie
+	for rows.Next() {
+		var i Movie
+		if err := rows.Scan(
+			&i.ID,
+			&i.TmdbID,
+			&i.ImdbID,
+			&i.Title,
+			&i.OriginalTitle,
+			&i.Year,
+			&i.Overview,
+			&i.RuntimeMinutes,
+			&i.GenresJson,
+			&i.PosterUrl,
+			&i.FanartUrl,
+			&i.Status,
+			&i.Monitored,
+			&i.LibraryID,
+			&i.QualityProfileID,
+			&i.Path,
+			&i.AddedAt,
+			&i.UpdatedAt,
+			&i.MetadataRefreshedAt,
+			&i.MinimumAvailability,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMonitoredMoviesWithFiles = `-- name: ListMonitoredMoviesWithFiles :many
+SELECT m.id, m.tmdb_id, m.imdb_id, m.title, m.original_title, m.year, m.overview, m.runtime_minutes, m.genres_json, m.poster_url, m.fanart_url, m.status, m.monitored, m.library_id, m.quality_profile_id, m.path, m.added_at, m.updated_at, m.metadata_refreshed_at, m.minimum_availability, mf.quality_json, qp.cutoff_json
+FROM movies m
+JOIN movie_files mf ON mf.movie_id = m.id
+JOIN quality_profiles qp ON qp.id = m.quality_profile_id
+WHERE m.monitored = 1
+ORDER BY m.title ASC
+`
+
+type ListMonitoredMoviesWithFilesRow struct {
+	ID                  string  `json:"id"`
+	TmdbID              int64   `json:"tmdbId"`
+	ImdbID              *string `json:"imdbId"`
+	Title               string  `json:"title"`
+	OriginalTitle       string  `json:"originalTitle"`
+	Year                int64   `json:"year"`
+	Overview            string  `json:"overview"`
+	RuntimeMinutes      *int64  `json:"runtimeMinutes"`
+	GenresJson          string  `json:"genresJson"`
+	PosterUrl           *string `json:"posterUrl"`
+	FanartUrl           *string `json:"fanartUrl"`
+	Status              string  `json:"status"`
+	Monitored           int64   `json:"monitored"`
+	LibraryID           string  `json:"libraryId"`
+	QualityProfileID    string  `json:"qualityProfileId"`
+	Path                *string `json:"path"`
+	AddedAt             string  `json:"addedAt"`
+	UpdatedAt           string  `json:"updatedAt"`
+	MetadataRefreshedAt *string `json:"metadataRefreshedAt"`
+	MinimumAvailability string  `json:"minimumAvailability"`
+	QualityJson         string  `json:"qualityJson"`
+	CutoffJson          string  `json:"cutoffJson"`
+}
+
+func (q *Queries) ListMonitoredMoviesWithFiles(ctx context.Context) ([]ListMonitoredMoviesWithFilesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMonitoredMoviesWithFiles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMonitoredMoviesWithFilesRow
+	for rows.Next() {
+		var i ListMonitoredMoviesWithFilesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.TmdbID,
+			&i.ImdbID,
+			&i.Title,
+			&i.OriginalTitle,
+			&i.Year,
+			&i.Overview,
+			&i.RuntimeMinutes,
+			&i.GenresJson,
+			&i.PosterUrl,
+			&i.FanartUrl,
+			&i.Status,
+			&i.Monitored,
+			&i.LibraryID,
+			&i.QualityProfileID,
+			&i.Path,
+			&i.AddedAt,
+			&i.UpdatedAt,
+			&i.MetadataRefreshedAt,
+			&i.MinimumAvailability,
+			&i.QualityJson,
+			&i.CutoffJson,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMonitoredMoviesWithoutFile = `-- name: ListMonitoredMoviesWithoutFile :many
+SELECT m.id, m.tmdb_id, m.imdb_id, m.title, m.original_title, m.year, m.overview, m.runtime_minutes, m.genres_json, m.poster_url, m.fanart_url, m.status, m.monitored, m.library_id, m.quality_profile_id, m.path, m.added_at, m.updated_at, m.metadata_refreshed_at, m.minimum_availability
+FROM movies m
+LEFT JOIN movie_files mf ON mf.movie_id = m.id
+WHERE m.monitored = 1
+  AND mf.id IS NULL
+ORDER BY m.title ASC
+LIMIT ? OFFSET ?
+`
+
+type ListMonitoredMoviesWithoutFileParams struct {
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
+}
+
+func (q *Queries) ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMonitoredMoviesWithoutFileParams) ([]Movie, error) {
+	rows, err := q.db.QueryContext(ctx, listMonitoredMoviesWithoutFile, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
