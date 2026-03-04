@@ -104,6 +104,21 @@ func (q *Queries) ListUnmatchedLibraryFileCandidates(ctx context.Context, librar
 	return items, nil
 }
 
+const pruneStaleLibraryFileCandidates = `-- name: PruneStaleLibraryFileCandidates :exec
+DELETE FROM library_file_candidates WHERE library_id = ? AND scanned_at < ?
+`
+
+type PruneStaleLibraryFileCandidatesParams struct {
+	LibraryID string `json:"libraryId"`
+	ScannedAt string `json:"scannedAt"`
+}
+
+// Removes candidates that were not seen in the current scan (scanned_at < cutoff).
+func (q *Queries) PruneStaleLibraryFileCandidates(ctx context.Context, arg PruneStaleLibraryFileCandidatesParams) error {
+	_, err := q.db.ExecContext(ctx, pruneStaleLibraryFileCandidates, arg.LibraryID, arg.ScannedAt)
+	return err
+}
+
 const setLibraryFileCandidateMatch = `-- name: SetLibraryFileCandidateMatch :exec
 UPDATE library_file_candidates
 SET tmdb_id             = ?,

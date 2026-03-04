@@ -25,3 +25,7 @@ WHERE library_id = ? AND tmdb_id = 0 AND parsed_year > 0 AND parsed_title != '';
 
 -- name: DeleteLibraryFileCandidate :exec
 DELETE FROM library_file_candidates WHERE library_id = ? AND file_path = ?;
+
+-- name: PruneStaleLibraryFileCandidates :exec
+-- Removes candidates that were not seen in the current scan (scanned_at < cutoff).
+DELETE FROM library_file_candidates WHERE library_id = ? AND scanned_at < ?;

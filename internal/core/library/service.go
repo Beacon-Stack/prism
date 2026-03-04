@@ -280,6 +280,13 @@ func (s *Service) ScanDisk(ctx context.Context, libraryID string) ([]DiskFile, e
 		})
 	}
 
+	// Remove candidates not seen in this scan (e.g. deleted files, #recycle paths
+	// that were scanned before the directory-skip fix was applied).
+	_ = s.q.PruneStaleLibraryFileCandidates(ctx, dbsqlite.PruneStaleLibraryFileCandidatesParams{
+		LibraryID: libraryID,
+		ScannedAt: now,
+	})
+
 	// Fetch stored TMDB matches and attach them to the returned files.
 	candidates, _ := s.q.ListLibraryFileCandidates(ctx, libraryID)
 	matchMap := make(map[string]dbsqlite.LibraryFileCandidate, len(candidates))
