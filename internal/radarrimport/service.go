@@ -207,7 +207,23 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("fetch quality profiles: %v", err))
 		} else {
+			// Build a name→ID map of existing profiles to avoid duplicates.
+			existingProfiles := map[string]string{}
+			if existing, err := s.qualities.List(ctx); err == nil {
+				for _, e := range existing {
+					existingProfiles[e.Name] = e.ID
+				}
+			}
 			for _, p := range profiles {
+				if existingID, exists := existingProfiles[p.Name]; exists {
+					// Profile already present — reuse its ID for the movie mapping.
+					profileIDMap[p.ID] = existingID
+					if firstProfileID == "" {
+						firstProfileID = existingID
+					}
+					result.QualityProfiles.Skipped++
+					continue
+				}
 				req := mapProfile(p)
 				created, err := s.qualities.Create(ctx, req)
 				if err != nil {
