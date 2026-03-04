@@ -22,7 +22,7 @@ func SeedQualityProfile(t *testing.T, q *dbsqlite.Queries) dbsqlite.QualityProfi
 
 	row, err := q.CreateQualityProfile(ctx, dbsqlite.CreateQualityProfileParams{
 		ID:             uuid.New().String(),
-		Name:           "Test HD",
+		Name:           "Test HD " + uuid.New().String()[:8],
 		CutoffJson:     cutoff,
 		QualitiesJson:  qualities,
 		UpgradeAllowed: 0,
