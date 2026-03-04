@@ -8,6 +8,7 @@ import {
   Library,
   Settings2,
   SlidersHorizontal,
+  Gauge,
   Search,
   Bell,
   Server,
@@ -40,7 +41,8 @@ const mainNav: NavItem[] = [
 
 const settingsNav: NavItem[] = [
   { to: "/settings/libraries",         icon: Library,          label: "Libraries" },
-  { to: "/settings/quality-profiles",  icon: SlidersHorizontal,label: "Quality Profiles" },
+  { to: "/settings/quality-profiles",   icon: SlidersHorizontal, label: "Quality Profiles" },
+  { to: "/settings/quality-definitions", icon: Gauge,           label: "Quality Definitions" },
   { to: "/settings/indexers",          icon: Search,           label: "Indexers" },
   { to: "/settings/download-clients",  icon: Settings2,        label: "Download Clients" },
   { to: "/settings/notifications",     icon: Bell,             label: "Notifications" },

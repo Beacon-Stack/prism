@@ -33,26 +33,27 @@ import (
 
 // RouterConfig holds everything the router needs to function.
 type RouterConfig struct {
-	Auth                config.Secret
-	Logger              *slog.Logger
-	StartTime           time.Time
-	DB                  *sql.DB
-	DBType              string
-	DBPath              string
-	ConfigFile          string
-	AIEnabled           bool
-	QualityService      *quality.Service
-	LibraryService      *library.Service
-	MovieService        *movie.Service
-	IndexerService      *indexer.Service
-	DownloaderService   *downloader.Service
-	BlocklistService    *blocklist.Service
-	QueueService        *queue.Service
-	Scheduler           *scheduler.Scheduler
-	NotificationService *notification.Service
-	HealthService       *health.Service
-	RadarrImportService *radarrimport.Service
-	WSHub               *ws.Hub
+	Auth                     config.Secret
+	Logger                   *slog.Logger
+	StartTime                time.Time
+	DB                       *sql.DB
+	DBType                   string
+	DBPath                   string
+	ConfigFile               string
+	AIEnabled                bool
+	QualityService           *quality.Service
+	QualityDefinitionService *quality.DefinitionService
+	LibraryService           *library.Service
+	MovieService             *movie.Service
+	IndexerService           *indexer.Service
+	DownloaderService        *downloader.Service
+	BlocklistService         *blocklist.Service
+	QueueService             *queue.Service
+	Scheduler                *scheduler.Scheduler
+	NotificationService      *notification.Service
+	HealthService            *health.Service
+	RadarrImportService      *radarrimport.Service
+	WSHub                    *ws.Hub
 }
 
 // NewRouter builds and returns the application HTTP handler.
@@ -139,6 +140,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.QualityService != nil {
 		v1.RegisterQualityProfileRoutes(humaAPI, cfg.QualityService)
+	}
+
+	if cfg.QualityDefinitionService != nil {
+		v1.RegisterQualityDefinitionRoutes(humaAPI, cfg.QualityDefinitionService)
 	}
 
 	if cfg.LibraryService != nil {

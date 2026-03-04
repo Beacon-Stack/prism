@@ -210,6 +210,7 @@ func run() error {
 	queries := dbsqlite.New(database.SQL)
 
 	qualitySvc := quality.NewService(queries, bus)
+	qualityDefSvc := quality.NewDefinitionService(queries)
 	librarySvc := library.NewService(queries, bus)
 
 	var tmdbClient movie.MetadataProvider
@@ -244,26 +245,27 @@ func run() error {
 	// ── HTTP router ───────────────────────────────────────────────────────────
 	startTime := time.Now()
 	router := api.NewRouter(api.RouterConfig{
-		Auth:                cfg.Auth.APIKey,
-		Logger:              logger,
-		StartTime:           startTime,
-		DB:                  database.SQL,
-		DBType:              database.Driver,
-		DBPath:              cfg.Database.Path,
-		ConfigFile:          cfg.ConfigFile,
-		AIEnabled:           !cfg.AI.APIKey.IsEmpty(),
-		QualityService:      qualitySvc,
-		LibraryService:      librarySvc,
-		MovieService:        movieSvc,
-		IndexerService:      indexerSvc,
-		DownloaderService:   downloaderSvc,
-		BlocklistService:    blocklistSvc,
-		QueueService:        queueSvc,
-		Scheduler:           sched,
-		NotificationService: notifSvc,
-		HealthService:       healthSvc,
-		RadarrImportService: radarrImportSvc,
-		WSHub:               wsHub,
+		Auth:                     cfg.Auth.APIKey,
+		Logger:                   logger,
+		StartTime:                startTime,
+		DB:                       database.SQL,
+		DBType:                   database.Driver,
+		DBPath:                   cfg.Database.Path,
+		ConfigFile:               cfg.ConfigFile,
+		AIEnabled:                !cfg.AI.APIKey.IsEmpty(),
+		QualityService:           qualitySvc,
+		QualityDefinitionService: qualityDefSvc,
+		LibraryService:           librarySvc,
+		MovieService:             movieSvc,
+		IndexerService:           indexerSvc,
+		DownloaderService:        downloaderSvc,
+		BlocklistService:         blocklistSvc,
+		QueueService:             queueSvc,
+		Scheduler:                sched,
+		NotificationService:      notifSvc,
+		HealthService:            healthSvc,
+		RadarrImportService:      radarrImportSvc,
+		WSHub:                    wsHub,
 	})
 
 	// ── HTTP server ───────────────────────────────────────────────────────────

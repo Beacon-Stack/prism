@@ -9,6 +9,7 @@ import Queue from "@/pages/queue/Queue";
 import SystemPage from "@/pages/settings/system/SystemPage";
 import LibraryList from "@/pages/settings/libraries/LibraryList";
 import QualityProfileList from "@/pages/settings/quality-profiles/QualityProfileList";
+import QualityDefinitionsPage from "@/pages/settings/quality-definitions/QualityDefinitionsPage";
 import IndexerList from "@/pages/settings/indexers/IndexerList";
 import DownloadClientList from "@/pages/settings/download-clients/DownloadClientList";
 import NotificationList from "@/pages/settings/notifications/NotificationList";
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="settings">
                 <Route path="libraries" element={<ErrorBoundary><LibraryList /></ErrorBoundary>} />
                 <Route path="quality-profiles" element={<ErrorBoundary><QualityProfileList /></ErrorBoundary>} />
+                <Route path="quality-definitions" element={<ErrorBoundary><QualityDefinitionsPage /></ErrorBoundary>} />
                 <Route path="indexers" element={<ErrorBoundary><IndexerList /></ErrorBoundary>} />
                 <Route path="download-clients" element={<ErrorBoundary><DownloadClientList /></ErrorBoundary>} />
                 <Route path="notifications" element={<ErrorBoundary><NotificationList /></ErrorBoundary>} />

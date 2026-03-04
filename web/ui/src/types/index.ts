@@ -202,6 +202,26 @@ export interface QualityProfileRequest {
   upgrade_until?: Quality;
 }
 
+// ── Quality Definitions ────────────────────────────────────────────────────
+
+export interface QualityDefinition {
+  id: string;
+  name: string;
+  resolution: string;
+  source: string;
+  codec: string;
+  hdr: string;
+  min_size: number; // MB per minute (0 = no minimum)
+  max_size: number; // MB per minute (0 = no limit)
+  sort_order: number;
+}
+
+export interface QualityDefinitionUpdate {
+  id: string;
+  min_size: number;
+  max_size: number;
+}
+
 // ── Indexers ───────────────────────────────────────────────────────────────
 
 export interface IndexerConfig {

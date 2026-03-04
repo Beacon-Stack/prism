@@ -119,6 +119,18 @@ type NotificationConfig struct {
 	UpdatedAt string `json:"updatedAt"`
 }
 
+type QualityDefinition struct {
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	Resolution string  `json:"resolution"`
+	Source     string  `json:"source"`
+	Codec      string  `json:"codec"`
+	Hdr        string  `json:"hdr"`
+	MinSize    float64 `json:"minSize"`
+	MaxSize    float64 `json:"maxSize"`
+	SortOrder  int64   `json:"sortOrder"`
+}
+
 type QualityProfile struct {
 	ID               string  `json:"id"`
 	Name             string  `json:"name"`
