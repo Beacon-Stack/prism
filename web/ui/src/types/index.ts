@@ -89,6 +89,20 @@ export interface TMDBResult {
   popularity: number;
 }
 
+export interface ScoreDimension {
+  name: string;
+  score: number;
+  max: number;
+  matched: boolean;
+  got: string;
+  want: string;
+}
+
+export interface ScoreBreakdown {
+  total: number;
+  dimensions: ScoreDimension[];
+}
+
 export interface Release {
   guid: string;
   title: string;
@@ -102,6 +116,7 @@ export interface Release {
   age_days?: number;
   quality: Quality;
   quality_score: number;
+  score_breakdown?: ScoreBreakdown;
 }
 
 export interface GrabHistory {
@@ -118,6 +133,7 @@ export interface GrabHistory {
   client_item_id?: string;
   download_status: string;
   grabbed_at: string;
+  score_breakdown?: ScoreBreakdown;
 }
 
 export interface RenamePreviewItem {
