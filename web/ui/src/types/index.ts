@@ -305,6 +305,19 @@ export interface BlocklistPage {
   per_page: number;
 }
 
+// ── Filesystem browser ─────────────────────────────────────────────────────
+
+export interface FsDirEntry {
+  name: string;
+  path: string;
+}
+
+export interface FsBrowseResult {
+  path: string;
+  parent: string | null;
+  dirs: FsDirEntry[];
+}
+
 // ── Radarr import ──────────────────────────────────────────────────────────
 
 export interface RadarrPreviewResult {

@@ -10,6 +10,7 @@ import {
 } from "@/api/libraries";
 import { useLookupMovies } from "@/api/movies";
 import { useQualityProfiles } from "@/api/quality-profiles";
+import { DirPicker } from "@/components/DirPicker";
 import type { Library, LibraryRequest, DiskFile, TMDBResult } from "@/types";
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
     editing ? libraryToForm(editing) : emptyForm()
   );
   const [error, setError] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const { data: profiles } = useQualityProfiles();
   const createLib = useCreateLibrary();
@@ -185,14 +187,36 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
 
           <div style={fieldStyle}>
             <label style={labelStyle}>Root Path *</label>
-            <input
-              style={{ ...inputStyle, fontFamily: "var(--font-family-mono)", fontSize: 12 }}
-              value={form.root_path}
-              onChange={(e) => set("root_path", e.currentTarget.value)}
-              onFocus={onInputFocus}
-              onBlur={onInputBlur}
-              placeholder="/data/movies"
-            />
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                style={{ ...inputStyle, fontFamily: "var(--font-family-mono)", fontSize: 12, flex: 1 }}
+                value={form.root_path}
+                onChange={(e) => set("root_path", e.currentTarget.value)}
+                onFocus={onInputFocus}
+                onBlur={onInputBlur}
+                placeholder="/data/movies"
+              />
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                title="Browse for folder"
+                style={{
+                  flexShrink: 0,
+                  background: "var(--color-bg-elevated)",
+                  border: "1px solid var(--color-border-default)",
+                  borderRadius: 6,
+                  padding: "0 12px",
+                  fontSize: 13,
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-default)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)"; }}
+              >
+                Browse…
+              </button>
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -274,6 +298,14 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
           </button>
         </div>
       </div>
+
+      <DirPicker
+        key={pickerOpen ? "open" : "closed"}
+        open={pickerOpen}
+        value={form.root_path}
+        onSelect={(path) => set("root_path", path)}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 }

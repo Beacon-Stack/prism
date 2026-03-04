@@ -165,6 +165,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		v1.RegisterImportRoutes(humaAPI, cfg.RadarrImportService)
 	}
 
+	v1.RegisterFilesystemRoutes(humaAPI)
+
 	// Serve the embedded React SPA. This handler serves static files when they
 	// exist (assets, favicon, etc.) and falls back to index.html for all other
 	// paths so React Router can handle client-side navigation. Must come after
