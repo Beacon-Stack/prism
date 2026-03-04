@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   useMovieHistory,
   useMatchMovie,
   useLookupMovies,
+  useMovieSuggestions,
   type GrabReleaseRequest,
 } from "@/api/movies";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
@@ -521,18 +522,36 @@ function HistoryTab({ movieId }: { movieId: string }) {
 // ── Match to TMDB banner ────────────────────────────────────────────────────────
 
 function MatchTMDBBanner({ movieId }: { movieId: string }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<TMDBResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [manualResults, setManualResults] = useState<TMDBResult[] | null>(null);
+
+  const suggestions = useMovieSuggestions(movieId, open);
   const lookup = useLookupMovies();
   const match = useMatchMovie();
+
+  // When the panel opens, pre-fill the query with the parsed title.
+  useEffect(() => {
+    if (open && suggestions.data) {
+      setQuery(suggestions.data.parsed_title);
+    }
+  }, [open, suggestions.data]);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
     const r = await lookup.mutateAsync({ query: query.trim() });
-    setResults(r.slice(0, 8));
+    setManualResults(r.slice(0, 8));
   }
+
+  function handleClose() {
+    setOpen(false);
+    setManualResults(null);
+    setQuery("");
+  }
+
+  // Show manual results if the user has searched; otherwise show auto-suggestions.
+  const displayResults: TMDBResult[] = manualResults ?? suggestions.data?.results ?? [];
 
   function handleSelect(r: TMDBResult) {
     match.mutate({ id: movieId, tmdb_id: r.tmdb_id });
@@ -580,6 +599,13 @@ function MatchTMDBBanner({ movieId }: { movieId: string }) {
 
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {suggestions.data && (
+            <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
+              Parsed from filename: <strong>{suggestions.data.parsed_title}</strong>
+              {suggestions.data.parsed_year > 0 && <> ({suggestions.data.parsed_year})</>}
+            </p>
+          )}
+
           <form onSubmit={handleSearch} style={{ display: "flex", gap: 6 }}>
             <input
               autoFocus
@@ -608,14 +634,18 @@ function MatchTMDBBanner({ movieId }: { movieId: string }) {
             </button>
             <button
               type="button"
-              onClick={() => { setOpen(false); setResults([]); }}
+              onClick={handleClose}
               style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}
             >
               Cancel
             </button>
           </form>
 
-          {results.length > 0 && (
+          {suggestions.isLoading && (
+            <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>Looking up suggestions…</p>
+          )}
+
+          {displayResults.length > 0 && (
             <div
               style={{
                 background: "var(--color-bg-elevated)",
@@ -624,7 +654,7 @@ function MatchTMDBBanner({ movieId }: { movieId: string }) {
                 overflow: "hidden",
               }}
             >
-              {results.map((r) => (
+              {displayResults.map((r) => (
                 <button
                   key={r.tmdb_id}
                   onClick={() => handleSelect(r)}

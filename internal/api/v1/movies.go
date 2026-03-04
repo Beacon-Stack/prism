@@ -95,6 +95,17 @@ type movieLookupOutput struct {
 	Body []*searchResultBody
 }
 
+// Suggestions output — parsed filename + ranked TMDB candidates.
+type movieSuggestionsOutput struct {
+	Body *movieSuggestionsBody
+}
+
+type movieSuggestionsBody struct {
+	ParsedTitle string              `json:"parsed_title" doc:"Title extracted from the filename"`
+	ParsedYear  int                 `json:"parsed_year"  doc:"Year extracted from the filename; 0 if not found"`
+	Results     []*searchResultBody `json:"results"      doc:"TMDB search results, ranked by relevance"`
+}
+
 // 204 No Content.
 type movieDeleteOutput struct{}
 
@@ -374,6 +385,36 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service) {
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to refresh metadata", err)
 		}
 		return &movieRefreshOutput{Body: &movieRefreshBody{Message: "metadata refresh queued"}}, nil
+	})
+
+	// GET /api/v1/movies/{id}/suggestions
+	huma.Register(api, huma.Operation{
+		OperationID: "suggest-movie-matches",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/movies/{id}/suggestions",
+		Summary:     "Auto-suggest TMDB matches for an unmatched movie",
+		Description: "Parses the stored filename, searches TMDB, and returns ranked candidates.",
+		Tags:        []string{"Movies"},
+	}, func(ctx context.Context, input *getMovieInput) (*movieSuggestionsOutput, error) {
+		results, parsed, err := svc.SuggestMatches(ctx, input.ID)
+		if err != nil {
+			if errors.Is(err, movie.ErrNotFound) {
+				return nil, huma.Error404NotFound("movie not found")
+			}
+			if errors.Is(err, movie.ErrTMDBNotConfigured) {
+				return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB API key not configured")
+			}
+			return nil, huma.NewError(http.StatusInternalServerError, "failed to suggest matches", err)
+		}
+		bodies := make([]*searchResultBody, len(results))
+		for i, r := range results {
+			bodies[i] = searchResultToBody(r)
+		}
+		return &movieSuggestionsOutput{Body: &movieSuggestionsBody{
+			ParsedTitle: parsed.Title,
+			ParsedYear:  parsed.Year,
+			Results:     bodies,
+		}}, nil
 	})
 
 	// POST /api/v1/movies/{id}/match

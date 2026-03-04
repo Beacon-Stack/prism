@@ -608,6 +608,35 @@ func (s *Service) Lookup(ctx context.Context, req LookupRequest) ([]tmdb.SearchR
 	return results, nil
 }
 
+// SuggestMatches parses the stored filename/title of an unmatched movie,
+// searches TMDB with the extracted title and year, and returns ranked results.
+// Returns ErrNotFound if the movie does not exist.
+// Returns ErrTMDBNotConfigured if no metadata provider is wired up.
+func (s *Service) SuggestMatches(ctx context.Context, id string) ([]tmdb.SearchResult, ParsedFilename, error) {
+	m, err := s.Get(ctx, id)
+	if err != nil {
+		return nil, ParsedFilename{}, err
+	}
+
+	meta := s.provider()
+	if meta == nil {
+		return nil, ParsedFilename{}, ErrTMDBNotConfigured
+	}
+
+	// Use the file path if available (richer signal); fall back to stored title.
+	source := m.Title
+	if m.Path != "" {
+		source = m.Path
+	}
+	parsed := ParseFilename(source)
+
+	results, err := meta.SearchMovies(ctx, parsed.Title, parsed.Year)
+	if err != nil {
+		return nil, parsed, fmt.Errorf("searching TMDB: %w", err)
+	}
+	return results, parsed, nil
+}
+
 // RefreshMetadata re-fetches TMDB data and updates the movie record in place.
 // Returns ErrNotFound if the movie does not exist.
 // Returns ErrTMDBNotConfigured if no metadata provider is wired up.

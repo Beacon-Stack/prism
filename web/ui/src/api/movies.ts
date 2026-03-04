@@ -164,6 +164,20 @@ export function useMatchMovie() {
   });
 }
 
+export interface MovieSuggestions {
+  parsed_title: string;
+  parsed_year: number;
+  results: TMDBResult[];
+}
+
+export function useMovieSuggestions(movieId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["movies", movieId, "suggestions"],
+    queryFn: () => apiFetch<MovieSuggestions>(`/movies/${movieId}/suggestions`),
+    enabled: enabled && !!movieId,
+  });
+}
+
 export function useMovieHistory(movieId: string) {
   return useQuery({
     queryKey: ["movies", movieId, "history"],
