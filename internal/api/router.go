@@ -22,6 +22,7 @@ import (
 	"github.com/davidfic/luminarr/internal/core/health"
 	"github.com/davidfic/luminarr/internal/core/indexer"
 	"github.com/davidfic/luminarr/internal/core/library"
+	"github.com/davidfic/luminarr/internal/core/mediainfo"
 	"github.com/davidfic/luminarr/internal/core/mediamanagement"
 	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/core/notification"
@@ -59,6 +60,7 @@ type RouterConfig struct {
 	DownloadHandlingService  *downloadhandling.Service
 	RadarrImportService      *radarrimport.Service
 	StatsService             *stats.Service
+	MediaInfoService         *mediainfo.Service
 	WSHub                    *ws.Hub
 }
 
@@ -158,9 +160,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.MovieService != nil {
 		v1.RegisterMovieRoutes(humaAPI, cfg.MovieService)
-		v1.RegisterMovieFileRoutes(humaAPI, cfg.MovieService, cfg.MediaManagementService)
+		v1.RegisterMovieFileRoutes(humaAPI, cfg.MovieService, cfg.MediaManagementService, cfg.MediaInfoService)
 		v1.RegisterWantedRoutes(humaAPI, cfg.MovieService)
 	}
+
+	v1.RegisterMediainfoRoutes(humaAPI, cfg.MediaInfoService)
 
 	if cfg.IndexerService != nil {
 		v1.RegisterIndexerRoutes(humaAPI, cfg.IndexerService)

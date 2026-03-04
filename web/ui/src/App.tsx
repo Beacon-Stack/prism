@@ -16,6 +16,7 @@ import NotificationList from "@/pages/settings/notifications/NotificationList";
 import ImportPage from "@/pages/settings/import/ImportPage";
 import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import MediaManagementPage from "@/pages/settings/media-management/MediaManagementPage";
+import MediaScanningPage from "@/pages/settings/media-scanning/MediaScanningPage";
 import HistoryPage from "@/pages/history/HistoryPage";
 import WantedPage from "@/pages/wanted/WantedPage";
 import CalendarPage from "@/pages/calendar/CalendarPage";
@@ -53,6 +54,7 @@ export default function App() {
                 <Route path="notifications" element={<ErrorBoundary><NotificationList /></ErrorBoundary>} />
                 <Route path="blocklist" element={<ErrorBoundary><BlocklistPage /></ErrorBoundary>} />
                 <Route path="media-management" element={<ErrorBoundary><MediaManagementPage /></ErrorBoundary>} />
+                <Route path="media-scanning" element={<ErrorBoundary><MediaScanningPage /></ErrorBoundary>} />
                 <Route path="system" element={<ErrorBoundary><SystemPage /></ErrorBoundary>} />
                 <Route path="import" element={<ErrorBoundary><ImportPage /></ErrorBoundary>} />
               </Route>

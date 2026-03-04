@@ -1,0 +1,42 @@
+# ── Build stage ───────────────────────────────────────────────────────────────
+FROM golang:1.25-alpine AS builder
+
+ARG VERSION=dev
+ARG BUILD_TIME=unknown
+
+WORKDIR /app
+
+# Download dependencies first (cached unless go.mod/go.sum change)
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# modernc/sqlite is pure Go — CGO_ENABLED=0 produces a fully static binary.
+RUN CGO_ENABLED=0 GOOS=linux go build \
+      -ldflags "-X github.com/davidfic/luminarr/internal/version.Version=${VERSION} \
+                -X github.com/davidfic/luminarr/internal/version.BuildTime=${BUILD_TIME} \
+                -s -w" \
+      -o /luminarr ./cmd/luminarr
+
+# ── Final stage ───────────────────────────────────────────────────────────────
+# alpine:3.21 with ffmpeg (which includes ffprobe). Larger than the scratch
+# image but enables media scanning without any host-side setup.
+FROM alpine:3.21
+
+# ffmpeg pulls in ffprobe. ca-certificates is needed for outbound HTTPS.
+# tzdata provides timezone data for correct time display.
+RUN apk add --no-cache ffmpeg ca-certificates tzdata && \
+    adduser -D -u 1000 luminarr
+
+# The binary
+COPY --from=builder /luminarr /luminarr
+
+# Default data directory (mount a volume here in production)
+VOLUME ["/config"]
+
+EXPOSE 8282
+
+USER luminarr
+
+ENTRYPOINT ["/luminarr"]

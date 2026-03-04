@@ -164,6 +164,8 @@ Metadata, poster, cast, and the grab controls. The **Manual Search** button sear
 Lists every file attached to the movie. From here you can:
 - **Delete** a file record from the database only, or delete it from disk as well
 - **Rename** files to Luminarr's standard format: `Title (Year) Quality.ext` — preview changes before committing
+- **View actual codec/HDR metadata** (if ffprobe is configured) — the "Actual" row shows what the container really contains, with a ⚠ Mismatch badge when the filename claims a different quality than the file
+- **Re-scan** a file with ffprobe using the ↻ Scan button (visible when media scanning is available)
 
 ### History
 
@@ -214,6 +216,69 @@ Radarr keeps running during import. Switch over when you're ready.
 
 ---
 
+## Media Scanning with ffprobe (optional) {#ffprobe-optional}
+
+Luminarr can verify the **actual** technical metadata of imported files using `ffprobe` — codec, resolution, HDR format, audio. It catches mislabelled releases: a file named `Movie.2160p.x265.HDR10.mkv` might actually contain `x264 SDR`.
+
+### Install ffprobe
+
+`ffprobe` is part of the `ffmpeg` package.
+
+**Linux (Debian/Ubuntu):**
+```bash
+sudo apt install ffmpeg
+```
+
+**macOS (Homebrew):**
+```bash
+brew install ffmpeg
+```
+
+**Arch/Manjaro:**
+```bash
+sudo pacman -S ffmpeg
+```
+
+**Windows:** Not officially supported yet. Advanced users can set `LUMINARR_MEDIAINFO_FFPROBE_PATH` to a full path.
+
+### Docker: use the `latest-full` image
+
+The standard `latest` image is built from scratch and has no shell or extra binaries. To include ffprobe, use the `latest-full` variant:
+
+```yaml
+services:
+  luminarr:
+    image: ghcr.io/davidfic/luminarr:latest-full   # ← change this line
+    ports:
+      - "8282:8282"
+    environment:
+      LUMINARR_TMDB_API_KEY: your-tmdb-key
+    volumes:
+      - luminarr-data:/config
+      - /path/to/movies:/movies
+    restart: unless-stopped
+```
+
+The `latest-full` image is Alpine-based with `ffmpeg` included. It's larger (~80 MB vs ~20 MB) but requires zero extra setup.
+
+### Verify it works
+
+Go to **Settings → Media Scanning**. The status card shows either:
+- ● **Available** (with the resolved ffprobe path)
+- ○ **Unavailable** — ffprobe not found
+
+Once available, Luminarr scans new imports automatically. For existing files, use the **Scan all unscanned files** button.
+
+### Configuration
+
+| Setting | Default | Env var | Description |
+|---------|---------|---------|-------------|
+| `mediainfo.ffprobe_path` | `` (search $PATH) | `LUMINARR_MEDIAINFO_FFPROBE_PATH` | Full path to ffprobe binary |
+| `mediainfo.scan_timeout` | `30s` | `LUMINARR_MEDIAINFO_SCAN_TIMEOUT` | Per-file timeout |
+| `mediainfo.scan_on_import` | `true` | `LUMINARR_MEDIAINFO_SCAN_ON_IMPORT` | Auto-scan after import |
+
+---
+
 ## Notifications (optional)
 
 **Settings → Notifications → Add Notification**
@@ -241,6 +306,9 @@ All settings can live in `config.yaml` or as environment variables (prefixed wit
 | `tmdb.api_key` | — | `LUMINARR_TMDB_API_KEY` | TMDB metadata key |
 | `log.level` | `info` | `LUMINARR_LOG_LEVEL` | `debug`, `info`, `warn`, `error` |
 | `log.format` | `json` | `LUMINARR_LOG_FORMAT` | `json` or `text` |
+| `mediainfo.ffprobe_path` | `` | `LUMINARR_MEDIAINFO_FFPROBE_PATH` | Path to ffprobe binary; empty = search $PATH |
+| `mediainfo.scan_timeout` | `30s` | `LUMINARR_MEDIAINFO_SCAN_TIMEOUT` | Per-file scan timeout |
+| `mediainfo.scan_on_import` | `true` | `LUMINARR_MEDIAINFO_SCAN_ON_IMPORT` | Auto-scan imported files |
 
 Config file search order:
 1. `/config/config.yaml` (Docker volume mount)

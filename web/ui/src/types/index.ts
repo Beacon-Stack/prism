@@ -367,6 +367,21 @@ export interface TestResult {
 
 // ── Movie files ────────────────────────────────────────────────────────────
 
+export interface MediaInfo {
+  container?: string;
+  duration_secs?: number;
+  video_bitrate?: number;
+  codec?: string;
+  width?: number;
+  height?: number;
+  resolution?: string;
+  color_space?: string;
+  hdr_format?: string;
+  bit_depth?: number;
+  audio_codec?: string;
+  audio_channels?: number;
+}
+
 export interface MovieFile {
   id: string;
   movie_id: string;
@@ -375,6 +390,7 @@ export interface MovieFile {
   quality: Quality;
   edition?: string;
   imported_at: string;
+  mediainfo?: MediaInfo;
 }
 
 // ── Blocklist ──────────────────────────────────────────────────────────────

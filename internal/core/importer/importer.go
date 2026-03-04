@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/davidfic/luminarr/internal/core/downloadhandling"
+	"github.com/davidfic/luminarr/internal/core/mediainfo"
 	"github.com/davidfic/luminarr/internal/core/mediamanagement"
 	"github.com/davidfic/luminarr/internal/core/quality"
 	"github.com/davidfic/luminarr/internal/core/renamer"
@@ -40,16 +41,17 @@ var videoExtensions = map[string]bool{
 // Service subscribes to TypeDownloadDone events and imports completed files
 // into the library directory tree.
 type Service struct {
-	q      dbsqlite.Querier
-	bus    *events.Bus
-	logger *slog.Logger
-	mm     *mediamanagement.Service
-	dh     *downloadhandling.Service
+	q        dbsqlite.Querier
+	bus      *events.Bus
+	logger   *slog.Logger
+	mm       *mediamanagement.Service
+	dh       *downloadhandling.Service
+	mediaSvc *mediainfo.Service // nil = no scanning
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier, bus *events.Bus, logger *slog.Logger, mm *mediamanagement.Service, dh *downloadhandling.Service) *Service {
-	return &Service{q: q, bus: bus, logger: logger, mm: mm, dh: dh}
+func NewService(q dbsqlite.Querier, bus *events.Bus, logger *slog.Logger, mm *mediamanagement.Service, dh *downloadhandling.Service, mediaSvc *mediainfo.Service) *Service {
+	return &Service{q: q, bus: bus, logger: logger, mm: mm, dh: dh, mediaSvc: mediaSvc}
 }
 
 // Subscribe registers the importer handler on the event bus.
@@ -187,8 +189,9 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
+	fileID := uuid.New().String()
 	if _, err := s.q.CreateMovieFile(ctx, dbsqlite.CreateMovieFileParams{
-		ID:          uuid.New().String(),
+		ID:          fileID,
 		MovieID:     grab.MovieID,
 		Path:        destPath,
 		SizeBytes:   info.Size(),
@@ -197,6 +200,17 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 		IndexedAt:   now,
 	}); err != nil {
 		return fmt.Errorf("creating movie_file record: %w", err)
+	}
+
+	// ── Trigger mediainfo scan (fire-and-forget) ───────────────────────────
+	if s.mediaSvc != nil && s.mediaSvc.Available() {
+		go func() {
+			scanCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			if scanErr := s.mediaSvc.ScanFile(scanCtx, fileID, destPath); scanErr != nil {
+				s.logger.Debug("mediainfo scan failed", "file_id", fileID, "error", scanErr)
+			}
+		}()
 	}
 
 	// ── Update movie status + path ─────────────────────────────────────────

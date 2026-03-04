@@ -4,16 +4,27 @@ package config
 // Values are loaded from config.yaml and can be overridden by
 // LUMINARR_* environment variables (e.g. LUMINARR_SERVER_PORT=8080).
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Log      LogConfig      `mapstructure:"log"`
-	TMDB     TMDBConfig     `mapstructure:"tmdb"`
-	AI       AIConfig       `mapstructure:"ai"`
-	Auth     AuthConfig     `mapstructure:"auth"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Log       LogConfig       `mapstructure:"log"`
+	TMDB      TMDBConfig      `mapstructure:"tmdb"`
+	AI        AIConfig        `mapstructure:"ai"`
+	Auth      AuthConfig      `mapstructure:"auth"`
+	MediaInfo MediaInfoConfig `mapstructure:"mediainfo"`
 
 	// ConfigFile is the path of the config file that was loaded, if any.
 	// Empty when running on defaults/env vars only.
 	ConfigFile string `mapstructure:"-"`
+}
+
+// MediaInfoConfig controls optional ffprobe-based media scanning.
+type MediaInfoConfig struct {
+	// FFprobePath is the path to the ffprobe binary. Empty means search $PATH.
+	FFprobePath string `mapstructure:"ffprobe_path"`
+	// ScanTimeout is the per-file timeout for ffprobe. Default: "30s".
+	ScanTimeout string `mapstructure:"scan_timeout"`
+	// ScanOnImport enables automatic scanning after a successful import.
+	ScanOnImport bool `mapstructure:"scan_on_import"`
 }
 
 // ServerConfig controls the HTTP server.

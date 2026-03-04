@@ -70,6 +70,7 @@ Radarr has optional analytics. Luminarr has no analytics at all — optional or 
 - **Files tab** — view every file attached to a movie, delete records or remove from disk
 - **File renaming** — rename files on disk to Luminarr's standard format (`Title (Year) Quality.ext`) from the movie detail panel
 - **Per-movie history** — full grab and import history per movie in a History tab
+- **Media scanning** — optional ffprobe integration verifies actual codec, resolution, and HDR; flags mislabelled releases with a ⚠ Mismatch badge
 
 **Operations**
 - **Radarr import** — one-click migration from a running Radarr instance
@@ -99,6 +100,8 @@ Open `http://localhost:8282`. That's it. No API key setup — on first run, Lumi
 **Get a free TMDB API key:** [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) (takes about two minutes, just an account signup).
 
 > **Running Radarr too?** Luminarr uses port 8282 specifically so you can run both simultaneously during migration. Radarr stays on 7878.
+
+> **Want media scanning?** Use the `latest-full` image tag to get a build that includes ffprobe. Swap `ghcr.io/davidfic/luminarr:latest` for `ghcr.io/davidfic/luminarr:latest-full` — no other changes needed. See the [Media Scanning section](docs/GETTING_STARTED.md#ffprobe-optional) for details.
 
 ### Docker Compose
 

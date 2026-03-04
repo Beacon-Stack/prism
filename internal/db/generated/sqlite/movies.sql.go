@@ -7,6 +7,7 @@ package dbsqlite
 
 import (
 	"context"
+	"time"
 )
 
 const countMonitoredMoviesWithoutFile = `-- name: CountMonitoredMoviesWithoutFile :one
@@ -148,7 +149,7 @@ INSERT INTO movie_files (
     ?, ?, ?, ?, ?,
     ?, ?, ?
 )
-RETURNING id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at
+RETURNING id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at
 `
 
 type CreateMovieFileParams struct {
@@ -183,6 +184,8 @@ func (q *Queries) CreateMovieFile(ctx context.Context, arg CreateMovieFileParams
 		&i.Edition,
 		&i.ImportedAt,
 		&i.IndexedAt,
+		&i.MediainfoJson,
+		&i.MediainfoScannedAt,
 	)
 	return i, err
 }
@@ -272,7 +275,7 @@ func (q *Queries) GetMovieByTMDBID(ctx context.Context, tmdbID int64) (Movie, er
 }
 
 const getMovieFile = `-- name: GetMovieFile :one
-SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at FROM movie_files WHERE id = ?
+SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE id = ?
 `
 
 func (q *Queries) GetMovieFile(ctx context.Context, id string) (MovieFile, error) {
@@ -287,12 +290,14 @@ func (q *Queries) GetMovieFile(ctx context.Context, id string) (MovieFile, error
 		&i.Edition,
 		&i.ImportedAt,
 		&i.IndexedAt,
+		&i.MediainfoJson,
+		&i.MediainfoScannedAt,
 	)
 	return i, err
 }
 
 const getMovieFileByPath = `-- name: GetMovieFileByPath :one
-SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at FROM movie_files WHERE path = ?
+SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE path = ?
 `
 
 func (q *Queries) GetMovieFileByPath(ctx context.Context, path string) (MovieFile, error) {
@@ -307,6 +312,8 @@ func (q *Queries) GetMovieFileByPath(ctx context.Context, path string) (MovieFil
 		&i.Edition,
 		&i.ImportedAt,
 		&i.IndexedAt,
+		&i.MediainfoJson,
+		&i.MediainfoScannedAt,
 	)
 	return i, err
 }
@@ -505,7 +512,7 @@ func (q *Queries) ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMo
 }
 
 const listMovieFiles = `-- name: ListMovieFiles :many
-SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at FROM movie_files WHERE movie_id = ? ORDER BY imported_at DESC
+SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE movie_id = ? ORDER BY imported_at DESC
 `
 
 func (q *Queries) ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error) {
@@ -526,6 +533,8 @@ func (q *Queries) ListMovieFiles(ctx context.Context, movieID string) ([]MovieFi
 			&i.Edition,
 			&i.ImportedAt,
 			&i.IndexedAt,
+			&i.MediainfoJson,
+			&i.MediainfoScannedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -541,7 +550,7 @@ func (q *Queries) ListMovieFiles(ctx context.Context, movieID string) ([]MovieFi
 }
 
 const listMovieFilesByLibrary = `-- name: ListMovieFilesByLibrary :many
-SELECT mf.id, mf.movie_id, mf.path, mf.size_bytes, mf.quality_json, mf.edition, mf.imported_at, mf.indexed_at
+SELECT mf.id, mf.movie_id, mf.path, mf.size_bytes, mf.quality_json, mf.edition, mf.imported_at, mf.indexed_at, mf.mediainfo_json, mf.mediainfo_scanned_at
 FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id
 WHERE m.library_id = ?
@@ -566,6 +575,8 @@ func (q *Queries) ListMovieFilesByLibrary(ctx context.Context, libraryID string)
 			&i.Edition,
 			&i.ImportedAt,
 			&i.IndexedAt,
+			&i.MediainfoJson,
+			&i.MediainfoScannedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -694,6 +705,40 @@ func (q *Queries) ListMoviesByLibrary(ctx context.Context, arg ListMoviesByLibra
 	return items, nil
 }
 
+const listUnscannedMovieFiles = `-- name: ListUnscannedMovieFiles :many
+SELECT id, path FROM movie_files
+WHERE mediainfo_json = ''
+ORDER BY imported_at DESC
+`
+
+type ListUnscannedMovieFilesRow struct {
+	ID   string `json:"id"`
+	Path string `json:"path"`
+}
+
+func (q *Queries) ListUnscannedMovieFiles(ctx context.Context) ([]ListUnscannedMovieFilesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUnscannedMovieFiles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUnscannedMovieFilesRow
+	for rows.Next() {
+		var i ListUnscannedMovieFilesRow
+		if err := rows.Scan(&i.ID, &i.Path); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sumMovieFileSizesByLibrary = `-- name: SumMovieFileSizesByLibrary :one
 SELECT COALESCE(SUM(mf.size_bytes), 0)
 FROM movie_files mf
@@ -805,6 +850,24 @@ type UpdateMovieFileIndexedParams struct {
 
 func (q *Queries) UpdateMovieFileIndexed(ctx context.Context, arg UpdateMovieFileIndexedParams) error {
 	_, err := q.db.ExecContext(ctx, updateMovieFileIndexed, arg.IndexedAt, arg.ID)
+	return err
+}
+
+const updateMovieFileMediainfo = `-- name: UpdateMovieFileMediainfo :exec
+UPDATE movie_files
+SET mediainfo_json       = ?,
+    mediainfo_scanned_at = ?
+WHERE id = ?
+`
+
+type UpdateMovieFileMediainfoParams struct {
+	MediainfoJson      string     `json:"mediainfoJson"`
+	MediainfoScannedAt *time.Time `json:"mediainfoScannedAt"`
+	ID                 string     `json:"id"`
+}
+
+func (q *Queries) UpdateMovieFileMediainfo(ctx context.Context, arg UpdateMovieFileMediainfoParams) error {
+	_, err := q.db.ExecContext(ctx, updateMovieFileMediainfo, arg.MediainfoJson, arg.MediainfoScannedAt, arg.ID)
 	return err
 }
 

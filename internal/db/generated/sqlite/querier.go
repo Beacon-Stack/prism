@@ -81,6 +81,7 @@ type Querier interface {
 	ListRemotePathMappings(ctx context.Context) ([]RemotePathMapping, error)
 	ListStorageSnapshots(ctx context.Context, limit int64) ([]StorageSnapshot, error)
 	ListUnmatchedLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error)
+	ListUnscannedMovieFiles(ctx context.Context) ([]ListUnscannedMovieFilesRow, error)
 	MarkGrabRemoved(ctx context.Context, id string) error
 	PruneOldStorageSnapshots(ctx context.Context, capturedAt time.Time) error
 	// Removes candidates that were not seen in the current scan (scanned_at < cutoff).
@@ -97,6 +98,7 @@ type Querier interface {
 	UpdateMediaManagement(ctx context.Context, arg UpdateMediaManagementParams) (MediaManagement, error)
 	UpdateMovie(ctx context.Context, arg UpdateMovieParams) (Movie, error)
 	UpdateMovieFileIndexed(ctx context.Context, arg UpdateMovieFileIndexedParams) error
+	UpdateMovieFileMediainfo(ctx context.Context, arg UpdateMovieFileMediainfoParams) error
 	UpdateMovieFilePath(ctx context.Context, arg UpdateMovieFilePathParams) error
 	UpdateMovieMetadataRefreshed(ctx context.Context, arg UpdateMovieMetadataRefreshedParams) error
 	UpdateMoviePath(ctx context.Context, arg UpdateMoviePathParams) (Movie, error)

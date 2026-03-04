@@ -19,8 +19,9 @@ import {
   type GrabReleaseRequest,
 } from "@/api/movies";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
-import type { Release, RenamePreviewItem, TMDBResult, ScoreBreakdown } from "@/types";
+import type { Release, RenamePreviewItem, TMDBResult, ScoreBreakdown, MediaInfo, Quality } from "@/types";
 import { formatBytes } from "@/lib/utils";
+import { useMediainfoStatus, useScanMovieFile } from "@/api/mediainfo";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -384,13 +385,80 @@ function RenameModal({
   );
 }
 
+// ── MediaInfo helpers ─────────────────────────────────────────────────────────
+
+// Normalise ffprobe codec names to Luminarr's Quality.codec values.
+function normCodec(ffprobeCodec: string): string {
+  const map: Record<string, string> = {
+    x265: "x265", hevc: "x265", h265: "x265",
+    x264: "x264", h264: "x264", avc: "x264",
+    av1: "AV1", "AV1": "AV1",
+    vp9: "VP9",
+  };
+  return map[ffprobeCodec?.toLowerCase()] ?? ffprobeCodec ?? "";
+}
+
+function hasMismatch(claimed: Quality, actual: MediaInfo): boolean {
+  if (!actual) return false;
+  const codecMismatch = claimed.codec && actual.codec && normCodec(actual.codec) !== claimed.codec;
+  const resMismatch = claimed.resolution && actual.resolution && actual.resolution !== claimed.resolution;
+  const hdrMismatch = claimed.hdr && actual.hdr_format && actual.hdr_format !== claimed.hdr;
+  return !!(codecMismatch || resMismatch || hdrMismatch);
+}
+
+function MediainfoRow({ info, claimed }: { info: MediaInfo; claimed: Quality }) {
+  const parts: string[] = [];
+  if (info.resolution) parts.push(info.resolution);
+  if (info.codec) parts.push(info.codec);
+  if (info.hdr_format && info.hdr_format !== "SDR") parts.push(info.hdr_format);
+  if (info.bit_depth && info.bit_depth > 8) parts.push(`${info.bit_depth}-bit`);
+  if (info.audio_codec) {
+    const audio = info.audio_channels === 8 ? `${info.audio_codec} 7.1`
+      : info.audio_channels === 6 ? `${info.audio_codec} 5.1`
+      : info.audio_codec;
+    parts.push(audio);
+  }
+  const mismatch = hasMismatch(claimed, info);
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+      <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>Actual:</span>
+      <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+        {parts.join(" · ") || "—"}
+      </span>
+      {mismatch && (
+        <span
+          title={`Filename claims: ${[claimed.resolution, claimed.codec, claimed.hdr].filter(Boolean).join(" ")}\nActual: ${parts.join(" ")}`}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3,
+            padding: "1px 6px",
+            borderRadius: 4,
+            fontSize: 10,
+            fontWeight: 600,
+            background: "color-mix(in srgb, #f59e0b 15%, transparent)",
+            color: "#f59e0b",
+            cursor: "help",
+          }}
+        >
+          ⚠ Mismatch
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ── Files tab ──────────────────────────────────────────────────────────────────
 
 function FilesTab({ movieId }: { movieId: string }) {
   const { data: files, isLoading, error } = useMovieFiles(movieId);
   const deleteFile = useDeleteMovieFile(movieId);
   const rename = useRenameMovie();
+  const scanFile = useScanMovieFile(movieId);
+  const { data: mediainfoStatus } = useMediainfoStatus();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [scanningId, setScanningId] = useState<string | null>(null);
   const [renamePreview, setRenamePreview] = useState<RenamePreviewItem[] | null>(null);
 
   async function handleDelete(fileId: string, deleteFromDisk: boolean) {
@@ -402,6 +470,18 @@ function FilesTab({ movieId }: { movieId: string }) {
       toast.error("Failed to delete file");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleScan(fileId: string) {
+    setScanningId(fileId);
+    try {
+      await scanFile.mutateAsync({ fileId });
+      toast.success("Scan queued — results will appear shortly");
+    } catch {
+      toast.error("Scan failed");
+    } finally {
+      setScanningId(null);
     }
   }
 
@@ -537,6 +617,33 @@ function FilesTab({ movieId }: { movieId: string }) {
                 Imported {new Date(file.imported_at).toLocaleDateString()}
               </span>
 
+              {/* Re-scan button (only when scanner is available) */}
+              {mediainfoStatus?.available && (
+                <button
+                  onClick={() => handleScan(file.id)}
+                  disabled={scanningId === file.id}
+                  title="Re-scan with ffprobe"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: scanningId === file.id ? "not-allowed" : "pointer",
+                    color: "var(--color-text-muted)",
+                    fontSize: 11,
+                    padding: "2px 6px",
+                    borderRadius: 4,
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (scanningId !== file.id) (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
+                  }}
+                >
+                  {scanningId === file.id ? "…" : "↻ Scan"}
+                </button>
+              )}
+
               {/* Delete */}
               <button
                 onClick={() => {
@@ -569,6 +676,11 @@ function FilesTab({ movieId }: { movieId: string }) {
                 <Trash2 size={14} />
               </button>
             </div>
+
+            {/* MediaInfo row (shown once ffprobe data is available) */}
+            {file.mediainfo && (
+              <MediainfoRow info={file.mediainfo} claimed={file.quality} />
+            )}
           </div>
         ))}
       </div>

@@ -777,14 +777,15 @@ func (s *Service) GetByTMDBID(ctx context.Context, tmdbID int) (Movie, error) {
 
 // FileInfo is the domain representation of a movie_files record.
 type FileInfo struct {
-	ID         string
-	MovieID    string
-	Path       string
-	SizeBytes  int64
-	Quality    plugin.Quality
-	Edition    string
-	ImportedAt time.Time
-	IndexedAt  time.Time
+	ID            string
+	MovieID       string
+	Path          string
+	SizeBytes     int64
+	Quality       plugin.Quality
+	Edition       string
+	ImportedAt    time.Time
+	IndexedAt     time.Time
+	MediainfoJSON string // raw JSON from ffprobe scan; empty if not yet scanned
 }
 
 // ListFiles returns all file records for a movie, newest import first.
@@ -802,6 +803,18 @@ func (s *Service) ListFiles(ctx context.Context, movieID string) ([]FileInfo, er
 		files = append(files, fi)
 	}
 	return files, nil
+}
+
+// GetFile returns the FileInfo for a single movie_file record.
+func (s *Service) GetFile(ctx context.Context, fileID string) (FileInfo, error) {
+	row, err := s.q.GetMovieFile(ctx, fileID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return FileInfo{}, ErrFileNotFound
+		}
+		return FileInfo{}, fmt.Errorf("fetching movie file %q: %w", fileID, err)
+	}
+	return rowToFileInfo(row)
 }
 
 // DeleteFile removes the movie_files record identified by fileID.
@@ -1079,14 +1092,15 @@ func rowToFileInfo(row dbsqlite.MovieFile) (FileInfo, error) {
 	}
 
 	return FileInfo{
-		ID:         row.ID,
-		MovieID:    row.MovieID,
-		Path:       row.Path,
-		SizeBytes:  row.SizeBytes,
-		Quality:    qual,
-		Edition:    edition,
-		ImportedAt: importedAt,
-		IndexedAt:  indexedAt,
+		ID:            row.ID,
+		MovieID:       row.MovieID,
+		Path:          row.Path,
+		SizeBytes:     row.SizeBytes,
+		Quality:       qual,
+		Edition:       edition,
+		ImportedAt:    importedAt,
+		IndexedAt:     indexedAt,
+		MediainfoJSON: row.MediainfoJson,
 	}, nil
 }
 

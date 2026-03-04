@@ -22,6 +22,7 @@ import (
 	"github.com/davidfic/luminarr/internal/core/importer"
 	"github.com/davidfic/luminarr/internal/core/indexer"
 	"github.com/davidfic/luminarr/internal/core/library"
+	"github.com/davidfic/luminarr/internal/core/mediainfo"
 	"github.com/davidfic/luminarr/internal/core/mediamanagement"
 	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/core/notification"
@@ -230,7 +231,23 @@ func run() error {
 	mmSvc := mediamanagement.NewService(queries)
 	dhSvc := downloadhandling.NewService(queries)
 
-	importerSvc := importer.NewService(queries, bus, logger, mmSvc, dhSvc)
+	// ── MediaInfo scanner ──────────────────────────────────────────────────
+	// Resolve scan_timeout; fall back to 30s if unparseable.
+	scanTimeout := 30 * time.Second
+	if cfg.MediaInfo.ScanTimeout != "" {
+		if d, err := time.ParseDuration(cfg.MediaInfo.ScanTimeout); err == nil {
+			scanTimeout = d
+		}
+	}
+	mediainfoScanner := mediainfo.New(cfg.MediaInfo.FFprobePath, scanTimeout)
+	if mediainfoScanner.Available() {
+		logger.Info("mediainfo scanner available", "ffprobe", mediainfoScanner.FFprobePath())
+	} else {
+		logger.Info("mediainfo scanner unavailable — ffprobe not found; set mediainfo.ffprobe_path in config or install ffprobe")
+	}
+	mediainfoSvc := mediainfo.NewService(mediainfoScanner, queries, logger)
+
+	importerSvc := importer.NewService(queries, bus, logger, mmSvc, dhSvc, mediainfoSvc)
 	importerSvc.Subscribe()
 
 	notifSvc := notification.NewService(queries, registry.Default)
@@ -284,6 +301,7 @@ func run() error {
 		DownloadHandlingService:  dhSvc,
 		RadarrImportService:      radarrImportSvc,
 		StatsService:             statsSvc,
+		MediaInfoService:         mediainfoSvc,
 		WSHub:                    wsHub,
 	})
 

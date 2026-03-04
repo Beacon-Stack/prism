@@ -143,3 +143,14 @@ JOIN movie_files mf ON mf.movie_id = m.id
 JOIN quality_profiles qp ON qp.id = m.quality_profile_id
 WHERE m.monitored = 1
 ORDER BY m.title ASC;
+
+-- name: UpdateMovieFileMediainfo :exec
+UPDATE movie_files
+SET mediainfo_json       = ?,
+    mediainfo_scanned_at = ?
+WHERE id = ?;
+
+-- name: ListUnscannedMovieFiles :many
+SELECT id, path FROM movie_files
+WHERE mediainfo_json = ''
+ORDER BY imported_at DESC;

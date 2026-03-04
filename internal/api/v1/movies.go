@@ -2,12 +2,14 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/davidfic/luminarr/internal/core/mediainfo"
 	"github.com/davidfic/luminarr/internal/core/mediamanagement"
 	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/core/renamer"
@@ -35,13 +37,14 @@ type renameMovieOutput struct {
 }
 
 type movieFileBody struct {
-	ID         string    `json:"id"`
-	MovieID    string    `json:"movie_id"`
-	Path       string    `json:"path"`
-	SizeBytes  int64     `json:"size_bytes"`
-	Quality    any       `json:"quality"`
-	Edition    string    `json:"edition,omitempty"`
-	ImportedAt time.Time `json:"imported_at"`
+	ID            string          `json:"id"`
+	MovieID       string          `json:"movie_id"`
+	Path          string          `json:"path"`
+	SizeBytes     int64           `json:"size_bytes"`
+	Quality       any             `json:"quality"`
+	Edition       string          `json:"edition,omitempty"`
+	ImportedAt    time.Time       `json:"imported_at"`
+	MediainfoJSON json.RawMessage `json:"mediainfo,omitempty"`
 }
 
 type movieFilesListOutput struct {
@@ -464,7 +467,9 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service) {
 }
 
 // RegisterMovieFileRoutes registers file management endpoints for a movie.
-func RegisterMovieFileRoutes(api huma.API, svc *movie.Service, mmSvc *mediamanagement.Service) {
+// mediaSvc may be nil when ffprobe is not configured; in that case scanning
+// endpoints return 503 and the mediainfo field is omitted from file responses.
+func RegisterMovieFileRoutes(api huma.API, svc *movie.Service, mmSvc *mediamanagement.Service, mediaSvc *mediainfo.Service) {
 	// GET /api/v1/movies/{id}/files
 	huma.Register(api, huma.Operation{
 		OperationID: "list-movie-files",
@@ -485,7 +490,7 @@ func RegisterMovieFileRoutes(api huma.API, svc *movie.Service, mmSvc *mediamanag
 		}
 		bodies := make([]*movieFileBody, len(files))
 		for i, f := range files {
-			bodies[i] = &movieFileBody{
+			body := &movieFileBody{
 				ID:         f.ID,
 				MovieID:    f.MovieID,
 				Path:       f.Path,
@@ -494,8 +499,44 @@ func RegisterMovieFileRoutes(api huma.API, svc *movie.Service, mmSvc *mediamanag
 				Edition:    f.Edition,
 				ImportedAt: f.ImportedAt,
 			}
+			if f.MediainfoJSON != "" {
+				body.MediainfoJSON = json.RawMessage(f.MediainfoJSON)
+			}
+			bodies[i] = body
 		}
 		return &movieFilesListOutput{Body: bodies}, nil
+	})
+
+	// POST /api/v1/movies/{id}/files/{fileId}/scan — trigger on-demand re-scan
+	type fileScanInput struct {
+		ID     string `path:"id"`
+		FileID string `path:"fileId"`
+	}
+	huma.Register(api, huma.Operation{
+		OperationID:   "scan-movie-file",
+		Method:        http.MethodPost,
+		Path:          "/api/v1/movies/{id}/files/{fileId}/scan",
+		Summary:       "Trigger a mediainfo re-scan for a specific file",
+		Tags:          []string{"Movies"},
+		DefaultStatus: http.StatusAccepted,
+	}, func(ctx context.Context, input *fileScanInput) (*struct{}, error) {
+		if mediaSvc == nil || !mediaSvc.Available() {
+			return nil, huma.NewError(http.StatusServiceUnavailable, "mediainfo scanning not available — install ffprobe")
+		}
+		f, err := svc.GetFile(ctx, input.FileID)
+		if err != nil {
+			if errors.Is(err, movie.ErrFileNotFound) {
+				return nil, huma.Error404NotFound("file not found")
+			}
+			return nil, huma.NewError(http.StatusInternalServerError, "failed to get file", err)
+		}
+		go func() {
+			if scanErr := mediaSvc.ScanFile(context.Background(), f.ID, f.Path); scanErr != nil {
+				// Non-fatal; caller can retry.
+				_ = scanErr
+			}
+		}()
+		return nil, nil
 	})
 
 	// DELETE /api/v1/movies/{id}/files/{fileId}

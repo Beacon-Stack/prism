@@ -177,7 +177,7 @@ func TestImport_SingleFile(t *testing.T) {
 		}
 	})
 
-	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil)
+	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil, nil)
 	svc.Subscribe()
 
 	ctx := context.Background()
@@ -255,7 +255,7 @@ func TestImport_Directory_PicksLargestVideo(t *testing.T) {
 
 	logger := logging.New("error", "text")
 	bus := events.New(logger)
-	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil)
+	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil, nil)
 	svc.Subscribe()
 
 	ctx := context.Background()
@@ -300,7 +300,7 @@ func TestImport_MissingGrabID(t *testing.T) {
 	})
 
 	fq := &fakeQuerier{}
-	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil)
+	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil, nil)
 	svc.Subscribe()
 
 	ctx := context.Background()
@@ -350,7 +350,7 @@ func TestImport_EmptyContentPath(t *testing.T) {
 		movie: newTestMovie(movieID, libID),
 		lib:   newTestLibrary(libID, t.TempDir()),
 	}
-	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil)
+	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil, nil)
 	svc.Subscribe()
 
 	ctx := context.Background()

@@ -5,13 +5,17 @@ Each section includes exact files to touch and SQL/code to write.
 
 ---
 
+## Status: COMPLETE ✓
+
+All five features confirmed implemented as of 2026-03-04.
+
 ## Implementation Order
 
-1. **Queue: Blocklist & Remove** — 1 API endpoint + 1 frontend button
-2. **History Filtering** — filter params on existing endpoint + frontend filter bar
-3. **Bulk Movie Editor** — frontend-only, multi-select on movie list
-4. **Backup / Restore** — 2 API endpoints + frontend download/upload button
-5. **Interactive Import UI** — frontend page using existing disk-scan + import-file endpoints
+1. **Queue: Blocklist & Remove** ✓ — `POST /api/v1/queue/{id}/blocklist` in `internal/api/v1/queue.go`
+2. **History Filtering** ✓ — `download_status` + `protocol` query params on `GET /api/v1/history`; frontend filter bar in History page
+3. **Bulk Movie Editor** ✓ — `BulkEditModal` in `src/pages/dashboard/Dashboard.tsx`
+4. **Backup / Restore** ✓ — `GET /api/v1/system/backup` + `POST /api/v1/system/restore` in `internal/api/v1/backup.go`; `BackupSection` in `SystemPage.tsx`
+5. **Interactive Import UI** ✓ — disk-scan + import modal in `src/pages/settings/libraries/LibraryList.tsx`
 
 ---
 

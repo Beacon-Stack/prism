@@ -134,14 +134,16 @@ type Movie struct {
 }
 
 type MovieFile struct {
-	ID          string  `json:"id"`
-	MovieID     string  `json:"movieId"`
-	Path        string  `json:"path"`
-	SizeBytes   int64   `json:"sizeBytes"`
-	QualityJson string  `json:"qualityJson"`
-	Edition     *string `json:"edition"`
-	ImportedAt  string  `json:"importedAt"`
-	IndexedAt   string  `json:"indexedAt"`
+	ID                 string     `json:"id"`
+	MovieID            string     `json:"movieId"`
+	Path               string     `json:"path"`
+	SizeBytes          int64      `json:"sizeBytes"`
+	QualityJson        string     `json:"qualityJson"`
+	Edition            *string    `json:"edition"`
+	ImportedAt         string     `json:"importedAt"`
+	IndexedAt          string     `json:"indexedAt"`
+	MediainfoJson      string     `json:"mediainfoJson"`
+	MediainfoScannedAt *time.Time `json:"mediainfoScannedAt"`
 }
 
 type NotificationConfig struct {

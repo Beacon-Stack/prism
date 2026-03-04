@@ -46,6 +46,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("ai.match_model", DefaultAIMatchModel)
 	v.SetDefault("ai.score_model", DefaultAIScoreModel)
 	v.SetDefault("ai.filter_model", DefaultAIFilterModel)
+	v.SetDefault("mediainfo.scan_timeout", "30s")
+	v.SetDefault("mediainfo.scan_on_import", true)
 
 	// Config file location
 	if cfgFile != "" {
