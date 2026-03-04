@@ -200,9 +200,8 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	}
 
 	// ── Update movie status + path ─────────────────────────────────────────
-	destDir := filepath.Dir(destPath)
 	if _, err := s.q.UpdateMoviePath(ctx, dbsqlite.UpdateMoviePathParams{
-		Path:      &destDir,
+		Path:      &destPath,
 		UpdatedAt: now,
 		ID:        grab.MovieID,
 	}); err != nil {

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -837,7 +836,7 @@ func (s *Service) DeleteFile(ctx context.Context, fileID string, deleteFromDisk 
 }
 
 // AttachFile links a file on disk to an existing movie record. It sets
-// movies.path to the file's parent directory, creates a movie_file record,
+// movies.path to the full file path, creates a movie_file record,
 // and marks the movie status as "downloaded".
 //
 // Callers are responsible for ensuring the file actually exists on disk before
@@ -849,10 +848,9 @@ func (s *Service) AttachFile(ctx context.Context, movieID, filePath string, size
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	dir := filepath.Dir(filePath)
 
 	if _, err := s.q.UpdateMoviePath(ctx, dbsqlite.UpdateMoviePathParams{
-		Path:      &dir,
+		Path:      &filePath,
 		UpdatedAt: now,
 		ID:        movieID,
 	}); err != nil {
