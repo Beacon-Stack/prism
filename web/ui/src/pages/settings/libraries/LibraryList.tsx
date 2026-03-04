@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useLibraries,
   useCreateLibrary,
@@ -353,6 +353,8 @@ interface FileRowState {
   searchResults: TMDBResult[];
   importing: boolean;
   imported: boolean;
+  autoMatchLoading: boolean;
+  autoMatched: boolean;
 }
 
 function formatBytes(b: number): string {
@@ -366,6 +368,35 @@ function basename(path: string): string {
   return path.split("/").pop() ?? path;
 }
 
+// ── Auto-match helpers ────────────────────────────────────────────────────────
+
+function normalizeTitle(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Returns the first TMDB result whose (normalized) title matches parsedTitle
+ * AND whose year matches parsedYear. Returns null if no confident match is found
+ * or if parsedYear is 0 (too ambiguous without a year).
+ */
+function pickBestMatch(
+  results: TMDBResult[],
+  parsedTitle: string,
+  parsedYear: number,
+): TMDBResult | null {
+  if (parsedYear === 0 || results.length === 0) return null;
+  const norm = normalizeTitle(parsedTitle);
+  for (const r of results) {
+    if (
+      (normalizeTitle(r.title) === norm || normalizeTitle(r.original_title) === norm) &&
+      r.year === parsedYear
+    ) {
+      return r;
+    }
+  }
+  return null;
+}
+
 interface DiskScanModalProps {
   library: Library;
   onClose: () => void;
@@ -375,6 +406,7 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
   const { data: diskFiles, isLoading, error: scanError } = useDiskScan(library.id);
   const lookupMovies = useLookupMovies();
   const importFile = useImportFile();
+  const autoMatchRef = useRef(false);
 
   const [rows, setRows] = useState<Map<string, FileRowState>>(new Map());
   const [showUnmatched, setShowUnmatched] = useState(true);
@@ -398,12 +430,52 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
             searchResults: [],
             importing: false,
             imported: false,
+            autoMatchLoading: false,
+            autoMatched: false,
           });
         }
       }
       return next;
     });
   }, [diskFiles]);
+
+  // Auto-match effect: fires once when rows are first populated.
+  // Searches TMDB sequentially for each file with a parsed year, and
+  // pre-selects the match only when title + year both agree.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (rows.size === 0 || autoMatchRef.current) return;
+    autoMatchRef.current = true;
+
+    let cancelled = false;
+
+    async function runAutoMatch() {
+      for (const [path, row] of rows.entries()) {
+        if (cancelled) break;
+        if (!row.file.parsed_title.trim() || row.file.parsed_year === 0) continue;
+
+        updateRow(path, { autoMatchLoading: true });
+        try {
+          const results = await lookupMovies.mutateAsync({
+            query: row.file.parsed_title,
+            year: row.file.parsed_year,
+          });
+          if (cancelled) break;
+          const best = pickBestMatch(results, row.file.parsed_title, row.file.parsed_year);
+          if (best) {
+            updateRow(path, { match: best, autoMatched: true, autoMatchLoading: false, selected: true });
+          } else {
+            updateRow(path, { autoMatchLoading: false });
+          }
+        } catch {
+          if (!cancelled) updateRow(path, { autoMatchLoading: false });
+        }
+      }
+    }
+
+    void runAutoMatch();
+    return () => { cancelled = true; };
+  }, [rows.size]);
 
   function updateRow(path: string, patch: Partial<FileRowState>) {
     setRows((prev) => {
@@ -779,7 +851,7 @@ function FileTableRow({
   onSelectMatch,
   onClearMatch,
 }: FileTableRowProps) {
-  const { file, selected, match, searchOpen, searchQuery, searchResults, importing, imported } = row;
+  const { file, selected, match, searchOpen, searchQuery, searchResults, importing, imported, autoMatchLoading, autoMatched } = row;
 
   // Row highlight colour.
   let rowBg = "transparent";
@@ -854,11 +926,18 @@ function FileTableRow({
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
                 maxWidth: 160,
+                cursor: autoMatched ? "pointer" : "default",
               }}
-              title={`${match.title} (${match.year})`}
+              title={`${match.title} (${match.year})${autoMatched ? " — click to change" : ""}`}
+              onClick={autoMatched ? onOpenSearch : undefined}
             >
               {match.title} {match.year > 0 && `(${match.year})`}
             </span>
+            {autoMatched && (
+              <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400, flexShrink: 0 }}>
+                auto
+              </span>
+            )}
             <button
               onClick={onClearMatch}
               title="Clear match"
@@ -887,6 +966,10 @@ function FileTableRow({
             onSelect={onSelectMatch}
             onClose={onCloseSearch}
           />
+        ) : autoMatchLoading ? (
+          <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontStyle: "italic" }}>
+            Searching…
+          </span>
         ) : (
           <button
             onClick={onOpenSearch}
