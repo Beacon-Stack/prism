@@ -30,7 +30,7 @@ var stopTokens = []string{
 	"aac", "mp3", "flac", "eac3",
 	// channels
 	"7.1", "5.1", "2.0",
-	// misc
+	// misc release flags
 	"repack", "proper", "extended", "theatrical", "directors", "dc",
 	"unrated", "retail", "readnfo", "nfofix", "limited", "complete",
 	"remux", "imax", "hybrid",
@@ -49,23 +49,40 @@ var stopRe = func() *regexp.Regexp {
 	return regexp.MustCompile(`(?i)\b(?:` + strings.Join(escaped, "|") + `)\b`)
 }()
 
+// discNoiseRe matches MakeMKV / disc-ripper chapter/title labels that appear
+// at the end of a filename and carry no title information.
+// Examples: Title31, Title_01, Chapter03, Disc2, Track07
+var discNoiseRe = regexp.MustCompile(`(?i)\b(?:Title|Chapter|Disc|Track)\d+\b`)
+
+// ptRe normalises "Part" abbreviations that appear in many release names.
+// Matches: PT1, PT2, Pt.1, pt 2, Part.1, Part 2 (already correct form kept).
+// The replacement is done before stop-token scanning so that "Part 1" is
+// preserved in the title rather than being cut by a digit-based stop.
+var ptRe = regexp.MustCompile(`(?i)\bPt\.?\s*(\d+)\b`)
+
+// allCapsThreshold is the fraction of alphabetic characters that must be
+// uppercase for us to consider the whole string "all-caps" and lowercase it
+// before title-casing.  A value of 0.6 means: if 60 %+ of letters are
+// uppercase, normalise the case.
+const allCapsThreshold = 0.6
+
 // ParseFilename extracts a clean title and year from a release-style filename.
 //
-// Strategy:
-//  1. Strip the file extension (if any) and normalise separators (dots,
-//     underscores, dashes-between-words) to spaces.
-//  2. Locate the earliest position that is either:
-//     a. a 4-digit year, or
-//     b. a known stop-token (codec, resolution, source, …).
-//  3. Everything before that position is the title.
-//  4. Trim and title-case the result.
+// Processing pipeline:
+//  1. Strip path prefix and video file extension.
+//  2. Remove disc-ripper noise labels (Title31, Chapter02, …).
+//  3. Normalise "Pt1" / "Pt.2" → "Part 1" / "Part 2".
+//  4. Replace dots and underscores with spaces; collapse whitespace.
+//  5. All-caps detection: if ≥60 % of letters are uppercase, lowercase first.
+//  6. Find the last 4-digit year at or before the first stop token → release year.
+//  7. Everything before that position is the title; trim and title-case.
 func ParseFilename(name string) ParsedFilename {
-	// Strip leading path components.
+	// 1. Strip leading path components.
 	if idx := strings.LastIndexAny(name, `/\`); idx >= 0 {
 		name = name[idx+1:]
 	}
 
-	// Strip extension.
+	// Strip video file extension.
 	if dot := strings.LastIndex(name, "."); dot > 0 {
 		ext := strings.ToLower(name[dot+1:])
 		videoExts := map[string]bool{
@@ -77,29 +94,55 @@ func ParseFilename(name string) ParsedFilename {
 		}
 	}
 
-	// Normalise separators to spaces.
-	// Replace dots and underscores with spaces, but only when they are acting
-	// as word separators — not within numeric tokens like "7.1" or "10-bit".
-	// Simple approach: replace all dots and underscores with spaces, then
-	// collapse multiple spaces.
+	// 2. Normalise separators to spaces first so that subsequent regexes
+	// can rely on \b word boundaries (underscores are \w, so _PT1_ has no
+	// boundary before P until the underscore is replaced with a space).
 	normalized := strings.Map(func(r rune) rune {
 		if r == '.' || r == '_' {
 			return ' '
 		}
 		return r
 	}, name)
-	// Collapse runs of spaces.
 	normalized = strings.Join(strings.Fields(normalized), " ")
 
-	// Find the earliest stop-token (codec, resolution, source, …).
+	// 3. Remove disc-ripper noise labels (Title31, Chapter02, …).
+	normalized = discNoiseRe.ReplaceAllString(normalized, " ")
+
+	// 4. Normalise Pt/PT abbreviations → "Part N".
+	normalized = ptRe.ReplaceAllStringFunc(normalized, func(m string) string {
+		digits := ptRe.FindStringSubmatch(m)
+		if len(digits) < 2 {
+			return m
+		}
+		return "Part " + digits[1]
+	})
+
+	// Re-collapse spaces after substitutions.
+	normalized = strings.Join(strings.Fields(normalized), " ")
+
+	// 5. All-caps detection.
+	// Count uppercase vs total alphabetic characters in the normalised string.
+	// If the majority are uppercase, the source used no mixed-case separators
+	// (e.g. a raw disc rip), so we lowercase everything before title-casing.
+	upper, total := 0, 0
+	for _, r := range normalized {
+		if unicode.IsLetter(r) {
+			total++
+			if unicode.IsUpper(r) {
+				upper++
+			}
+		}
+	}
+	if total > 0 && float64(upper)/float64(total) >= allCapsThreshold {
+		normalized = strings.ToLower(normalized)
+	}
+
+	// 6. Find earliest stop token and last year before it.
 	stopIdx := len(normalized)
 	if m := stopRe.FindStringIndex(normalized); m != nil {
 		stopIdx = m[0]
 	}
 
-	// Find all year matches.  We want the LAST year that appears at or before
-	// the stop token — that is the release year.  This handles titles that
-	// begin with a year-like number (e.g. "2001 A Space Odyssey 1968 ...").
 	year := 0
 	yearCutAt := stopIdx
 	for _, m := range yearRe.FindAllStringIndex(normalized, -1) {
@@ -112,16 +155,16 @@ func ParseFilename(name string) ParsedFilename {
 		}
 	}
 
+	// 7. Extract and clean title.
 	rawTitle := strings.TrimSpace(normalized[:yearCutAt])
 	if rawTitle == "" {
-		// The title itself is a year-like number (e.g. "1917 2019 1080p").
-		// Fall back: use everything before the first stop token as the title
-		// and drop the release year guess (TMDB will still find it).
+		// Year-titled movie (e.g. "1917 2019 1080p"): use everything before
+		// the first stop token as the title and drop the year guess.
 		rawTitle = strings.TrimSpace(normalized[:stopIdx])
 		year = 0
 	}
 
-	// Remove a trailing dash or parenthesis that may be left over.
+	// Remove trailing punctuation left over from separator stripping.
 	rawTitle = strings.TrimRight(rawTitle, " -([{")
 
 	title := toTitleCase(rawTitle)
@@ -129,8 +172,9 @@ func ParseFilename(name string) ParsedFilename {
 	return ParsedFilename{Title: title, Year: year}
 }
 
-// toTitleCase capitalises the first letter of each word, leaving the rest as-is
-// (preserves existing uppercase like "II", "IV", "NYC").
+// toTitleCase capitalises the first letter of each word, leaving the rest
+// as-is.  This preserves intentional uppercase like "II", "IV", "NYC" while
+// still capitalising the first character of each word after lowercasing.
 func toTitleCase(s string) string {
 	words := strings.Fields(s)
 	for i, w := range words {

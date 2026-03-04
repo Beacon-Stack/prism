@@ -72,9 +72,9 @@ func TestParseFilename(t *testing.T) {
 			wantTitle: "Dune Part Two",
 			wantYear:  2024,
 		},
-		// --- mixed case in title ---
+		// --- mixed case in title — short all-caps acronym preserved ---
 		{
-			// All-caps title — toTitleCase preserves existing uppercase.
+			// Predominantly mixed-case: all-caps detector leaves it alone.
 			input:     "WALL-E.2008.1080p.BluRay",
 			wantTitle: "WALL-E",
 			wantYear:  2008,
@@ -90,6 +90,38 @@ func TestParseFilename(t *testing.T) {
 			input:     "Joker 2019 1080p BluRay",
 			wantTitle: "Joker",
 			wantYear:  2019,
+		},
+
+		// --- all-caps MakeMKV disc rip with Title## noise ---
+		{
+			// MakeMKV names chapters Title_01, Title_31, etc.
+			// All-caps → lowercase → title-case; Title31 is a stop token.
+			input:     "THE_HUNGERGAMES_MOCKINGJAY_PT1_Title31",
+			wantTitle: "The Hungergames Mockingjay Part 1",
+			wantYear:  0,
+		},
+		// --- PT / Pt normalisation ---
+		{
+			input:     "Avengers.Infinity.War.Pt2.2018.WEBRip",
+			wantTitle: "Avengers Infinity War Part 2",
+			wantYear:  2018,
+		},
+		{
+			input:     "Harry.Potter.And.The.Deathly.Hallows.Pt.2.2011.1080p.BluRay",
+			wantTitle: "Harry Potter And The Deathly Hallows Part 2",
+			wantYear:  2011,
+		},
+		// --- Title## stop token mid-name ---
+		{
+			input:     "The.Dark.Knight.Rises.2012.Title01.1080p",
+			wantTitle: "The Dark Knight Rises",
+			wantYear:  2012,
+		},
+		// --- all-caps with year ---
+		{
+			input:     "THE_DARK_KNIGHT_2008_1080P_BLURAY",
+			wantTitle: "The Dark Knight",
+			wantYear:  2008,
 		},
 	}
 
