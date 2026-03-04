@@ -1,6 +1,10 @@
 package quality
 
-import "github.com/davidfic/luminarr/pkg/plugin"
+import (
+	"strings"
+
+	"github.com/davidfic/luminarr/pkg/plugin"
+)
 
 // Profile defines a quality policy for a monitored movie.
 // It controls which releases are acceptable and when upgrades are triggered.
@@ -83,6 +87,113 @@ func (p *Profile) IsUpgrade(releaseQuality plugin.Quality, currentQuality plugin
 	// the ceiling, it's a valid upgrade regardless of how far past the ceiling
 	// the release goes.
 	return true
+}
+
+// ScoreWithBreakdown scores q against this profile's cutoff and returns both
+// the aggregate 0–100 score and a per-dimension breakdown.
+//
+// Weights:  Resolution 40 pts, Source 30 pts, Codec 20 pts, HDR 10 pts.
+//
+// A dimension is "matched" when the release meets or exceeds the cutoff value
+// for that dimension. If the cutoff field is empty/unknown, any value matches.
+// The score for each dimension is awarded in full when matched, zero otherwise.
+func (p *Profile) ScoreWithBreakdown(q plugin.Quality) (int, plugin.ScoreBreakdown) {
+	res := scoreDimension("resolution",
+		string(q.Resolution), string(p.Cutoff.Resolution), 40,
+		resolutionRank(q.Resolution) >= resolutionRank(p.Cutoff.Resolution))
+
+	src := scoreDimension("source",
+		string(q.Source), string(p.Cutoff.Source), 30,
+		sourceRank(q.Source) >= sourceRank(p.Cutoff.Source))
+
+	// Codec: empty or "unknown" cutoff means "any" — always matches.
+	codecWant := string(p.Cutoff.Codec)
+	codecMatched := p.Cutoff.Codec == "" ||
+		strings.EqualFold(codecWant, "unknown") ||
+		codecRank(q.Codec) >= codecRank(p.Cutoff.Codec)
+	cod := scoreDimension("codec", string(q.Codec), codecWant, 20, codecMatched)
+
+	// HDR: empty or "none" cutoff means "any" — always matches.
+	hdrWant := string(p.Cutoff.HDR)
+	hdrMatched := p.Cutoff.HDR == "" ||
+		p.Cutoff.HDR == plugin.HDRNone ||
+		strings.EqualFold(hdrWant, "unknown") ||
+		string(q.HDR) == hdrWant
+	hdr := scoreDimension("hdr", string(q.HDR), hdrWant, 10, hdrMatched)
+
+	total := res.Score + src.Score + cod.Score + hdr.Score
+	bd := plugin.ScoreBreakdown{
+		Total:      total,
+		Dimensions: []plugin.ScoreDimension{res, src, cod, hdr},
+	}
+	return total, bd
+}
+
+func scoreDimension(name, got, want string, max int, matched bool) plugin.ScoreDimension {
+	score := 0
+	if matched {
+		score = max
+	}
+	return plugin.ScoreDimension{
+		Name:    name,
+		Score:   score,
+		Max:     max,
+		Matched: matched,
+		Got:     got,
+		Want:    want,
+	}
+}
+
+// resolutionRank maps a Resolution to a comparable integer (higher = better).
+func resolutionRank(r plugin.Resolution) int {
+	switch r {
+	case plugin.Resolution2160p:
+		return 4
+	case plugin.Resolution1080p:
+		return 3
+	case plugin.Resolution720p:
+		return 2
+	case plugin.ResolutionSD:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// sourceRank maps a Source to a comparable integer (higher = better).
+func sourceRank(s plugin.Source) int {
+	switch s {
+	case plugin.SourceRemux:
+		return 7
+	case plugin.SourceBluRay:
+		return 6
+	case plugin.SourceWEBDL:
+		return 5
+	case plugin.SourceWEBRip:
+		return 4
+	case plugin.SourceHDTV:
+		return 3
+	case plugin.SourceDVD:
+		return 2
+	case plugin.SourceTELECINE:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// codecRank maps a Codec to a comparable integer (higher = better).
+func codecRank(c plugin.Codec) int {
+	switch c {
+	case plugin.CodecAV1:
+		return 3
+	case plugin.CodecX265:
+		return 2
+	case plugin.CodecX264:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // AllowedQualities returns the list of quality values this profile accepts.

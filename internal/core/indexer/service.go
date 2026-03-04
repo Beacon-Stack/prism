@@ -51,8 +51,9 @@ type UpdateRequest = CreateRequest
 type SearchResult struct {
 	plugin.Release
 	// IndexerID is the DB UUID of the indexer that returned this release.
-	IndexerID    string
-	QualityScore int
+	IndexerID      string
+	QualityScore   int
+	ScoreBreakdown plugin.ScoreBreakdown
 }
 
 // Service manages indexer configuration and search orchestration.
@@ -382,8 +383,9 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 
 // Grab records a grab to history and links it to the download client that
 // accepted the release. Pass empty strings for downloadClientID / clientItemID
-// when no client is involved.
-func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.Release, downloadClientID, clientItemID string) (dbsqlite.GrabHistory, error) {
+// when no client is involved. scoreBreakdownJSON is a pre-serialized
+// plugin.ScoreBreakdown; pass "" when not available.
+func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.Release, downloadClientID, clientItemID, scoreBreakdownJSON string) (dbsqlite.GrabHistory, error) {
 	idxID := &indexerID
 	if indexerID == "" {
 		idxID = nil
@@ -415,6 +417,7 @@ func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.
 		GrabbedAt:         now,
 		DownloadStatus:    "queued",
 		DownloadedBytes:   0,
+		ScoreBreakdown:    scoreBreakdownJSON,
 	})
 	if err != nil {
 		return dbsqlite.GrabHistory{}, fmt.Errorf("recording grab history: %w", err)

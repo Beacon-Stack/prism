@@ -164,7 +164,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.IndexerService != nil {
 		v1.RegisterIndexerRoutes(humaAPI, cfg.IndexerService)
-		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.BlocklistService, cfg.Logger)
+		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.BlocklistService, cfg.QualityService, cfg.Logger)
 		v1.RegisterHistoryRoutes(humaAPI, cfg.IndexerService)
 	}
 

@@ -56,6 +56,7 @@ type GrabHistory struct {
 	GrabbedAt         string  `json:"grabbedAt"`
 	DownloadStatus    string  `json:"downloadStatus"`
 	DownloadedBytes   int64   `json:"downloadedBytes"`
+	ScoreBreakdown    string  `json:"scoreBreakdown"`
 }
 
 type IndexerConfig struct {

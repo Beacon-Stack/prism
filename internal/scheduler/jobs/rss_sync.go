@@ -147,8 +147,12 @@ func runRSSSync(
 			continue
 		}
 
+		// Compute score breakdown for history storage.
+		_, breakdown := prof.ScoreWithBreakdown(best.Release.Quality)
+		breakdownJSON, _ := json.Marshal(breakdown)
+
 		// Record the grab in history.
-		if _, err := idxSvc.Grab(ctx, m.ID, best.IndexerID, best.Release, dcID, itemID); err != nil {
+		if _, err := idxSvc.Grab(ctx, m.ID, best.IndexerID, best.Release, dcID, itemID, string(breakdownJSON)); err != nil {
 			logger.Warn("could not record grab history",
 				"movie_id", m.ID,
 				"release", best.Title,

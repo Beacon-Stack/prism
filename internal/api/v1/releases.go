@@ -14,24 +14,26 @@ import (
 	"github.com/davidfic/luminarr/internal/core/downloader"
 	"github.com/davidfic/luminarr/internal/core/indexer"
 	"github.com/davidfic/luminarr/internal/core/movie"
+	"github.com/davidfic/luminarr/internal/core/quality"
 	"github.com/davidfic/luminarr/pkg/plugin"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────
 
 type releaseBody struct {
-	GUID         string         `json:"guid"`
-	Title        string         `json:"title"`
-	Indexer      string         `json:"indexer"`
-	Protocol     string         `json:"protocol"`
-	DownloadURL  string         `json:"download_url"`
-	InfoURL      string         `json:"info_url,omitempty"`
-	Size         int64          `json:"size"`
-	Seeds        int            `json:"seeds,omitempty"`
-	Peers        int            `json:"peers,omitempty"`
-	AgeDays      float64        `json:"age_days,omitempty"`
-	Quality      plugin.Quality `json:"quality"`
-	QualityScore int            `json:"quality_score"`
+	GUID           string               `json:"guid"`
+	Title          string               `json:"title"`
+	Indexer        string               `json:"indexer"`
+	Protocol       string               `json:"protocol"`
+	DownloadURL    string               `json:"download_url"`
+	InfoURL        string               `json:"info_url,omitempty"`
+	Size           int64                `json:"size"`
+	Seeds          int                  `json:"seeds,omitempty"`
+	Peers          int                  `json:"peers,omitempty"`
+	AgeDays        float64              `json:"age_days,omitempty"`
+	Quality        plugin.Quality       `json:"quality"`
+	QualityScore   int                  `json:"quality_score"`
+	ScoreBreakdown plugin.ScoreBreakdown `json:"score_breakdown"`
 }
 
 type releaseListOutput struct {
@@ -44,17 +46,18 @@ type releasesSearchInput struct {
 
 // grabHistoryBody is a summary of one recorded grab.
 type grabHistoryBody struct {
-	ID               string    `json:"id"`
-	MovieID          string    `json:"movie_id"`
-	IndexerID        *string   `json:"indexer_id,omitempty"`
-	ReleaseGUID      string    `json:"release_guid"`
-	ReleaseTitle     string    `json:"release_title"`
-	Protocol         string    `json:"protocol"`
-	Size             int64     `json:"size"`
-	DownloadClientID *string   `json:"download_client_id,omitempty"`
-	ClientItemID     *string   `json:"client_item_id,omitempty"`
-	DownloadStatus   string    `json:"download_status"`
-	GrabbedAt        time.Time `json:"grabbed_at"`
+	ID               string          `json:"id"`
+	MovieID          string          `json:"movie_id"`
+	IndexerID        *string         `json:"indexer_id,omitempty"`
+	ReleaseGUID      string          `json:"release_guid"`
+	ReleaseTitle     string          `json:"release_title"`
+	Protocol         string          `json:"protocol"`
+	Size             int64           `json:"size"`
+	DownloadClientID *string         `json:"download_client_id,omitempty"`
+	ClientItemID     *string         `json:"client_item_id,omitempty"`
+	DownloadStatus   string          `json:"download_status"`
+	GrabbedAt        time.Time       `json:"grabbed_at"`
+	ScoreBreakdown   json.RawMessage `json:"score_breakdown,omitempty"`
 }
 
 // grabInput carries the release the client wants to grab.
@@ -81,18 +84,19 @@ type grabOutput struct {
 
 func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 	return &releaseBody{
-		GUID:         r.GUID,
-		Title:        r.Title,
-		Indexer:      r.Indexer,
-		Protocol:     string(r.Protocol),
-		DownloadURL:  r.DownloadURL,
-		InfoURL:      r.InfoURL,
-		Size:         r.Size,
-		Seeds:        r.Seeds,
-		Peers:        r.Peers,
-		AgeDays:      r.AgeDays,
-		Quality:      r.Quality,
-		QualityScore: r.QualityScore,
+		GUID:           r.GUID,
+		Title:          r.Title,
+		Indexer:        r.Indexer,
+		Protocol:       string(r.Protocol),
+		DownloadURL:    r.DownloadURL,
+		InfoURL:        r.InfoURL,
+		Size:           r.Size,
+		Seeds:          r.Seeds,
+		Peers:          r.Peers,
+		AgeDays:        r.AgeDays,
+		Quality:        r.Quality,
+		QualityScore:   r.QualityScore,
+		ScoreBreakdown: r.ScoreBreakdown,
 	}
 }
 
@@ -102,7 +106,8 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 // downloaderSvc may be nil; in that case grabs are recorded to history without
 // being sent to a download client (backward-compatible with Phase 2 mode).
 // blocklistSvc may be nil; in that case blocklist checking is skipped.
-func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *movie.Service, downloaderSvc *downloader.Service, blocklistSvc *blocklist.Service, logger *slog.Logger) {
+// qualitySvc may be nil; in that case score breakdowns are omitted from responses.
+func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *movie.Service, downloaderSvc *downloader.Service, blocklistSvc *blocklist.Service, qualitySvc *quality.Service, logger *slog.Logger) {
 	// GET /api/v1/movies/{id}/releases
 	huma.Register(api, huma.Operation{
 		OperationID: "search-releases",
@@ -127,8 +132,20 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 		}
 
 		results, searchErr := indexerSvc.Search(ctx, query)
+
+		// Load quality profile once so we can compute breakdown per release.
+		var prof *quality.Profile
+		if qualitySvc != nil {
+			if p, err := qualitySvc.Get(ctx, m.QualityProfileID); err == nil {
+				prof = &p
+			}
+		}
+
 		bodies := make([]*releaseBody, len(results))
 		for i, r := range results {
+			if prof != nil {
+				_, r.ScoreBreakdown = prof.ScoreWithBreakdown(r.Quality)
+			}
 			bodies[i] = indexerResultToBody(r)
 		}
 
@@ -203,7 +220,20 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			itemID = item
 		}
 
-		history, err := indexerSvc.Grab(ctx, input.MovieID, input.Body.IndexerID, release, dcID, itemID)
+		// Compute score breakdown against the movie's quality profile.
+		var breakdownJSON string
+		if qualitySvc != nil {
+			if m, err := movieSvc.Get(ctx, input.MovieID); err == nil {
+				if p, err := qualitySvc.Get(ctx, m.QualityProfileID); err == nil {
+					_, bd := p.ScoreWithBreakdown(release.Quality)
+					if b, err := json.Marshal(bd); err == nil {
+						breakdownJSON = string(b)
+					}
+				}
+			}
+		}
+
+		history, err := indexerSvc.Grab(ctx, input.MovieID, input.Body.IndexerID, release, dcID, itemID, breakdownJSON)
 		if err != nil {
 			logger.Error("grab: failed to record grab history",
 				"movie_id", input.MovieID,
@@ -228,6 +258,9 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			ClientItemID:     history.ClientItemID,
 			DownloadStatus:   history.DownloadStatus,
 			GrabbedAt:        grabbedAt,
+		}
+		if history.ScoreBreakdown != "" {
+			out.ScoreBreakdown = json.RawMessage(history.ScoreBreakdown)
 		}
 		return &grabOutput{Body: out}, nil
 	})

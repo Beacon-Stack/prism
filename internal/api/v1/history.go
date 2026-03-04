@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -12,15 +13,16 @@ import (
 )
 
 type historyItemBody struct {
-	ID                string    `json:"id"`
-	MovieID           string    `json:"movie_id"`
-	ReleaseTitle      string    `json:"release_title"`
-	ReleaseSource     string    `json:"release_source,omitempty"`
-	ReleaseResolution string    `json:"release_resolution,omitempty"`
-	Protocol          string    `json:"protocol"`
-	Size              int64     `json:"size"`
-	DownloadStatus    string    `json:"download_status"`
-	GrabbedAt         time.Time `json:"grabbed_at"`
+	ID                string          `json:"id"`
+	MovieID           string          `json:"movie_id"`
+	ReleaseTitle      string          `json:"release_title"`
+	ReleaseSource     string          `json:"release_source,omitempty"`
+	ReleaseResolution string          `json:"release_resolution,omitempty"`
+	Protocol          string          `json:"protocol"`
+	Size              int64           `json:"size"`
+	DownloadStatus    string          `json:"download_status"`
+	GrabbedAt         time.Time       `json:"grabbed_at"`
+	ScoreBreakdown    json.RawMessage `json:"score_breakdown,omitempty"`
 }
 
 type historyListInput struct {
@@ -67,7 +69,7 @@ func RegisterHistoryRoutes(api huma.API, svc *indexer.Service) {
 				continue
 			}
 			grabbedAt, _ := time.Parse(time.RFC3339, r.GrabbedAt)
-			items = append(items, &historyItemBody{
+			item := &historyItemBody{
 				ID:                r.ID,
 				MovieID:           r.MovieID,
 				ReleaseTitle:      r.ReleaseTitle,
@@ -77,7 +79,11 @@ func RegisterHistoryRoutes(api huma.API, svc *indexer.Service) {
 				Size:              r.Size,
 				DownloadStatus:    r.DownloadStatus,
 				GrabbedAt:         grabbedAt,
-			})
+			}
+			if r.ScoreBreakdown != "" {
+				item.ScoreBreakdown = json.RawMessage(r.ScoreBreakdown)
+			}
+			items = append(items, item)
 			if len(items) == limit {
 				break
 			}
@@ -103,7 +109,7 @@ func RegisterHistoryRoutes(api huma.API, svc *indexer.Service) {
 		items := make([]*historyItemBody, len(rows))
 		for i, r := range rows {
 			grabbedAt, _ := time.Parse(time.RFC3339, r.GrabbedAt)
-			items[i] = &historyItemBody{
+			item := &historyItemBody{
 				ID:                r.ID,
 				MovieID:           r.MovieID,
 				ReleaseTitle:      r.ReleaseTitle,
@@ -114,6 +120,10 @@ func RegisterHistoryRoutes(api huma.API, svc *indexer.Service) {
 				DownloadStatus:    r.DownloadStatus,
 				GrabbedAt:         grabbedAt,
 			}
+			if r.ScoreBreakdown != "" {
+				item.ScoreBreakdown = json.RawMessage(r.ScoreBreakdown)
+			}
+			items[i] = item
 		}
 		return &historyListOutput{Body: items}, nil
 	})
