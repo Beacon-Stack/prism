@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { LayoutGrid, List } from "lucide-react";
 import { toast } from "sonner";
@@ -1607,10 +1607,16 @@ export default function Dashboard() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [bulkDeleteState, setBulkDeleteState] = useState<"idle" | "confirming" | "deleting">("idle");
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ done: number; total: number } | null>(null);
+  const bulkDeleteAbort = useRef(false);
+  const deleteMovie = useDeleteMovie();
 
   function toggleSelectMode() {
     setSelectionMode((v) => !v);
     setSelectedIds(new Set());
+    setBulkDeleteState("idle");
+    setBulkDeleteProgress(null);
   }
 
   function toggleSelect(id: string) {
@@ -1620,6 +1626,38 @@ export default function Dashboard() {
       else next.add(id);
       return next;
     });
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(filtered.map((m) => m.id)));
+  }
+
+  async function handleBulkDelete() {
+    const targets = (data?.movies ?? []).filter((m) => selectedIds.has(m.id));
+    setBulkDeleteState("deleting");
+    setBulkDeleteProgress({ done: 0, total: targets.length });
+    bulkDeleteAbort.current = false;
+    let done = 0;
+    let failed = 0;
+    for (const m of targets) {
+      if (bulkDeleteAbort.current) break;
+      try {
+        await deleteMovie.mutateAsync(m.id);
+        done++;
+      } catch {
+        failed++;
+      }
+      setBulkDeleteProgress({ done: done + failed, total: targets.length });
+    }
+    if (failed > 0) {
+      toast.error(`${failed} deletion${failed > 1 ? "s" : ""} failed`);
+    } else if (!bulkDeleteAbort.current) {
+      toast.success(`Deleted ${done} ${done === 1 ? "movie" : "movies"}`);
+    }
+    setBulkDeleteState("idle");
+    setBulkDeleteProgress(null);
+    setSelectionMode(false);
+    setSelectedIds(new Set());
   }
 
   const { data, isLoading, error } = useMovies({ per_page: 2000 });
@@ -2165,7 +2203,7 @@ export default function Dashboard() {
       {showAdd && <AddMovieDialog onClose={() => setShowAdd(false)} />}
 
       {/* Sticky selection toolbar */}
-      {selectionMode && selectedIds.size > 0 && (
+      {selectionMode && (
         <div
           style={{
             position: "fixed",
@@ -2177,7 +2215,7 @@ export default function Dashboard() {
             borderRadius: 8,
             padding: "12px 20px",
             display: "flex",
-            gap: 12,
+            gap: 10,
             alignItems: "center",
             boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
             zIndex: 50,
@@ -2189,39 +2227,137 @@ export default function Dashboard() {
               fontSize: 13,
               color: "var(--color-text-primary)",
               fontWeight: 500,
+              minWidth: 80,
             }}
           >
             {selectedIds.size} {selectedIds.size === 1 ? "movie" : "movies"} selected
           </span>
-          <button
-            onClick={() => setShowBulkEdit(true)}
-            style={{
-              background: "var(--color-accent)",
-              color: "var(--color-accent-fg)",
-              border: "none",
-              borderRadius: 6,
-              padding: "7px 16px",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            Edit Selected
-          </button>
-          <button
-            onClick={toggleSelectMode}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--color-border-default)",
-              borderRadius: 6,
-              padding: "7px 14px",
-              fontSize: 13,
-              color: "var(--color-text-secondary)",
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
+
+          {bulkDeleteState === "confirming" ? (
+            <>
+              <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+                Delete {selectedIds.size} {selectedIds.size === 1 ? "movie" : "movies"}?
+              </span>
+              <button
+                onClick={handleBulkDelete}
+                style={{
+                  background: "var(--color-danger)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Yes, delete
+              </button>
+              <button
+                onClick={() => setBulkDeleteState("idle")}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--color-border-default)",
+                  borderRadius: 6,
+                  padding: "7px 14px",
+                  fontSize: 13,
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : bulkDeleteState === "deleting" ? (
+            <>
+              <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+                Deleting {bulkDeleteProgress?.done ?? 0}/{bulkDeleteProgress?.total ?? 0}…
+              </span>
+              <button
+                onClick={() => { bulkDeleteAbort.current = true; }}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--color-border-default)",
+                  borderRadius: 6,
+                  padding: "7px 14px",
+                  fontSize: 13,
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
+                Stop
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Select all visible */}
+              {selectedIds.size < filtered.length && (
+                <button
+                  onClick={selectAll}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid var(--color-border-default)",
+                    borderRadius: 6,
+                    padding: "7px 14px",
+                    fontSize: 13,
+                    color: "var(--color-text-secondary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Select all {filtered.length}
+                </button>
+              )}
+
+              {selectedIds.size > 0 && (
+                <>
+                  <button
+                    onClick={() => setShowBulkEdit(true)}
+                    style={{
+                      background: "var(--color-accent)",
+                      color: "var(--color-accent-fg)",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "7px 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setBulkDeleteState("confirming")}
+                    style={{
+                      background: "color-mix(in srgb, var(--color-danger) 12%, transparent)",
+                      border: "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)",
+                      borderRadius: 6,
+                      padding: "7px 14px",
+                      fontSize: 13,
+                      color: "var(--color-danger)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={toggleSelectMode}
+                style={{
+                  background: "transparent",
+                  border: "1px solid var(--color-border-default)",
+                  borderRadius: 6,
+                  padding: "7px 14px",
+                  fontSize: 13,
+                  color: "var(--color-text-secondary)",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
         </div>
       )}
 
