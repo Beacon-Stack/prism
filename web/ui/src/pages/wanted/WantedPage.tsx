@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useWantedMissing, useWantedCutoff } from "@/api/wanted";
+import { ManualSearchModal } from "@/components/ManualSearchModal";
 import type { Movie } from "@/types";
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
@@ -22,76 +23,109 @@ function statusBadge(status: string, monitored: boolean): React.CSSProperties {
 
 // ── Movie row ─────────────────────────────────────────────────────────────────
 
-function MovieRow({ movie }: { movie: Movie }) {
+function MovieRow({ movie, onSearch }: { movie: Movie; onSearch: () => void }) {
   return (
-    <Link
-      to={`/movies/${movie.id}`}
-      style={{ textDecoration: "none" }}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        background: "var(--color-bg-elevated)",
+        border: "1px solid var(--color-border-subtle)",
+        borderRadius: 6,
+        overflow: "hidden",
+      }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "10px 14px",
-          background: "var(--color-bg-elevated)",
-          border: "1px solid var(--color-border-subtle)",
-          borderRadius: 6,
-          transition: "border-color 120ms ease",
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-border-default)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-border-subtle)"; }}
+      <Link
+        to={`/movies/${movie.id}`}
+        style={{ textDecoration: "none", flex: 1, minWidth: 0 }}
       >
-        {/* Poster thumbnail */}
-        {movie.poster_url ? (
-          <img
-            src={movie.poster_url}
-            alt={movie.title}
-            style={{ width: 36, height: 54, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 36,
-              height: 54,
-              borderRadius: 4,
-              background: "var(--color-bg-surface)",
-              border: "1px solid var(--color-border-subtle)",
-              flexShrink: 0,
-            }}
-          />
-        )}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 14px",
+            transition: "background 120ms ease",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "var(--color-bg-surface)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+        >
+          {/* Poster thumbnail */}
+          {movie.poster_url ? (
+            <img
+              src={movie.poster_url}
+              alt={movie.title}
+              style={{ width: 36, height: 54, borderRadius: 4, objectFit: "cover", flexShrink: 0 }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 36,
+                height: 54,
+                borderRadius: 4,
+                background: "var(--color-bg-surface)",
+                border: "1px solid var(--color-border-subtle)",
+                flexShrink: 0,
+              }}
+            />
+          )}
 
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: "var(--color-text-primary)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {movie.title}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
-            {movie.year > 0 && (
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{movie.year}</span>
-            )}
-            <span style={statusBadge(movie.status, movie.monitored)}>
-              {movie.status}
-            </span>
-            {movie.minimum_availability && (
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-                min: {movie.minimum_availability.replace("_", " ")}
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--color-text-primary)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {movie.title}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 3 }}>
+              {movie.year > 0 && (
+                <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{movie.year}</span>
+              )}
+              <span style={statusBadge(movie.status, movie.monitored)}>
+                {movie.status}
               </span>
-            )}
+              {movie.minimum_availability && (
+                <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                  min: {movie.minimum_availability.replace("_", " ")}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      {/* Search button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onSearch(); }}
+        title="Manual search"
+        style={{
+          background: "none",
+          border: "none",
+          borderLeft: "1px solid var(--color-border-subtle)",
+          padding: "0 14px",
+          height: "100%",
+          alignSelf: "stretch",
+          cursor: "pointer",
+          fontSize: 12,
+          color: "var(--color-text-muted)",
+          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-accent)"; (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--color-accent) 8%, transparent)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+      >
+        Search
+      </button>
+    </div>
   );
 }
 
@@ -99,7 +133,7 @@ function MovieRow({ movie }: { movie: Movie }) {
 
 const PER_PAGE = 50;
 
-function MissingTab() {
+function MissingTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useWantedMissing(page, PER_PAGE);
 
@@ -144,7 +178,7 @@ function MissingTab() {
         {total} movie{total !== 1 ? "s" : ""} missing a file
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {movies.map((m) => <MovieRow key={m.id} movie={m} />)}
+        {movies.map((m) => <MovieRow key={m.id} movie={m} onSearch={() => onSearch(m)} />)}
       </div>
       {totalPages > 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 20 }}>
@@ -189,7 +223,7 @@ function MissingTab() {
 
 // ── Cutoff unmet tab ──────────────────────────────────────────────────────────
 
-function CutoffTab() {
+function CutoffTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   const { data, isLoading, error } = useWantedCutoff();
 
   if (isLoading) {
@@ -231,7 +265,7 @@ function CutoffTab() {
         {movies.length} movie{movies.length !== 1 ? "s" : ""} below cutoff quality
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {movies.map((m) => <MovieRow key={m.id} movie={m} />)}
+        {movies.map((m) => <MovieRow key={m.id} movie={m} onSearch={() => onSearch(m)} />)}
       </div>
     </div>
   );
@@ -243,6 +277,7 @@ type WantedTab = "missing" | "cutoff";
 
 export default function WantedPage() {
   const [tab, setTab] = useState<WantedTab>("missing");
+  const [searchMovie, setSearchMovie] = useState<Movie | null>(null);
 
   return (
     <div style={{ padding: 24, maxWidth: 900 }}>
@@ -274,8 +309,16 @@ export default function WantedPage() {
         ))}
       </div>
 
-      {tab === "missing" && <MissingTab />}
-      {tab === "cutoff" && <CutoffTab />}
+      {tab === "missing" && <MissingTab onSearch={setSearchMovie} />}
+      {tab === "cutoff" && <CutoffTab onSearch={setSearchMovie} />}
+
+      {searchMovie && (
+        <ManualSearchModal
+          movieId={searchMovie.id}
+          movieTitle={searchMovie.title}
+          onClose={() => setSearchMovie(null)}
+        />
+      )}
     </div>
   );
 }

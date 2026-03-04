@@ -14,6 +14,7 @@ import {
   useMovieHistory,
   type GrabReleaseRequest,
 } from "@/api/movies";
+import { ManualSearchModal } from "@/components/ManualSearchModal";
 import type { Release } from "@/types";
 import { formatBytes } from "@/lib/utils";
 
@@ -564,6 +565,7 @@ export default function MovieDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const [confirming, setConfirming] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   function handleMonitoredToggle() {
     if (!movie) return;
@@ -686,6 +688,12 @@ export default function MovieDetail() {
               {refreshMovie.isPending ? "Refreshing…" : "Refresh Metadata"}
             </button>
           )}
+          <button
+            onClick={() => setSearchOpen(true)}
+            style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}
+          >
+            Search
+          </button>
           <button
             onClick={() => setConfirming((v) => !v)}
             style={actionBtn("var(--color-danger)", "color-mix(in srgb, var(--color-danger) 10%, transparent)")}
@@ -875,6 +883,14 @@ export default function MovieDetail() {
           {tab === "history" && <HistoryTab movieId={movie.id} />}
         </div>
       </div>
+
+      {searchOpen && (
+        <ManualSearchModal
+          movieId={movie.id}
+          movieTitle={movie.title}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
     </div>
   );
 }
