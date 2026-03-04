@@ -6,6 +6,7 @@ package dbsqlite
 
 import (
 	"context"
+	"time"
 )
 
 type Querier interface {
@@ -35,10 +36,12 @@ type Querier interface {
 	DeleteNotificationConfig(ctx context.Context, id string) error
 	DeleteQualityProfile(ctx context.Context, id string) error
 	DeleteRemotePathMapping(ctx context.Context, id string) error
+	GetCollectionStats(ctx context.Context) (GetCollectionStatsRow, error)
 	GetDownloadClientConfig(ctx context.Context, id string) (DownloadClientConfig, error)
 	GetDownloadHandling(ctx context.Context) (DownloadHandling, error)
 	GetGrabByClientItemID(ctx context.Context, arg GetGrabByClientItemIDParams) (GrabHistory, error)
 	GetGrabByID(ctx context.Context, id string) (GrabHistory, error)
+	GetGrabStats(ctx context.Context) (GetGrabStatsRow, error)
 	GetIndexerConfig(ctx context.Context, id string) (IndexerConfig, error)
 	GetLibrary(ctx context.Context, id string) (Library, error)
 	GetMediaManagement(ctx context.Context) (MediaManagement, error)
@@ -48,6 +51,9 @@ type Querier interface {
 	GetMovieFileByPath(ctx context.Context, path string) (MovieFile, error)
 	GetNotificationConfig(ctx context.Context, id string) (NotificationConfig, error)
 	GetQualityProfile(ctx context.Context, id string) (QualityProfile, error)
+	GetStorageTotals(ctx context.Context) (GetStorageTotalsRow, error)
+	GetTopIndexers(ctx context.Context) ([]GetTopIndexersRow, error)
+	InsertStorageSnapshot(ctx context.Context, arg InsertStorageSnapshotParams) error
 	IsBlocklisted(ctx context.Context, releaseGuid string) (int64, error)
 	IsBlocklistedByTitle(ctx context.Context, releaseTitle string) (int64, error)
 	ListActiveGrabs(ctx context.Context) ([]GrabHistory, error)
@@ -64,6 +70,7 @@ type Querier interface {
 	ListMonitoredMovies(ctx context.Context) ([]Movie, error)
 	ListMonitoredMoviesWithFiles(ctx context.Context) ([]ListMonitoredMoviesWithFilesRow, error)
 	ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMonitoredMoviesWithoutFileParams) ([]Movie, error)
+	ListMovieFileQualities(ctx context.Context) ([]string, error)
 	ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error)
 	ListMovieFilesByLibrary(ctx context.Context, libraryID string) ([]MovieFile, error)
 	ListMovies(ctx context.Context, arg ListMoviesParams) ([]Movie, error)
@@ -72,8 +79,10 @@ type Querier interface {
 	ListQualityDefinitions(ctx context.Context) ([]QualityDefinition, error)
 	ListQualityProfiles(ctx context.Context) ([]QualityProfile, error)
 	ListRemotePathMappings(ctx context.Context) ([]RemotePathMapping, error)
+	ListStorageSnapshots(ctx context.Context, limit int64) ([]StorageSnapshot, error)
 	ListUnmatchedLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error)
 	MarkGrabRemoved(ctx context.Context, id string) error
+	PruneOldStorageSnapshots(ctx context.Context, capturedAt time.Time) error
 	// Removes candidates that were not seen in the current scan (scanned_at < cutoff).
 	PruneStaleLibraryFileCandidates(ctx context.Context, arg PruneStaleLibraryFileCandidatesParams) error
 	QualityProfileInUse(ctx context.Context, arg QualityProfileInUseParams) (int64, error)

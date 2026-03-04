@@ -1,0 +1,292 @@
+// Package stats provides library statistics and analytics.
+package stats
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+
+	dbsqlite "github.com/davidfic/luminarr/internal/db/generated/sqlite"
+	"github.com/davidfic/luminarr/pkg/plugin"
+)
+
+// CollectionStats is a summary of the movie library.
+type CollectionStats struct {
+	TotalMovies   int64 `json:"total_movies"`
+	Monitored     int64 `json:"monitored"`
+	WithFile      int64 `json:"with_file"`
+	Missing       int64 `json:"missing"`
+	NeedsUpgrade  int64 `json:"needs_upgrade"`
+	RecentlyAdded int64 `json:"recently_added"`
+}
+
+// QualityBucket is one slice of the quality distribution.
+type QualityBucket struct {
+	Resolution string `json:"resolution"`
+	Source     string `json:"source"`
+	Codec      string `json:"codec"`
+	HDR        string `json:"hdr"`
+	Count      int64  `json:"count"`
+}
+
+// StorageStat is the current total storage used by movie files.
+type StorageStat struct {
+	TotalBytes int64 `json:"total_bytes"`
+	FileCount  int64 `json:"file_count"`
+}
+
+// StoragePoint is one point in the storage trend history.
+type StoragePoint struct {
+	CapturedAt time.Time `json:"captured_at"`
+	TotalBytes int64     `json:"total_bytes"`
+	FileCount  int64     `json:"file_count"`
+}
+
+// GrabStats is aggregate information about the grab history.
+type GrabStats struct {
+	TotalGrabs  int64   `json:"total_grabs"`
+	Successful  int64   `json:"successful"`
+	Failed      int64   `json:"failed"`
+	SuccessRate float64 `json:"success_rate"`
+}
+
+// IndexerStat is per-indexer grab performance.
+type IndexerStat struct {
+	IndexerID   string  `json:"indexer_id"`
+	IndexerName string  `json:"indexer_name"`
+	GrabCount   int64   `json:"grab_count"`
+	SuccessRate float64 `json:"success_rate"`
+}
+
+// CutoffCounter is the minimal interface used to count cutoff-unmet movies.
+type CutoffCounter interface {
+	ListCutoffUnmet(ctx context.Context) ([]any, error)
+}
+
+// Service provides library statistics.
+type Service struct {
+	q            dbsqlite.Querier
+	cutoffCounter cutoffUnmetLister
+}
+
+// cutoffUnmetLister is implemented by *movie.Service. Using a local interface
+// avoids an import cycle between stats and movie packages.
+type cutoffUnmetLister interface {
+	CountCutoffUnmet(ctx context.Context) (int64, error)
+}
+
+// NewService creates a new statistics Service.
+func NewService(q dbsqlite.Querier, cutoff cutoffUnmetLister) *Service {
+	return &Service{q: q, cutoffCounter: cutoff}
+}
+
+// Collection returns aggregate counts for the movie library.
+func (s *Service) Collection(ctx context.Context) (CollectionStats, error) {
+	row, err := s.q.GetCollectionStats(ctx)
+	if err != nil {
+		return CollectionStats{}, fmt.Errorf("getting collection stats: %w", err)
+	}
+
+	var needsUpgrade int64
+	if s.cutoffCounter != nil {
+		needsUpgrade, err = s.cutoffCounter.CountCutoffUnmet(ctx)
+		if err != nil {
+			// Non-fatal — degrade gracefully.
+			needsUpgrade = 0
+		}
+	}
+
+	return CollectionStats{
+		TotalMovies:   row.TotalMovies,
+		Monitored:     derefFloat(row.Monitored),
+		WithFile:      derefFloat(row.WithFile),
+		Missing:       derefFloat(row.Missing),
+		NeedsUpgrade:  needsUpgrade,
+		RecentlyAdded: derefFloat(row.RecentlyAdded),
+	}, nil
+}
+
+// QualityDistribution returns movie file counts grouped by quality dimensions.
+// Quality JSON is decoded in Go to avoid SQLite JSON function limitations.
+func (s *Service) QualityDistribution(ctx context.Context) ([]QualityBucket, error) {
+	rows, err := s.q.ListMovieFileQualities(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing file qualities: %w", err)
+	}
+
+	type key struct {
+		Resolution string
+		Source     string
+		Codec      string
+		HDR        string
+	}
+	counts := make(map[key]int64, len(rows))
+
+	for _, raw := range rows {
+		var q plugin.Quality
+		if err := json.Unmarshal([]byte(raw), &q); err != nil {
+			continue // malformed row — skip silently
+		}
+		res := string(q.Resolution)
+		if res == "" {
+			res = "unknown"
+		}
+		src := string(q.Source)
+		if src == "" {
+			src = "unknown"
+		}
+		codec := string(q.Codec)
+		if codec == "" {
+			codec = "unknown"
+		}
+		hdr := string(q.HDR)
+		if hdr == "" {
+			hdr = "none"
+		}
+		counts[key{res, src, codec, hdr}]++
+	}
+
+	buckets := make([]QualityBucket, 0, len(counts))
+	for k, count := range counts {
+		buckets = append(buckets, QualityBucket{
+			Resolution: k.Resolution,
+			Source:     k.Source,
+			Codec:      k.Codec,
+			HDR:        k.HDR,
+			Count:      count,
+		})
+	}
+	return buckets, nil
+}
+
+// Storage returns the current total bytes and file count.
+func (s *Service) Storage(ctx context.Context) (StorageStat, error) {
+	row, err := s.q.GetStorageTotals(ctx)
+	if err != nil {
+		return StorageStat{}, fmt.Errorf("getting storage totals: %w", err)
+	}
+	return StorageStat{
+		TotalBytes: toInt64(row.TotalBytes),
+		FileCount:  row.FileCount,
+	}, nil
+}
+
+// StorageTrend returns the most recent n storage snapshots, oldest first.
+func (s *Service) StorageTrend(ctx context.Context, limit int) ([]StoragePoint, error) {
+	rows, err := s.q.ListStorageSnapshots(ctx, int64(limit))
+	if err != nil {
+		return nil, fmt.Errorf("listing storage snapshots: %w", err)
+	}
+	// Rows come back newest-first; reverse for chronological order.
+	points := make([]StoragePoint, len(rows))
+	for i, r := range rows {
+		points[len(rows)-1-i] = StoragePoint{
+			CapturedAt: r.CapturedAt,
+			TotalBytes: r.TotalBytes,
+			FileCount:  r.FileCount,
+		}
+	}
+	return points, nil
+}
+
+// GrabPerformance returns aggregate grab stats and per-indexer breakdown.
+func (s *Service) GrabPerformance(ctx context.Context) (GrabStats, []IndexerStat, error) {
+	gr, err := s.q.GetGrabStats(ctx)
+	if err != nil {
+		return GrabStats{}, nil, fmt.Errorf("getting grab stats: %w", err)
+	}
+	successful := derefFloat(gr.Successful)
+	failed := derefFloat(gr.Failed)
+
+	var rate float64
+	if gr.TotalGrabs > 0 {
+		rate = float64(successful) / float64(gr.TotalGrabs)
+	}
+
+	grabStats := GrabStats{
+		TotalGrabs:  gr.TotalGrabs,
+		Successful:  successful,
+		Failed:      failed,
+		SuccessRate: rate,
+	}
+
+	indexerRows, err := s.q.GetTopIndexers(ctx)
+	if err != nil {
+		return grabStats, nil, fmt.Errorf("getting top indexers: %w", err)
+	}
+
+	indexers := make([]IndexerStat, len(indexerRows))
+	for i, r := range indexerRows {
+		idxID := ""
+		if r.IndexerID != nil {
+			idxID = *r.IndexerID
+		}
+		successes := derefFloat(r.SuccessCount)
+		var idxRate float64
+		if r.GrabCount > 0 {
+			idxRate = float64(successes) / float64(r.GrabCount)
+		}
+		indexers[i] = IndexerStat{
+			IndexerID:   idxID,
+			IndexerName: r.IndexerName,
+			GrabCount:   r.GrabCount,
+			SuccessRate: idxRate,
+		}
+	}
+
+	return grabStats, indexers, nil
+}
+
+// TakeSnapshot records the current total storage as a point-in-time snapshot.
+func (s *Service) TakeSnapshot(ctx context.Context) error {
+	totals, err := s.q.GetStorageTotals(ctx)
+	if err != nil {
+		return fmt.Errorf("getting storage totals for snapshot: %w", err)
+	}
+	if err := s.q.InsertStorageSnapshot(ctx, dbsqlite.InsertStorageSnapshotParams{
+		ID:         uuid.New().String(),
+		CapturedAt: time.Now().UTC(),
+		TotalBytes: toInt64(totals.TotalBytes),
+		FileCount:  totals.FileCount,
+	}); err != nil {
+		return fmt.Errorf("inserting storage snapshot: %w", err)
+	}
+	return nil
+}
+
+// PruneSnapshots removes snapshots older than the given duration.
+func (s *Service) PruneSnapshots(ctx context.Context, olderThan time.Duration) error {
+	cutoff := time.Now().UTC().Add(-olderThan)
+	if err := s.q.PruneOldStorageSnapshots(ctx, cutoff); err != nil {
+		return fmt.Errorf("pruning snapshots: %w", err)
+	}
+	return nil
+}
+
+// derefFloat returns 0 for a nil *float64 and the rounded int64 otherwise.
+func derefFloat(p *float64) int64 {
+	if p == nil {
+		return 0
+	}
+	return int64(*p)
+}
+
+// toInt64 converts the interface{} returned by COALESCE(SUM(...), 0) to int64.
+// SQLite may return int64 or float64 depending on the driver; handle both.
+func toInt64(v interface{}) int64 {
+	if v == nil {
+		return 0
+	}
+	switch n := v.(type) {
+	case int64:
+		return n
+	case float64:
+		return int64(n)
+	case int:
+		return int64(n)
+	}
+	return 0
+}

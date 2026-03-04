@@ -1244,6 +1244,16 @@ func (s *Service) ListCutoffUnmet(ctx context.Context) ([]Movie, error) {
 	return result, nil
 }
 
+// CountCutoffUnmet returns the number of monitored movies whose best file
+// quality does not meet the quality profile cutoff.
+func (s *Service) CountCutoffUnmet(ctx context.Context) (int64, error) {
+	movies, err := s.ListCutoffUnmet(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return int64(len(movies)), nil
+}
+
 // rowToMovieFromWithFilesRow converts a ListMonitoredMoviesWithFilesRow (which
 // includes extra quality columns) into the domain Movie type.
 func rowToMovieFromWithFilesRow(r dbsqlite.ListMonitoredMoviesWithFilesRow) (Movie, error) {

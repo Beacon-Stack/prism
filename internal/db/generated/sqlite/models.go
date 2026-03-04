@@ -184,3 +184,10 @@ type RemotePathMapping struct {
 	RemotePath string `json:"remotePath"`
 	LocalPath  string `json:"localPath"`
 }
+
+type StorageSnapshot struct {
+	ID         string    `json:"id"`
+	CapturedAt time.Time `json:"capturedAt"`
+	TotalBytes int64     `json:"totalBytes"`
+	FileCount  int64     `json:"fileCount"`
+}

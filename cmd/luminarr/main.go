@@ -33,6 +33,7 @@ import (
 	"github.com/davidfic/luminarr/internal/logging"
 	"github.com/davidfic/luminarr/internal/metadata/tmdb"
 	"github.com/davidfic/luminarr/internal/notifications"
+	"github.com/davidfic/luminarr/internal/core/stats"
 	"github.com/davidfic/luminarr/internal/radarrimport"
 	"github.com/davidfic/luminarr/internal/registry"
 	"github.com/davidfic/luminarr/internal/scheduler"
@@ -239,6 +240,7 @@ func run() error {
 	healthSvc := health.NewService(librarySvc, downloaderSvc, indexerSvc, logger)
 
 	radarrImportSvc := radarrimport.NewService(movieSvc, qualitySvc, librarySvc, indexerSvc, downloaderSvc)
+	statsSvc := stats.NewService(queries, movieSvc)
 
 	// ── Scheduler ─────────────────────────────────────────────────────────────
 	// Load queue poll interval from download handling settings. Default to 60s
@@ -254,6 +256,7 @@ func run() error {
 	sched.Add(jobs.LibraryScan(librarySvc, logger))
 	sched.Add(jobs.RSSSync(indexerSvc, downloaderSvc, qualitySvc, queries, logger))
 	sched.Add(jobs.RefreshMetadata(movieSvc, queries, logger))
+	sched.Add(jobs.StatsSnapshot(statsSvc, logger))
 
 	// ── HTTP router ───────────────────────────────────────────────────────────
 	startTime := time.Now()
@@ -280,6 +283,7 @@ func run() error {
 		MediaManagementService:   mmSvc,
 		DownloadHandlingService:  dhSvc,
 		RadarrImportService:      radarrImportSvc,
+		StatsService:             statsSvc,
 		WSHub:                    wsHub,
 	})
 
