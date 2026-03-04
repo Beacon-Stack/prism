@@ -271,6 +271,28 @@ export interface TestResult {
   message?: string;
 }
 
+// ── Blocklist ──────────────────────────────────────────────────────────────
+
+export interface BlocklistEntry {
+  id: string;
+  movie_id: string;
+  movie_title: string;
+  release_guid: string;
+  release_title: string;
+  indexer_id?: string;
+  protocol: string;
+  size: number;
+  added_at: string;
+  notes?: string;
+}
+
+export interface BlocklistPage {
+  items: BlocklistEntry[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 // ── Radarr import ──────────────────────────────────────────────────────────
 
 export interface RadarrPreviewResult {

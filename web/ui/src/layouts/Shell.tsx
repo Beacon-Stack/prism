@@ -12,6 +12,7 @@ import {
   Bell,
   Server,
   ArrowDownToLine,
+  Ban,
   ChevronLeft,
   ChevronRight,
   Activity,
@@ -39,6 +40,7 @@ const settingsNav: NavItem[] = [
   { to: "/settings/indexers",          icon: Search,           label: "Indexers" },
   { to: "/settings/download-clients",  icon: Settings2,        label: "Download Clients" },
   { to: "/settings/notifications",     icon: Bell,             label: "Notifications" },
+  { to: "/settings/blocklist",         icon: Ban,              label: "Blocklist" },
   { to: "/settings/system",            icon: Server,           label: "System" },
   { to: "/settings/import",            icon: ArrowDownToLine,  label: "Import" },
 ];

@@ -10,6 +10,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/davidfic/luminarr/internal/core/blocklist"
 	"github.com/davidfic/luminarr/internal/core/downloader"
 	"github.com/davidfic/luminarr/internal/core/indexer"
 	"github.com/davidfic/luminarr/internal/core/movie"
@@ -100,7 +101,8 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 // RegisterReleaseRoutes registers the release search and grab endpoints.
 // downloaderSvc may be nil; in that case grabs are recorded to history without
 // being sent to a download client (backward-compatible with Phase 2 mode).
-func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *movie.Service, downloaderSvc *downloader.Service, logger *slog.Logger) {
+// blocklistSvc may be nil; in that case blocklist checking is skipped.
+func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *movie.Service, downloaderSvc *downloader.Service, blocklistSvc *blocklist.Service, logger *slog.Logger) {
 	// GET /api/v1/movies/{id}/releases
 	huma.Register(api, huma.Operation{
 		OperationID: "search-releases",
@@ -167,6 +169,16 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			Quality:     qual,
 		}
 
+		// Reject releases that are on the blocklist.
+		if blocklistSvc != nil {
+			blocked, blErr := blocklistSvc.IsBlocklisted(ctx, input.Body.GUID)
+			if blErr != nil {
+				logger.Warn("grab: blocklist check failed", "guid", input.Body.GUID, "error", blErr)
+			} else if blocked {
+				return nil, huma.NewError(http.StatusConflict, "release is blocklisted")
+			}
+		}
+
 		// Submit to download client when one is configured.
 		var dcID, itemID string
 		if downloaderSvc != nil {
@@ -175,6 +187,15 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 				if errors.Is(err, downloader.ErrNoCompatibleClient) {
 					return nil, huma.NewError(http.StatusServiceUnavailable,
 						"no download client configured for this protocol — add one at /api/v1/download-clients", err)
+				}
+				// Auto-blocklist releases that the download client rejects.
+				if blocklistSvc != nil {
+					blErr := blocklistSvc.Add(ctx, input.MovieID, input.Body.GUID, input.Body.Title,
+						input.Body.IndexerID, input.Body.Protocol, input.Body.Size, "grab failed")
+					if blErr != nil && !errors.Is(blErr, blocklist.ErrAlreadyBlocklisted) {
+						logger.Warn("grab: failed to auto-blocklist rejected release",
+							"guid", input.Body.GUID, "error", blErr)
+					}
 				}
 				return nil, huma.NewError(http.StatusBadGateway, "download client: "+err.Error())
 			}

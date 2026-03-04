@@ -4,6 +4,22 @@
 
 package dbsqlite
 
+import (
+	"time"
+)
+
+type Blocklist struct {
+	ID           string    `json:"id"`
+	MovieID      string    `json:"movieId"`
+	ReleaseGuid  string    `json:"releaseGuid"`
+	ReleaseTitle string    `json:"releaseTitle"`
+	IndexerID    *string   `json:"indexerId"`
+	Protocol     string    `json:"protocol"`
+	Size         int64     `json:"size"`
+	AddedAt      time.Time `json:"addedAt"`
+	Notes        string    `json:"notes"`
+}
+
 type DownloadClientConfig struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -77,6 +93,7 @@ type Movie struct {
 	AddedAt             string  `json:"addedAt"`
 	UpdatedAt           string  `json:"updatedAt"`
 	MetadataRefreshedAt *string `json:"metadataRefreshedAt"`
+	MinimumAvailability string  `json:"minimumAvailability"`
 }
 
 type MovieFile struct {

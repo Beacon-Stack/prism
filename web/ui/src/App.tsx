@@ -13,6 +13,7 @@ import IndexerList from "@/pages/settings/indexers/IndexerList";
 import DownloadClientList from "@/pages/settings/download-clients/DownloadClientList";
 import NotificationList from "@/pages/settings/notifications/NotificationList";
 import ImportPage from "@/pages/settings/import/ImportPage";
+import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import HistoryPage from "@/pages/history/HistoryPage";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="indexers" element={<ErrorBoundary><IndexerList /></ErrorBoundary>} />
                 <Route path="download-clients" element={<ErrorBoundary><DownloadClientList /></ErrorBoundary>} />
                 <Route path="notifications" element={<ErrorBoundary><NotificationList /></ErrorBoundary>} />
+                <Route path="blocklist" element={<ErrorBoundary><BlocklistPage /></ErrorBoundary>} />
                 <Route path="system" element={<ErrorBoundary><SystemPage /></ErrorBoundary>} />
                 <Route path="import" element={<ErrorBoundary><ImportPage /></ErrorBoundary>} />
               </Route>

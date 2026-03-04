@@ -15,6 +15,7 @@ import (
 	"github.com/davidfic/luminarr/internal/api"
 	"github.com/davidfic/luminarr/internal/api/ws"
 	"github.com/davidfic/luminarr/internal/config"
+	"github.com/davidfic/luminarr/internal/core/blocklist"
 	"github.com/davidfic/luminarr/internal/core/downloader"
 	"github.com/davidfic/luminarr/internal/core/health"
 	"github.com/davidfic/luminarr/internal/core/importer"
@@ -202,6 +203,7 @@ func run() error {
 	}
 
 	movieSvc := movie.NewService(queries, tmdbClient, bus, logger)
+	blocklistSvc := blocklist.NewService(queries)
 	indexerSvc := indexer.NewService(queries, registry.Default, bus)
 	downloaderSvc := downloader.NewService(queries, registry.Default, bus)
 	queueSvc := queue.NewService(queries, downloaderSvc, bus, logger)
@@ -239,6 +241,7 @@ func run() error {
 		MovieService:        movieSvc,
 		IndexerService:      indexerSvc,
 		DownloaderService:   downloaderSvc,
+		BlocklistService:    blocklistSvc,
 		QueueService:        queueSvc,
 		Scheduler:           sched,
 		NotificationService: notifSvc,

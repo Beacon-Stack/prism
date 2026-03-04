@@ -9,9 +9,12 @@ import (
 )
 
 type Querier interface {
+	ClearBlocklist(ctx context.Context) error
+	CountBlocklist(ctx context.Context) (int64, error)
 	CountMovies(ctx context.Context) (int64, error)
 	CountMoviesByLibrary(ctx context.Context, libraryID string) (int64, error)
 	CountMoviesInLibrary(ctx context.Context, libraryID string) (int64, error)
+	CreateBlocklistEntry(ctx context.Context, arg CreateBlocklistEntryParams) (Blocklist, error)
 	CreateDownloadClientConfig(ctx context.Context, arg CreateDownloadClientConfigParams) (DownloadClientConfig, error)
 	CreateGrabHistory(ctx context.Context, arg CreateGrabHistoryParams) (GrabHistory, error)
 	CreateIndexerConfig(ctx context.Context, arg CreateIndexerConfigParams) (IndexerConfig, error)
@@ -20,6 +23,7 @@ type Querier interface {
 	CreateMovieFile(ctx context.Context, arg CreateMovieFileParams) (MovieFile, error)
 	CreateNotificationConfig(ctx context.Context, arg CreateNotificationConfigParams) (NotificationConfig, error)
 	CreateQualityProfile(ctx context.Context, arg CreateQualityProfileParams) (QualityProfile, error)
+	DeleteBlocklistEntry(ctx context.Context, id string) error
 	DeleteDownloadClientConfig(ctx context.Context, id string) error
 	DeleteIndexerConfig(ctx context.Context, id string) error
 	DeleteLibrary(ctx context.Context, id string) error
@@ -38,7 +42,9 @@ type Querier interface {
 	GetMovieFileByPath(ctx context.Context, path string) (MovieFile, error)
 	GetNotificationConfig(ctx context.Context, id string) (NotificationConfig, error)
 	GetQualityProfile(ctx context.Context, id string) (QualityProfile, error)
+	IsBlocklisted(ctx context.Context, releaseGuid string) (int64, error)
 	ListActiveGrabs(ctx context.Context) ([]GrabHistory, error)
+	ListBlocklist(ctx context.Context, arg ListBlocklistParams) ([]ListBlocklistRow, error)
 	ListDownloadClientConfigs(ctx context.Context) ([]DownloadClientConfig, error)
 	ListEnabledDownloadClients(ctx context.Context) ([]DownloadClientConfig, error)
 	ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, error)

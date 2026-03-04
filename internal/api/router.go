@@ -15,6 +15,7 @@ import (
 	v1 "github.com/davidfic/luminarr/internal/api/v1"
 	"github.com/davidfic/luminarr/internal/api/ws"
 	"github.com/davidfic/luminarr/internal/config"
+	"github.com/davidfic/luminarr/internal/core/blocklist"
 	"github.com/davidfic/luminarr/internal/core/downloader"
 	"github.com/davidfic/luminarr/internal/core/health"
 	"github.com/davidfic/luminarr/internal/core/indexer"
@@ -43,6 +44,7 @@ type RouterConfig struct {
 	MovieService        *movie.Service
 	IndexerService      *indexer.Service
 	DownloaderService   *downloader.Service
+	BlocklistService    *blocklist.Service
 	QueueService        *queue.Service
 	Scheduler           *scheduler.Scheduler
 	NotificationService *notification.Service
@@ -130,8 +132,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.IndexerService != nil {
 		v1.RegisterIndexerRoutes(humaAPI, cfg.IndexerService)
-		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.Logger)
+		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.BlocklistService, cfg.Logger)
 		v1.RegisterHistoryRoutes(humaAPI, cfg.IndexerService)
+	}
+
+	if cfg.BlocklistService != nil {
+		v1.RegisterBlocklistRoutes(humaAPI, cfg.BlocklistService)
 	}
 
 	if cfg.DownloaderService != nil {
