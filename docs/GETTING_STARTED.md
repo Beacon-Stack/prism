@@ -203,9 +203,20 @@ A fully commented example is at [`config.example.yaml`](../config.example.yaml).
 
 ---
 
-## API
+## API Key
 
-All API endpoints require the `X-Api-Key` header. Interactive OpenAPI docs are available at `/api/docs` when the server is running.
+Every Luminarr instance has its own randomly generated API key. This is intentional.
+
+**Why one key per instance, not a shared key?**
+Tools like Radarr ship with one API key that's visible in the settings UI — it's the same key for every client that talks to that instance, and you copy-paste it wherever needed. That works fine when you're the only user, but it means anyone who has ever seen the key has permanent access.
+
+Luminarr takes the same one-key-per-instance approach, but removes the copy-paste step entirely: the key is generated once on first start and **baked directly into the HTML** that the browser receives. The browser stores it in memory and sends it with every API request automatically. You never see it, never manage it, never paste it anywhere — it just works.
+
+The practical consequence: if you restart the container without a persistent key, the key changes and your open browser tabs get a 401 until you hard-refresh. Fix this with `LUMINARR_AUTH_API_KEY` or by mounting a `config.yaml`. See the [Troubleshooting](#troubleshooting) section.
+
+**Using the API from outside the browser** (scripts, Home Assistant, etc.): find your key in the container logs on startup (`api key: ...`), or set a fixed key via `LUMINARR_AUTH_API_KEY` and use that value in the `X-Api-Key` header.
+
+Interactive OpenAPI docs are available at `/api/docs` when the server is running.
 
 ---
 
