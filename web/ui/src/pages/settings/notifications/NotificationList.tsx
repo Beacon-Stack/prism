@@ -105,6 +105,20 @@ interface FormState {
   em_tls: boolean;
   // command
   cmd_script_name: string;
+  // telegram
+  tg_bot_token: string;
+  tg_chat_id: string;
+  // gotify
+  gt_url: string;
+  gt_token: string;
+  // ntfy
+  nt_url: string;
+  nt_topic: string;
+  nt_token: string;
+  nt_priority: string;
+  // pushover
+  po_api_token: string;
+  po_user_key: string;
 }
 
 function emptyForm(): FormState {
@@ -117,6 +131,10 @@ function emptyForm(): FormState {
     em_host: "", em_port: "587", em_username: "", em_password: "",
     em_from: "", em_to: "", em_tls: false,
     cmd_script_name: "",
+    tg_bot_token: "", tg_chat_id: "",
+    gt_url: "", gt_token: "",
+    nt_url: "", nt_topic: "", nt_token: "", nt_priority: "3",
+    po_api_token: "", po_user_key: "",
   };
 }
 
@@ -143,6 +161,16 @@ function notifToForm(cfg: NotificationConfig): FormState {
     em_to: cfg.kind === "email" ? arrayToStr(s["to"]) : "",
     em_tls: cfg.kind === "email" ? boolSetting(s, "tls") : false,
     cmd_script_name: cfg.kind === "command" ? strSetting(s, "script_name") : "",
+    tg_bot_token: cfg.kind === "telegram" ? strSetting(s, "bot_token") : "",
+    tg_chat_id: cfg.kind === "telegram" ? strSetting(s, "chat_id") : "",
+    gt_url: cfg.kind === "gotify" ? strSetting(s, "url") : "",
+    gt_token: cfg.kind === "gotify" ? strSetting(s, "token") : "",
+    nt_url: cfg.kind === "ntfy" ? strSetting(s, "url") : "",
+    nt_topic: cfg.kind === "ntfy" ? strSetting(s, "topic") : "",
+    nt_token: cfg.kind === "ntfy" ? strSetting(s, "token") : "",
+    nt_priority: cfg.kind === "ntfy" ? String(numSetting(s, "priority", 3)) : "3",
+    po_api_token: cfg.kind === "pushover" ? strSetting(s, "api_token") : "",
+    po_user_key: cfg.kind === "pushover" ? strSetting(s, "user_key") : "",
   };
 }
 
@@ -166,6 +194,15 @@ function formToRequest(f: FormState): NotificationRequest {
     settings = { url: f.wh_url.trim(), method: f.wh_method };
   } else if (f.kind === "command") {
     settings = { script_name: f.cmd_script_name.trim() };
+  } else if (f.kind === "telegram") {
+    settings = { bot_token: f.tg_bot_token.trim(), chat_id: f.tg_chat_id.trim() };
+  } else if (f.kind === "gotify") {
+    settings = { url: f.gt_url.trim(), token: f.gt_token.trim() };
+  } else if (f.kind === "ntfy") {
+    settings = { url: f.nt_url.trim(), topic: f.nt_topic.trim(), priority: parseInt(f.nt_priority, 10) || 3 };
+    if (f.nt_token.trim()) settings.token = f.nt_token.trim();
+  } else if (f.kind === "pushover") {
+    settings = { api_token: f.po_api_token.trim(), user_key: f.po_user_key.trim() };
   } else {
     // email
     settings = {
@@ -450,6 +487,191 @@ function CommandSettings({ form, set, focusBorder, blurBorder }: SubFormProps) {
   );
 }
 
+function TelegramSettings({ form, set, editing, focusBorder, blurBorder }: SubFormProps) {
+  return (
+    <>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Bot Token *</label>
+        <input
+          style={inputStyle}
+          type="password"
+          value={form.tg_bot_token}
+          onChange={(e) => set("tg_bot_token", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder={editing ? "enter to change" : "123456:ABC-DEF1234…"}
+          autoComplete="new-password"
+        />
+        {editing && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+            Bot token is masked. Enter a new value to update.
+          </p>
+        )}
+      </div>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Chat ID *</label>
+        <input
+          style={inputStyle}
+          value={form.tg_chat_id}
+          onChange={(e) => set("tg_chat_id", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder="-1001234567890"
+        />
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+          User, group, or channel ID. Use @BotFather and @userinfobot to find it.
+        </p>
+      </div>
+    </>
+  );
+}
+
+function GotifySettings({ form, set, editing, focusBorder, blurBorder }: SubFormProps) {
+  return (
+    <>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Server URL *</label>
+        <input
+          style={inputStyle}
+          value={form.gt_url}
+          onChange={(e) => set("gt_url", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder="http://gotify.local:8080"
+        />
+      </div>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Application Token *</label>
+        <input
+          style={inputStyle}
+          type="password"
+          value={form.gt_token}
+          onChange={(e) => set("gt_token", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder={editing ? "enter to change" : "A…"}
+          autoComplete="new-password"
+        />
+        {editing && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+            Token is masked. Enter a new value to update.
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function NtfySettings({ form, set, editing, focusBorder, blurBorder }: SubFormProps) {
+  return (
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Server URL *</label>
+          <input
+            style={inputStyle}
+            value={form.nt_url}
+            onChange={(e) => set("nt_url", e.currentTarget.value)}
+            onFocus={focusBorder}
+            onBlur={blurBorder}
+            placeholder="https://ntfy.sh"
+          />
+        </div>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Topic *</label>
+          <input
+            style={inputStyle}
+            value={form.nt_topic}
+            onChange={(e) => set("nt_topic", e.currentTarget.value)}
+            onFocus={focusBorder}
+            onBlur={blurBorder}
+            placeholder="luminarr"
+          />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 14 }}>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Access Token</label>
+          <input
+            style={inputStyle}
+            type="password"
+            value={form.nt_token}
+            onChange={(e) => set("nt_token", e.currentTarget.value)}
+            onFocus={focusBorder}
+            onBlur={blurBorder}
+            placeholder={editing ? "enter to change" : "optional"}
+            autoComplete="new-password"
+          />
+          {editing && form.nt_token === "" && (
+            <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+              Token is masked. Enter a new value to update, or leave blank for public topics.
+            </p>
+          )}
+        </div>
+        <div style={fieldStyle}>
+          <label style={labelStyle}>Priority</label>
+          <select
+            style={{ ...inputStyle, cursor: "pointer" }}
+            value={form.nt_priority}
+            onChange={(e) => set("nt_priority", e.currentTarget.value)}
+            onFocus={focusBorder}
+            onBlur={blurBorder}
+          >
+            <option value="1">1 (min)</option>
+            <option value="2">2 (low)</option>
+            <option value="3">3 (default)</option>
+            <option value="4">4 (high)</option>
+            <option value="5">5 (urgent)</option>
+          </select>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PushoverSettings({ form, set, editing, focusBorder, blurBorder }: SubFormProps) {
+  return (
+    <>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>API Token *</label>
+        <input
+          style={inputStyle}
+          type="password"
+          value={form.po_api_token}
+          onChange={(e) => set("po_api_token", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder={editing ? "enter to change" : "a…"}
+          autoComplete="new-password"
+        />
+        {editing && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+            API token is masked. Enter a new value to update.
+          </p>
+        )}
+      </div>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>User / Group Key *</label>
+        <input
+          style={inputStyle}
+          type="password"
+          value={form.po_user_key}
+          onChange={(e) => set("po_user_key", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder={editing ? "enter to change" : "u…"}
+          autoComplete="new-password"
+        />
+        {editing && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+            User key is masked. Enter a new value to update.
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ── Modal ──────────────────────────────────────────────────────────────────────
 
 interface ModalProps {
@@ -495,6 +717,22 @@ function NotificationModal({ editing, onClose }: ModalProps) {
     }
     if (form.kind === "command" && !form.cmd_script_name.trim()) {
       setError("Script name is required."); return;
+    }
+    if (form.kind === "telegram") {
+      if (!form.tg_bot_token.trim()) { setError("Bot token is required."); return; }
+      if (!form.tg_chat_id.trim()) { setError("Chat ID is required."); return; }
+    }
+    if (form.kind === "gotify") {
+      if (!form.gt_url.trim()) { setError("Gotify URL is required."); return; }
+      if (!form.gt_token.trim()) { setError("Application token is required."); return; }
+    }
+    if (form.kind === "ntfy") {
+      if (!form.nt_url.trim()) { setError("ntfy URL is required."); return; }
+      if (!form.nt_topic.trim()) { setError("Topic is required."); return; }
+    }
+    if (form.kind === "pushover") {
+      if (!form.po_api_token.trim()) { setError("API token is required."); return; }
+      if (!form.po_user_key.trim()) { setError("User key is required."); return; }
     }
     if (form.kind === "email") {
       if (!form.em_host.trim()) { setError("SMTP host is required."); return; }
@@ -604,6 +842,10 @@ function NotificationModal({ editing, onClose }: ModalProps) {
               >
                 <option value="discord">Discord</option>
                 <option value="slack">Slack</option>
+                <option value="telegram">Telegram</option>
+                <option value="gotify">Gotify</option>
+                <option value="ntfy">ntfy</option>
+                <option value="pushover">Pushover</option>
                 <option value="webhook">Webhook</option>
                 <option value="email">Email</option>
                 <option value="command">Command</option>
@@ -654,13 +896,17 @@ function NotificationModal({ editing, onClose }: ModalProps) {
             }}
           >
             <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
-              {{ discord: "Discord Settings", slack: "Slack Settings", webhook: "Webhook Settings", email: "Email Settings", command: "Command Settings" }[form.kind] ?? `${form.kind} Settings`}
+              {{ discord: "Discord Settings", slack: "Slack Settings", telegram: "Telegram Settings", gotify: "Gotify Settings", ntfy: "ntfy Settings", pushover: "Pushover Settings", webhook: "Webhook Settings", email: "Email Settings", command: "Command Settings" }[form.kind] ?? `${form.kind} Settings`}
             </p>
             {form.kind === "discord" && <DiscordSettings {...subFormProps} />}
             {form.kind === "slack" && <SlackSettings {...subFormProps} />}
             {form.kind === "webhook" && <WebhookSettings {...subFormProps} />}
             {form.kind === "email" && <EmailSettings {...subFormProps} />}
             {form.kind === "command" && <CommandSettings {...subFormProps} />}
+            {form.kind === "telegram" && <TelegramSettings {...subFormProps} />}
+            {form.kind === "gotify" && <GotifySettings {...subFormProps} />}
+            {form.kind === "ntfy" && <NtfySettings {...subFormProps} />}
+            {form.kind === "pushover" && <PushoverSettings {...subFormProps} />}
           </div>
 
           {/* Enabled */}
@@ -826,12 +1072,16 @@ function KindBadge({ kind }: { kind: string }) {
   const colors: Record<string, string> = {
     discord: "var(--color-accent)",
     slack: "#E01E5A",
+    telegram: "#229ED9",
+    gotify: "#2E7D32",
+    ntfy: "#558B2F",
+    pushover: "#249DF1",
     webhook: "var(--color-success)",
     email: "var(--color-warning)",
     command: "#AB47BC",
   };
   const color = colors[kind] ?? "var(--color-text-secondary)";
-  const labels: Record<string, string> = { discord: "Discord", slack: "Slack", webhook: "Webhook", email: "Email", command: "Command" };
+  const labels: Record<string, string> = { discord: "Discord", slack: "Slack", telegram: "Telegram", gotify: "Gotify", ntfy: "ntfy", pushover: "Pushover", webhook: "Webhook", email: "Email", command: "Command" };
 
   return (
     <span
@@ -874,7 +1124,7 @@ export default function NotificationList() {
             Notifications
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--color-text-secondary)" }}>
-            Discord, Slack, webhook, email, and command alerts for movie events.
+            Alerts for movie events via Discord, Slack, Telegram, Gotify, ntfy, Pushover, and more.
           </p>
         </div>
         <button
@@ -923,7 +1173,7 @@ export default function NotificationList() {
               No notifications configured
             </p>
             <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--color-text-muted)" }}>
-              Add Discord, Slack, webhook, or email alerts for movie events.
+              Add alerts for movie events via Discord, Telegram, Pushover, and more.
             </p>
           </div>
         ) : (
