@@ -10,6 +10,8 @@ import {
   useUpdateMovie,
 } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/api/client";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import type { Movie, TMDBResult } from "@/types";
 
@@ -1553,17 +1555,11 @@ function BulkEditModal({
 
 // ── Skeleton grid ─────────────────────────────────────────────────────────────
 
-function GridSkeleton() {
+function GridSkeleton({ posterSize }: { posterSize: number }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-        gap: 16,
-      }}
-    >
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
       {Array.from({ length: 24 }).map((_, i) => (
-        <div key={i}>
+        <div key={i} style={{ width: posterSize, flexShrink: 0, transition: "width 150ms ease" }}>
           <div
             style={{
               paddingBottom: "150%",
@@ -1595,6 +1591,10 @@ export default function Dashboard() {
     return (localStorage.getItem("gallery-view") as ViewMode) || "grid";
   });
 
+  const [posterSize, setPosterSize] = useState<number>(() => {
+    return Number(localStorage.getItem("gallery-zoom")) || 160;
+  });
+
   const [search, setSearch] = useState("");
   const [monitoredFilter, setMonitoredFilter] =
     useState<MonitoredFilter>("all");
@@ -1610,7 +1610,7 @@ export default function Dashboard() {
   const [bulkDeleteState, setBulkDeleteState] = useState<"idle" | "confirming" | "deleting">("idle");
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ done: number; total: number } | null>(null);
   const bulkDeleteAbort = useRef(false);
-  const deleteMovie = useDeleteMovie();
+  const qc = useQueryClient();
 
   function toggleSelectMode() {
     setSelectionMode((v) => !v);
@@ -1642,13 +1642,14 @@ export default function Dashboard() {
     for (const m of targets) {
       if (bulkDeleteAbort.current) break;
       try {
-        await deleteMovie.mutateAsync(m.id);
+        await apiFetch<void>(`/movies/${m.id}`, { method: "DELETE" });
         done++;
       } catch {
         failed++;
       }
       setBulkDeleteProgress({ done: done + failed, total: targets.length });
     }
+    qc.invalidateQueries({ queryKey: ["movies"] });
     if (failed > 0) {
       toast.error(`${failed} deletion${failed > 1 ? "s" : ""} failed`);
     } else if (!bulkDeleteAbort.current) {
@@ -1723,6 +1724,11 @@ export default function Dashboard() {
   function handleViewMode(mode: ViewMode) {
     setViewMode(mode);
     localStorage.setItem("gallery-view", mode);
+  }
+
+  function handlePosterSize(size: number) {
+    setPosterSize(size);
+    localStorage.setItem("gallery-zoom", String(size));
   }
 
   function clearFilters() {
@@ -1938,6 +1944,28 @@ export default function Dashboard() {
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
+        {/* Zoom slider — grid mode only */}
+        {viewMode === "grid" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ color: "var(--color-text-muted)", flexShrink: 0 }}>
+              <rect x="1" y="4" width="6" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <input
+              type="range"
+              min={80}
+              max={260}
+              step={20}
+              value={posterSize}
+              onChange={(e) => handlePosterSize(Number(e.target.value))}
+              title={`Thumbnail size: ${posterSize}px`}
+              style={{ width: 72, accentColor: "var(--color-accent)", cursor: "pointer" }}
+            />
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="none" style={{ color: "var(--color-text-muted)", flexShrink: 0 }}>
+              <rect x="1" y="3" width="8" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </div>
+        )}
+
         {/* View toggle */}
         <div
           style={{
@@ -1996,7 +2024,7 @@ export default function Dashboard() {
       {/* Content */}
       {isLoading ? (
         viewMode === "grid" ? (
-          <GridSkeleton />
+          <GridSkeleton posterSize={posterSize} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[1, 2, 3, 4, 5].map((i) => (
@@ -2092,21 +2120,16 @@ export default function Dashboard() {
           </button>
         </div>
       ) : viewMode === "grid" ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
           {filtered.map((movie) => (
-            <PosterCard
-              key={movie.id}
-              movie={movie}
-              selectionMode={selectionMode}
-              isSelected={selectedIds.has(movie.id)}
-              onToggle={toggleSelect}
-            />
+            <div key={movie.id} style={{ width: posterSize, flexShrink: 0, transition: "width 150ms ease" }}>
+              <PosterCard
+                movie={movie}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(movie.id)}
+                onToggle={toggleSelect}
+              />
+            </div>
           ))}
         </div>
       ) : (
