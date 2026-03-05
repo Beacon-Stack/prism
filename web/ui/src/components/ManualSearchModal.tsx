@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useMovieReleases, useGrabRelease, type GrabReleaseRequest } from "@/api/movies";
-import type { Release, ScoreBreakdown } from "@/types";
+import type { Release } from "@/types";
 import { formatBytes } from "@/lib/utils";
+import ScoreChip from "@/components/ScoreChip";
 
 // ── Quality badge ─────────────────────────────────────────────────────────────
 
@@ -23,109 +24,6 @@ function QualityBadge({ quality }: { quality: Release["quality"] }) {
     >
       {label || "Unknown"}
     </span>
-  );
-}
-
-// ── Score chip with breakdown popover ─────────────────────────────────────────
-
-function ScoreChip({ breakdown }: { breakdown?: ScoreBreakdown }) {
-  const [open, setOpen] = useState(false);
-
-  if (!breakdown) return null;
-
-  const score = breakdown.total;
-  const color =
-    score >= 80
-      ? "var(--color-success)"
-      : score >= 50
-        ? "var(--color-warning, #f59e0b)"
-        : "var(--color-danger)";
-
-  return (
-    <div style={{ position: "relative", display: "inline-block" }}>
-      <span
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        style={{
-          display: "inline-block",
-          padding: "2px 7px",
-          borderRadius: 4,
-          fontSize: 10,
-          fontWeight: 700,
-          cursor: "default",
-          border: `1px solid ${color}`,
-          color,
-          userSelect: "none",
-        }}
-      >
-        {score}/100
-      </span>
-
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 6px)",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "var(--color-bg-surface)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 8,
-            boxShadow: "var(--shadow-modal)",
-            padding: "10px 14px",
-            minWidth: 220,
-            zIndex: 300,
-            pointerEvents: "none",
-          }}
-        >
-          {breakdown.dimensions.map((d) => (
-            <div
-              key={d.name}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: "3px 0",
-                borderBottom: "1px solid var(--color-border-subtle)",
-                fontSize: 11,
-              }}
-            >
-              <span style={{ color: "var(--color-text-muted)", textTransform: "capitalize", flex: 1 }}>
-                {d.name}
-              </span>
-              <span
-                style={{
-                  color: d.matched ? "var(--color-success)" : "var(--color-danger)",
-                  fontWeight: 600,
-                  minWidth: 32,
-                  textAlign: "right",
-                }}
-              >
-                {d.score}/{d.max}
-              </span>
-              <span style={{ color: "var(--color-text-muted)", fontSize: 10, minWidth: 80, textAlign: "right" }}>
-                {d.got || "—"}
-                {d.want && d.want !== d.got ? ` → ${d.want}` : ""}
-              </span>
-            </div>
-          ))}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 6,
-              paddingTop: 4,
-              fontSize: 11,
-              fontWeight: 700,
-            }}
-          >
-            <span style={{ color: "var(--color-text-secondary)" }}>Total</span>
-            <span style={{ color }}>{score}/100</span>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 

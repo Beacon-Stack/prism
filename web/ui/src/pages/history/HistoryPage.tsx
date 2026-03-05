@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useHistory } from "@/api/history";
 import { formatBytes } from "@/lib/utils";
+import ScoreChip from "@/components/ScoreChip";
 import type { GrabHistory } from "@/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -125,6 +126,9 @@ function HistoryRow({ item, isLast }: { item: GrabHistory; isLast: boolean }) {
       <td style={{ padding: "12px 20px", verticalAlign: "middle", whiteSpace: "nowrap" }}>
         <QualityBadge source={item.release_source} resolution={item.release_resolution} />
       </td>
+      <td style={{ padding: "12px 20px", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+        <ScoreChip breakdown={item.score_breakdown} />
+      </td>
       <td style={{ padding: "12px 20px", verticalAlign: "middle", fontSize: 12, color: "var(--color-text-muted)", textTransform: "capitalize", whiteSpace: "nowrap" }}>
         {item.protocol || "—"}
       </td>
@@ -232,7 +236,7 @@ export default function HistoryPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {["Release", "Quality", "Protocol", "Size", "Status", "Grabbed"].map((h) => (
+                {["Release", "Quality", "Score", "Protocol", "Size", "Status", "Grabbed"].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "8px 20px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
                     {h}
                   </th>
