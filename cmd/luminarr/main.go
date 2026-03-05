@@ -51,6 +51,7 @@ import (
 	_ "github.com/davidfic/luminarr/plugins/downloaders/qbittorrent"
 	_ "github.com/davidfic/luminarr/plugins/indexers/newznab"
 	_ "github.com/davidfic/luminarr/plugins/indexers/torznab"
+	_ "github.com/davidfic/luminarr/plugins/notifications/command"
 	_ "github.com/davidfic/luminarr/plugins/notifications/discord"
 	_ "github.com/davidfic/luminarr/plugins/notifications/email"
 	_ "github.com/davidfic/luminarr/plugins/notifications/slack"
