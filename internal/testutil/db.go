@@ -35,6 +35,9 @@ func newTestDBInternal(t *testing.T) (*dbsqlite.Queries, *sql.DB) {
 	if err != nil {
 		t.Fatalf("testutil.NewTestDB: open sqlite: %v", err)
 	}
+	// In-memory SQLite gives each connection its own database.
+	// Limit to one connection so migrations and queries share the same DB.
+	sqlDB.SetMaxOpenConns(1)
 
 	t.Cleanup(func() {
 		if err := sqlDB.Close(); err != nil {
