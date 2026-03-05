@@ -54,7 +54,11 @@ import (
 	_ "github.com/davidfic/luminarr/plugins/notifications/command"
 	_ "github.com/davidfic/luminarr/plugins/notifications/discord"
 	_ "github.com/davidfic/luminarr/plugins/notifications/email"
+	_ "github.com/davidfic/luminarr/plugins/notifications/gotify"
+	_ "github.com/davidfic/luminarr/plugins/notifications/ntfy"
+	_ "github.com/davidfic/luminarr/plugins/notifications/pushover"
 	_ "github.com/davidfic/luminarr/plugins/notifications/slack"
+	_ "github.com/davidfic/luminarr/plugins/notifications/telegram"
 	_ "github.com/davidfic/luminarr/plugins/notifications/webhook"
 )
 
