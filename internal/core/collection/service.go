@@ -121,27 +121,42 @@ func (s *Service) SearchAll(ctx context.Context, query string) ([]EntitySearchRe
 	people, peopleErr := s.provider.SearchPeople(ctx, query)
 	franchises, franchiseErr := s.provider.SearchFranchises(ctx, query)
 
+	if peopleErr != nil {
+		s.logger.Warn("collection search: people search failed", "err", peopleErr)
+	}
+	if franchiseErr != nil {
+		s.logger.Warn("collection search: franchise search failed", "err", franchiseErr)
+	}
 	if peopleErr != nil && franchiseErr != nil {
 		return nil, fmt.Errorf("search failed: %w", peopleErr)
 	}
 
-	results := make([]EntitySearchResult, 0, len(people)+len(franchises))
-	for _, p := range people {
-		results = append(results, EntitySearchResult{
-			ID:         p.ID,
-			Name:       p.Name,
-			ImagePath:  p.ProfilePath,
-			Subtitle:   p.KnownForDepartment,
-			ResultType: "person",
-		})
-	}
-	for _, f := range franchises {
+	const maxPerType = 5
+
+	results := make([]EntitySearchResult, 0, maxPerType*2)
+	// Franchises first — users searching here are usually looking for a franchise.
+	for i, f := range franchises {
+		if i >= maxPerType {
+			break
+		}
 		results = append(results, EntitySearchResult{
 			ID:         f.ID,
 			Name:       f.Name,
 			ImagePath:  f.PosterPath,
 			Subtitle:   "Movie franchise",
 			ResultType: "franchise",
+		})
+	}
+	for i, p := range people {
+		if i >= maxPerType {
+			break
+		}
+		results = append(results, EntitySearchResult{
+			ID:         p.ID,
+			Name:       p.Name,
+			ImagePath:  p.ProfilePath,
+			Subtitle:   p.KnownForDepartment,
+			ResultType: "person",
 		})
 	}
 	return results, nil
@@ -320,6 +335,8 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 
 	coll.Items = collItems
 	coll.Total = len(collItems)
+	coll.InLibrary = 0
+	coll.Missing = 0
 	for _, ci := range collItems {
 		if ci.InLibrary {
 			coll.InLibrary++
