@@ -46,6 +46,7 @@ type systemConfigOutput struct {
 type updateConfigInput struct {
 	Body struct {
 		TMDBAPIKey string `json:"tmdb_api_key,omitempty" doc:"TMDB API key to persist"`
+		AIAPIKey   string `json:"ai_api_key,omitempty"   doc:"Anthropic API key to persist"`
 	}
 }
 
@@ -110,18 +111,29 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		Description: "Writes the supplied values to the config file and activates them immediately without a restart.",
 		Tags:        []string{"System"},
 	}, func(ctx context.Context, input *updateConfigInput) (*updateConfigOutput, error) {
-		if input.Body.TMDBAPIKey == "" {
+		if input.Body.TMDBAPIKey == "" && input.Body.AIAPIKey == "" {
 			return nil, huma.NewError(http.StatusBadRequest, "no config values provided")
 		}
 
-		writePath, err := config.WriteConfigKey(configFile, "tmdb.api_key", input.Body.TMDBAPIKey)
-		if err != nil {
-			return nil, huma.NewError(http.StatusInternalServerError, "failed to write config file", err)
+		var writePath string
+		var err error
+
+		if input.Body.TMDBAPIKey != "" {
+			writePath, err = config.WriteConfigKey(configFile, "tmdb.api_key", input.Body.TMDBAPIKey)
+			if err != nil {
+				return nil, huma.NewError(http.StatusInternalServerError, "failed to write TMDB config", err)
+			}
+			// Wire up the new TMDB client immediately — no restart needed.
+			if movieSvc != nil {
+				movieSvc.SetMetadataProvider(tmdb.New(input.Body.TMDBAPIKey, logger))
+			}
 		}
 
-		// Wire up the new TMDB client immediately — no restart needed.
-		if movieSvc != nil {
-			movieSvc.SetMetadataProvider(tmdb.New(input.Body.TMDBAPIKey, logger))
+		if input.Body.AIAPIKey != "" {
+			writePath, err = config.WriteConfigKey(configFile, "ai.api_key", input.Body.AIAPIKey)
+			if err != nil {
+				return nil, huma.NewError(http.StatusInternalServerError, "failed to write AI config", err)
+			}
 		}
 
 		return &updateConfigOutput{Body: &updateConfigResult{

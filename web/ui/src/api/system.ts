@@ -60,7 +60,7 @@ export function usePlugins() {
 export function useSaveConfig() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { tmdb_api_key: string }) =>
+    mutationFn: (body: { tmdb_api_key?: string; ai_api_key?: string }) =>
       apiFetch<{ saved: boolean; config_file: string }>("/system/config", {
         method: "PUT",
         body: JSON.stringify(body),

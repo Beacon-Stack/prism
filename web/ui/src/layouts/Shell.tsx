@@ -24,9 +24,11 @@ import {
   Menu,
   X,
   ScanLine,
+  Paintbrush,
 } from "lucide-react";
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
+import { applyTheme } from "@/theme";
 
 interface NavItem {
   to: string;
@@ -45,6 +47,7 @@ const mainNav: NavItem[] = [
 ];
 
 const settingsNav: NavItem[] = [
+  { to: "/settings/app",               icon: Paintbrush,       label: "App Settings" },
   { to: "/settings/libraries",         icon: Library,          label: "Libraries" },
   { to: "/settings/media-management",  icon: Film,             label: "Media Management" },
   { to: "/settings/media-scanning",    icon: ScanLine,         label: "Media Scanning" },
@@ -332,6 +335,9 @@ function Sidebar({
 
 export function Shell() {
   useWebSocket();
+
+  // Apply persisted theme once on mount.
+  useEffect(() => { applyTheme(); }, []);
 
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("sidebar-collapsed") === "true";

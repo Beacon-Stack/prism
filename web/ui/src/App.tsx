@@ -17,6 +17,7 @@ import ImportPage from "@/pages/settings/import/ImportPage";
 import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import MediaManagementPage from "@/pages/settings/media-management/MediaManagementPage";
 import MediaScanningPage from "@/pages/settings/media-scanning/MediaScanningPage";
+import AppSettingsPage from "@/pages/settings/app/AppSettingsPage";
 import HistoryPage from "@/pages/history/HistoryPage";
 import WantedPage from "@/pages/wanted/WantedPage";
 import CalendarPage from "@/pages/calendar/CalendarPage";
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="collections" element={<ErrorBoundary><CollectionsPage /></ErrorBoundary>} />
               <Route path="collections/:id" element={<ErrorBoundary><CollectionDetail /></ErrorBoundary>} />
               <Route path="settings">
+                <Route path="app" element={<ErrorBoundary><AppSettingsPage /></ErrorBoundary>} />
                 <Route path="libraries" element={<ErrorBoundary><LibraryList /></ErrorBoundary>} />
                 <Route path="quality-profiles" element={<ErrorBoundary><QualityProfileList /></ErrorBoundary>} />
                 <Route path="quality-definitions" element={<ErrorBoundary><QualityDefinitionsPage /></ErrorBoundary>} />
