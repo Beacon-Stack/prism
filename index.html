@@ -10,7 +10,7 @@
   <meta property="og:title" content="Luminarr - Movie Automation That Just Works">
   <meta property="og:description" content="A self-hosted movie collection manager with quality profiles that actually make sense. 30 MB RAM, sub-second startup, zero telemetry.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://luminarr.dev">
+  <meta property="og:url" content="https://luminarr.video">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
@@ -976,7 +976,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           <h3>Full automation</h3>
-          <p>RSS sync every 15 minutes. Automatic grabbing, downloading, and importing with blocklist protection.</p>
+          <p>RSS sync, automatic grabbing, downloading, and importing. File renaming, bulk editor, blocklist, and backup/restore built in.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -997,10 +997,10 @@
 
         <div class="feature-card fade-in">
           <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </div>
-          <h3>WebSocket live updates</h3>
-          <p>Queue page updates in real time. No polling lag. See downloads progress the moment they change.</p>
+          <h3>5 download clients</h3>
+          <p>qBittorrent, Deluge, Transmission, SABnzbd, and NZBGet. Live queue with WebSocket updates &mdash; no polling lag.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1015,8 +1015,8 @@
           <div class="feature-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           </div>
-          <h3>Notifications</h3>
-          <p>Discord, Slack, webhook, email, and script execution. Subscribe each channel to specific events.</p>
+          <h3>9 notification channels</h3>
+          <p>Discord, Slack, Telegram, Gotify, ntfy, Pushover, webhook, email, and custom scripts. Subscribe each channel to specific events.</p>
         </div>
 
         <div class="feature-card fade-in">
@@ -1024,15 +1024,15 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </div>
           <h3>Calendar &amp; Wanted</h3>
-          <p>Monthly calendar colour-coded by download status. Wanted page shows missing and cutoff-unmet movies at a glance.</p>
+          <p>Monthly calendar colour-coded by status. Wanted page shows missing and cutoff-unmet movies. Manual search with release comparison.</p>
         </div>
 
         <div class="feature-card fade-in">
           <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           </div>
-          <h3>Open API</h3>
-          <p>Interactive OpenAPI docs at /api/docs. Torznab and Newznab indexer support. Compatible with Prowlarr and Jackett.</p>
+          <h3>Library statistics</h3>
+          <p>Decade distribution, collection growth, genre breakdown, quality and storage charts. Interactive dashboards powered by Recharts.</p>
         </div>
       </div>
     </div>
@@ -1091,6 +1091,16 @@
             <td>Telemetry</td>
             <td class="dim-cell">Optional analytics</td>
             <td class="highlight-cell">None, ever</td>
+          </tr>
+          <tr>
+            <td>Download clients</td>
+            <td>6 clients</td>
+            <td class="highlight-cell">5 (qBit, Deluge, Transmission, SAB, NZBGet)</td>
+          </tr>
+          <tr>
+            <td>Notifications</td>
+            <td class="dim-cell">7 channels</td>
+            <td class="highlight-cell">9 channels + custom scripts</td>
           </tr>
           <tr>
             <td>Migration</td>
