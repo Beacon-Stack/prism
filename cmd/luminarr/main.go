@@ -259,7 +259,7 @@ func run() error {
 	importerSvc.Subscribe()
 
 	notifSvc := notification.NewService(queries, registry.Default)
-	notifDispatcher := notifications.NewDispatcher(queries, registry.Default, bus, logger)
+	notifDispatcher := notifications.NewDispatcher(queries, registry.Default, bus, logger, movieSvc)
 	notifDispatcher.Subscribe()
 
 	healthSvc := health.NewService(librarySvc, downloaderSvc, indexerSvc, logger)
