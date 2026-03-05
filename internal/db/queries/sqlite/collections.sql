@@ -14,3 +14,6 @@ SELECT * FROM collections WHERE person_id = ? AND person_type = ?;
 
 -- name: DeleteCollection :exec
 DELETE FROM collections WHERE id = ?;
+
+-- name: UpdateCollectionCounts :exec
+UPDATE collections SET total_items = ?, in_library_items = ? WHERE id = ?;

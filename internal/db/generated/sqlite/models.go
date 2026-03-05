@@ -21,11 +21,13 @@ type Blocklist struct {
 }
 
 type Collection struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	PersonID   int64     `json:"personId"`
-	PersonType string    `json:"personType"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	PersonID       int64     `json:"personId"`
+	PersonType     string    `json:"personType"`
+	CreatedAt      time.Time `json:"createdAt"`
+	TotalItems     int64     `json:"totalItems"`
+	InLibraryItems int64     `json:"inLibraryItems"`
 }
 
 type DownloadClientConfig struct {

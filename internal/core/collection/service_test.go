@@ -23,7 +23,7 @@ func newServices(t *testing.T) (*collection.Service, *movie.Service, *mock.Colle
 	bus := events.New(logger)
 	movieSvc := movie.NewService(q, nil, bus, logger)
 	provider := &mock.CollectionProvider{}
-	svc := collection.NewService(q, provider, movieSvc)
+	svc := collection.NewService(q, provider, movieSvc, logger)
 	return svc, movieSvc, provider, context.Background()
 }
 
@@ -91,7 +91,7 @@ func TestGet_crossReferencesLibrary(t *testing.T) {
 		},
 	}
 	movieSvc := movie.NewService(q, tmdbMock, bus, logger)
-	svc := collection.NewService(q, provider, movieSvc)
+	svc := collection.NewService(q, provider, movieSvc, logger)
 
 	lib := testutil.SeedLibrary(t, q)
 	qp := testutil.SeedQualityProfile(t, q)

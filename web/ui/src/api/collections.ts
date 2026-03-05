@@ -58,6 +58,27 @@ export function useAddMissing(collectionId: string) {
   });
 }
 
+export function useAddSelected(collectionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      tmdb_ids: number[];
+      library_id: string;
+      quality_profile_id: string;
+      minimum_availability: string;
+    }) =>
+      apiFetch<{ added: number; skipped_duplicates: number }>(
+        `/collections/${collectionId}/add-selected`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["collections", collectionId] });
+      toast.success(`Added ${data?.added ?? 0} film${(data?.added ?? 0) === 1 ? "" : "s"} to library`);
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+}
+
 export function useSearchPeople(query: string) {
   return useQuery({
     queryKey: ["tmdb-people", query],

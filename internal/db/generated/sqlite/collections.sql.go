@@ -13,7 +13,7 @@ import (
 const createCollection = `-- name: CreateCollection :one
 INSERT INTO collections (id, name, person_id, person_type, created_at)
 VALUES (?, ?, ?, ?, ?)
-RETURNING id, name, person_id, person_type, created_at
+RETURNING id, name, person_id, person_type, created_at, total_items, in_library_items
 `
 
 type CreateCollectionParams struct {
@@ -39,6 +39,8 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 		&i.PersonID,
 		&i.PersonType,
 		&i.CreatedAt,
+		&i.TotalItems,
+		&i.InLibraryItems,
 	)
 	return i, err
 }
@@ -53,7 +55,7 @@ func (q *Queries) DeleteCollection(ctx context.Context, id string) error {
 }
 
 const getCollection = `-- name: GetCollection :one
-SELECT id, name, person_id, person_type, created_at FROM collections WHERE id = ?
+SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections WHERE id = ?
 `
 
 func (q *Queries) GetCollection(ctx context.Context, id string) (Collection, error) {
@@ -65,12 +67,14 @@ func (q *Queries) GetCollection(ctx context.Context, id string) (Collection, err
 		&i.PersonID,
 		&i.PersonType,
 		&i.CreatedAt,
+		&i.TotalItems,
+		&i.InLibraryItems,
 	)
 	return i, err
 }
 
 const getCollectionByPerson = `-- name: GetCollectionByPerson :one
-SELECT id, name, person_id, person_type, created_at FROM collections WHERE person_id = ? AND person_type = ?
+SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections WHERE person_id = ? AND person_type = ?
 `
 
 type GetCollectionByPersonParams struct {
@@ -87,12 +91,14 @@ func (q *Queries) GetCollectionByPerson(ctx context.Context, arg GetCollectionBy
 		&i.PersonID,
 		&i.PersonType,
 		&i.CreatedAt,
+		&i.TotalItems,
+		&i.InLibraryItems,
 	)
 	return i, err
 }
 
 const listCollections = `-- name: ListCollections :many
-SELECT id, name, person_id, person_type, created_at FROM collections ORDER BY name ASC
+SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections ORDER BY name ASC
 `
 
 func (q *Queries) ListCollections(ctx context.Context) ([]Collection, error) {
@@ -110,6 +116,8 @@ func (q *Queries) ListCollections(ctx context.Context) ([]Collection, error) {
 			&i.PersonID,
 			&i.PersonType,
 			&i.CreatedAt,
+			&i.TotalItems,
+			&i.InLibraryItems,
 		); err != nil {
 			return nil, err
 		}
@@ -122,4 +130,19 @@ func (q *Queries) ListCollections(ctx context.Context) ([]Collection, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateCollectionCounts = `-- name: UpdateCollectionCounts :exec
+UPDATE collections SET total_items = ?, in_library_items = ? WHERE id = ?
+`
+
+type UpdateCollectionCountsParams struct {
+	TotalItems     int64  `json:"totalItems"`
+	InLibraryItems int64  `json:"inLibraryItems"`
+	ID             string `json:"id"`
+}
+
+func (q *Queries) UpdateCollectionCounts(ctx context.Context, arg UpdateCollectionCountsParams) error {
+	_, err := q.db.ExecContext(ctx, updateCollectionCounts, arg.TotalItems, arg.InLibraryItems, arg.ID)
+	return err
 }

@@ -94,6 +94,7 @@ type Querier interface {
 	QualityProfileInUse(ctx context.Context, arg QualityProfileInUseParams) (int64, error)
 	SetLibraryFileCandidateMatch(ctx context.Context, arg SetLibraryFileCandidateMatchParams) error
 	SumMovieFileSizesByLibrary(ctx context.Context, libraryID string) (interface{}, error)
+	UpdateCollectionCounts(ctx context.Context, arg UpdateCollectionCountsParams) error
 	UpdateDownloadClientConfig(ctx context.Context, arg UpdateDownloadClientConfigParams) (DownloadClientConfig, error)
 	UpdateDownloadHandling(ctx context.Context, arg UpdateDownloadHandlingParams) (DownloadHandling, error)
 	UpdateGrabDownloadClient(ctx context.Context, arg UpdateGrabDownloadClientParams) error

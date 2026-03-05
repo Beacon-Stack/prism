@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -37,6 +38,7 @@ type Item struct {
 	Year       int
 	PosterPath string
 	InLibrary  bool
+	HasFile    bool   // set when InLibrary=true and a movie file exists on disk
 	MovieID    string // set when InLibrary=true
 	Monitored  bool   // set when InLibrary=true
 }
@@ -61,6 +63,14 @@ type AddMissingRequest struct {
 	MinimumAvailability string
 }
 
+// AddSelectedRequest carries settings for adding a specific set of films.
+type AddSelectedRequest struct {
+	TMDBIDs             []int
+	LibraryID           string
+	QualityProfileID    string
+	MinimumAvailability string
+}
+
 // AddMissingResult summarises what happened.
 type AddMissingResult struct {
 	Added             int
@@ -72,12 +82,13 @@ type Service struct {
 	q        dbsqlite.Querier
 	provider MetadataProvider // nil when TMDB not configured
 	movieSvc *movie.Service
+	logger   *slog.Logger
 }
 
 // NewService creates a new Service. provider may be nil when TMDB is not configured;
 // Create and SearchPeople will return an error in that case.
-func NewService(q dbsqlite.Querier, provider MetadataProvider, movieSvc *movie.Service) *Service {
-	return &Service{q: q, provider: provider, movieSvc: movieSvc}
+func NewService(q dbsqlite.Querier, provider MetadataProvider, movieSvc *movie.Service, logger *slog.Logger) *Service {
+	return &Service{q: q, provider: provider, movieSvc: movieSvc, logger: logger}
 }
 
 // SearchPeople searches TMDB for people by name.
@@ -90,6 +101,8 @@ func (s *Service) SearchPeople(ctx context.Context, query string) ([]tmdb.Person
 
 // Create fetches the person's name from TMDB and inserts a collection record.
 // Returns ErrAlreadyExists if a collection for that person+type already exists.
+// After inserting, a background goroutine scans the current library for matches
+// and stores the initial counts.
 func (s *Service) Create(ctx context.Context, personID int, personType string) (*Collection, error) {
 	if s.provider == nil {
 		return nil, errors.New("TMDB not configured")
@@ -123,10 +136,44 @@ func (s *Service) Create(ctx context.Context, personID int, personType string) (
 		}
 		return nil, fmt.Errorf("creating collection: %w", err)
 	}
+
+	// Kick off a background scan to populate in_library counts.
+	go s.scanAndStoreCounts(context.Background(), row.ID, int(row.PersonID), row.PersonType)
+
 	return rowToCollection(row), nil
 }
 
-// List returns all collections without item lists.
+// scanAndStoreCounts fetches the filmography and cross-references the library,
+// then persists the totals on the collection row. Runs in a goroutine.
+func (s *Service) scanAndStoreCounts(ctx context.Context, collID string, personID int, personType string) {
+	if s.provider == nil {
+		return
+	}
+	items, err := s.provider.GetPersonFilmography(ctx, personID, personType)
+	if err != nil {
+		s.logger.Warn("collection background scan: filmography fetch failed",
+			"collection_id", collID, "err", err)
+		return
+	}
+	total := int64(len(items))
+	var inLibrary int64
+	for _, item := range items {
+		if _, lookupErr := s.q.GetMovieByTMDBID(ctx, int64(item.TMDBID)); lookupErr == nil {
+			inLibrary++
+		}
+	}
+	if err := s.q.UpdateCollectionCounts(ctx, dbsqlite.UpdateCollectionCountsParams{
+		TotalItems:     total,
+		InLibraryItems: inLibrary,
+		ID:             collID,
+	}); err != nil {
+		s.logger.Warn("collection background scan: count update failed",
+			"collection_id", collID, "err", err)
+	}
+}
+
+// List returns all collections without item lists. Counts are read from stored
+// values populated by the background scan on Create (or refreshed by Get).
 func (s *Service) List(ctx context.Context) ([]Collection, error) {
 	rows, err := s.q.ListCollections(ctx)
 	if err != nil {
@@ -140,6 +187,7 @@ func (s *Service) List(ctx context.Context) ([]Collection, error) {
 }
 
 // Get returns a collection with its full item list fetched live from TMDB.
+// As a side effect it refreshes the stored counts on the collection row.
 func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 	row, err := s.q.GetCollection(ctx, id)
 	if err != nil {
@@ -173,6 +221,11 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 			ci.InLibrary = true
 			ci.MovieID = m.ID
 			ci.Monitored = m.Monitored != 0
+			// Check whether a physical file exists for this movie.
+			files, filesErr := s.q.ListMovieFiles(ctx, m.ID)
+			if filesErr == nil {
+				ci.HasFile = len(files) > 0
+			}
 		}
 		collItems = append(collItems, ci)
 	}
@@ -194,6 +247,14 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 			coll.Missing++
 		}
 	}
+
+	// Refresh stored counts so List() stays accurate.
+	_ = s.q.UpdateCollectionCounts(ctx, dbsqlite.UpdateCollectionCountsParams{
+		TotalItems:     int64(coll.Total),
+		InLibraryItems: int64(coll.InLibrary),
+		ID:             id,
+	})
+
 	return coll, nil
 }
 
@@ -239,12 +300,51 @@ func (s *Service) AddMissing(ctx context.Context, id string, req AddMissingReque
 	return result, nil
 }
 
+// AddSelected adds a specific set of films (by TMDB ID) to the library.
+func (s *Service) AddSelected(ctx context.Context, id string, req AddSelectedRequest) (AddMissingResult, error) {
+	if _, err := s.q.GetCollection(ctx, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return AddMissingResult{}, ErrNotFound
+		}
+		return AddMissingResult{}, fmt.Errorf("checking collection: %w", err)
+	}
+
+	var result AddMissingResult
+	for _, tmdbID := range req.TMDBIDs {
+		_, addErr := s.movieSvc.Add(ctx, movie.AddRequest{
+			TMDBID:              tmdbID,
+			LibraryID:           req.LibraryID,
+			QualityProfileID:    req.QualityProfileID,
+			Monitored:           true,
+			MinimumAvailability: req.MinimumAvailability,
+		})
+		if errors.Is(addErr, movie.ErrAlreadyExists) {
+			result.SkippedDuplicates++
+			continue
+		}
+		if addErr != nil {
+			return result, fmt.Errorf("adding tmdb_id=%d: %w", tmdbID, addErr)
+		}
+		result.Added++
+	}
+	return result, nil
+}
+
 func rowToCollection(r dbsqlite.Collection) *Collection {
+	total := int(r.TotalItems)
+	inLibrary := int(r.InLibraryItems)
+	missing := total - inLibrary
+	if missing < 0 {
+		missing = 0
+	}
 	return &Collection{
 		ID:         r.ID,
 		Name:       r.Name,
 		PersonID:   int(r.PersonID),
 		PersonType: r.PersonType,
 		CreatedAt:  r.CreatedAt,
+		Total:      total,
+		InLibrary:  inLibrary,
+		Missing:    missing,
 	}
 }

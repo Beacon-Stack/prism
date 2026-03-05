@@ -268,7 +268,7 @@ func run() error {
 
 	var collectionSvc *collection.Service
 	if rawTMDB != nil {
-		collectionSvc = collection.NewService(queries, rawTMDB, movieSvc)
+		collectionSvc = collection.NewService(queries, rawTMDB, movieSvc, logger)
 	}
 
 	// ── Scheduler ─────────────────────────────────────────────────────────────

@@ -336,7 +336,7 @@ export default function CollectionsPage() {
   const [showAdd, setShowAdd] = useState(false);
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 32px" }}>
       <div
         style={{
           display: "flex",

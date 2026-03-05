@@ -477,6 +477,7 @@ export interface CollectionItem {
   year: number;
   poster_path: string;
   in_library: boolean;
+  has_file?: boolean;
   movie_id: string;
   monitored: boolean;
 }

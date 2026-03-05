@@ -18,6 +18,7 @@ type collectionItemBody struct {
 	Year       int    `json:"year"`
 	PosterPath string `json:"poster_path"`
 	InLibrary  bool   `json:"in_library"`
+	HasFile    bool   `json:"has_file,omitempty"`
 	MovieID    string `json:"movie_id,omitempty"`
 	Monitored  bool   `json:"monitored,omitempty"`
 }
@@ -52,6 +53,16 @@ type createCollectionInput struct {
 type addMissingInput struct {
 	ID   string `path:"id"`
 	Body struct {
+		LibraryID           string `json:"library_id"`
+		QualityProfileID    string `json:"quality_profile_id"`
+		MinimumAvailability string `json:"minimum_availability"`
+	}
+}
+
+type addSelectedInput struct {
+	ID   string `path:"id"`
+	Body struct {
+		TMDBIDs             []int  `json:"tmdb_ids"`
 		LibraryID           string `json:"library_id"`
 		QualityProfileID    string `json:"quality_profile_id"`
 		MinimumAvailability string `json:"minimum_availability"`
@@ -102,6 +113,7 @@ func toCollectionBody(c collection.Collection) collectionBody {
 				Year:       item.Year,
 				PosterPath: item.PosterPath,
 				InLibrary:  item.InLibrary,
+				HasFile:    item.HasFile,
 				MovieID:    item.MovieID,
 				Monitored:  item.Monitored,
 			})
@@ -217,6 +229,35 @@ func RegisterCollectionRoutes(api huma.API, svc *collection.Service) {
 			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB not configured")
 		}
 		res, err := svc.AddMissing(ctx, input.ID, collection.AddMissingRequest{
+			LibraryID:           input.Body.LibraryID,
+			QualityProfileID:    input.Body.QualityProfileID,
+			MinimumAvailability: input.Body.MinimumAvailability,
+		})
+		if err != nil {
+			if errors.Is(err, collection.ErrNotFound) {
+				return nil, huma.NewError(http.StatusNotFound, "collection not found")
+			}
+			return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+		}
+		out := &addMissingOutput{}
+		out.Body.Added = res.Added
+		out.Body.SkippedDuplicates = res.SkippedDuplicates
+		return out, nil
+	})
+
+	// POST /api/v1/collections/{id}/add-selected
+	huma.Register(api, huma.Operation{
+		OperationID: "add-selected-to-collection",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/collections/{id}/add-selected",
+		Summary:     "Add a specific set of films (by TMDB ID) to the library",
+		Tags:        []string{"Collections"},
+	}, func(ctx context.Context, input *addSelectedInput) (*addMissingOutput, error) {
+		if svc == nil {
+			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB not configured")
+		}
+		res, err := svc.AddSelected(ctx, input.ID, collection.AddSelectedRequest{
+			TMDBIDs:             input.Body.TMDBIDs,
 			LibraryID:           input.Body.LibraryID,
 			QualityProfileID:    input.Body.QualityProfileID,
 			MinimumAvailability: input.Body.MinimumAvailability,
