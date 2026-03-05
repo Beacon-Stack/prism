@@ -103,6 +103,8 @@ interface FormState {
   em_from: string;
   em_to: string; // comma-separated
   em_tls: boolean;
+  // command
+  cmd_script_name: string;
 }
 
 function emptyForm(): FormState {
@@ -114,6 +116,7 @@ function emptyForm(): FormState {
     wh_url: "", wh_method: "POST",
     em_host: "", em_port: "587", em_username: "", em_password: "",
     em_from: "", em_to: "", em_tls: false,
+    cmd_script_name: "",
   };
 }
 
@@ -139,6 +142,7 @@ function notifToForm(cfg: NotificationConfig): FormState {
     em_from: cfg.kind === "email" ? strSetting(s, "from") : "",
     em_to: cfg.kind === "email" ? arrayToStr(s["to"]) : "",
     em_tls: cfg.kind === "email" ? boolSetting(s, "tls") : false,
+    cmd_script_name: cfg.kind === "command" ? strSetting(s, "script_name") : "",
   };
 }
 
@@ -160,6 +164,8 @@ function formToRequest(f: FormState): NotificationRequest {
     if (f.sl_icon_emoji.trim()) settings.icon_emoji = f.sl_icon_emoji.trim();
   } else if (f.kind === "webhook") {
     settings = { url: f.wh_url.trim(), method: f.wh_method };
+  } else if (f.kind === "command") {
+    settings = { script_name: f.cmd_script_name.trim() };
   } else {
     // email
     settings = {
@@ -423,6 +429,27 @@ function EmailSettings({ form, set, editing, focusBorder, blurBorder }: SubFormP
   );
 }
 
+function CommandSettings({ form, set, focusBorder, blurBorder }: SubFormProps) {
+  return (
+    <>
+      <div style={fieldStyle}>
+        <label style={labelStyle}>Script Name *</label>
+        <input
+          style={inputStyle}
+          value={form.cmd_script_name}
+          onChange={(e) => set("cmd_script_name", e.currentTarget.value)}
+          onFocus={focusBorder}
+          onBlur={blurBorder}
+          placeholder="on-import.sh"
+        />
+        <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+          Plain filename in <code style={{ fontSize: 11 }}>/config/scripts/</code>. The event payload is piped as JSON to stdin.
+        </p>
+      </div>
+    </>
+  );
+}
+
 // ── Modal ──────────────────────────────────────────────────────────────────────
 
 interface ModalProps {
@@ -465,6 +492,9 @@ function NotificationModal({ editing, onClose }: ModalProps) {
     }
     if (form.kind === "webhook" && !form.wh_url.trim()) {
       setError("URL is required."); return;
+    }
+    if (form.kind === "command" && !form.cmd_script_name.trim()) {
+      setError("Script name is required."); return;
     }
     if (form.kind === "email") {
       if (!form.em_host.trim()) { setError("SMTP host is required."); return; }
@@ -576,6 +606,7 @@ function NotificationModal({ editing, onClose }: ModalProps) {
                 <option value="slack">Slack</option>
                 <option value="webhook">Webhook</option>
                 <option value="email">Email</option>
+                <option value="command">Command</option>
               </select>
             </div>
           </div>
@@ -623,12 +654,13 @@ function NotificationModal({ editing, onClose }: ModalProps) {
             }}
           >
             <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
-              {{ discord: "Discord Settings", slack: "Slack Settings", webhook: "Webhook Settings", email: "Email Settings" }[form.kind] ?? `${form.kind} Settings`}
+              {{ discord: "Discord Settings", slack: "Slack Settings", webhook: "Webhook Settings", email: "Email Settings", command: "Command Settings" }[form.kind] ?? `${form.kind} Settings`}
             </p>
             {form.kind === "discord" && <DiscordSettings {...subFormProps} />}
             {form.kind === "slack" && <SlackSettings {...subFormProps} />}
             {form.kind === "webhook" && <WebhookSettings {...subFormProps} />}
             {form.kind === "email" && <EmailSettings {...subFormProps} />}
+            {form.kind === "command" && <CommandSettings {...subFormProps} />}
           </div>
 
           {/* Enabled */}
@@ -796,9 +828,10 @@ function KindBadge({ kind }: { kind: string }) {
     slack: "#E01E5A",
     webhook: "var(--color-success)",
     email: "var(--color-warning)",
+    command: "#AB47BC",
   };
   const color = colors[kind] ?? "var(--color-text-secondary)";
-  const labels: Record<string, string> = { discord: "Discord", slack: "Slack", webhook: "Webhook", email: "Email" };
+  const labels: Record<string, string> = { discord: "Discord", slack: "Slack", webhook: "Webhook", email: "Email", command: "Command" };
 
   return (
     <span
@@ -841,7 +874,7 @@ export default function NotificationList() {
             Notifications
           </h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--color-text-secondary)" }}>
-            Discord, Slack, webhook, and email alerts for movie events.
+            Discord, Slack, webhook, email, and command alerts for movie events.
           </p>
         </div>
         <button
