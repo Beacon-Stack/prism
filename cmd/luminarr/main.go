@@ -51,6 +51,7 @@ import (
 	_ "github.com/davidfic/luminarr/plugins/downloaders/qbittorrent"
 	_ "github.com/davidfic/luminarr/plugins/indexers/newznab"
 	_ "github.com/davidfic/luminarr/plugins/indexers/torznab"
+	_ "github.com/davidfic/luminarr/plugins/notifications/command"
 	_ "github.com/davidfic/luminarr/plugins/notifications/discord"
 	_ "github.com/davidfic/luminarr/plugins/notifications/email"
 	_ "github.com/davidfic/luminarr/plugins/notifications/slack"
@@ -258,7 +259,7 @@ func run() error {
 	importerSvc.Subscribe()
 
 	notifSvc := notification.NewService(queries, registry.Default)
-	notifDispatcher := notifications.NewDispatcher(queries, registry.Default, bus, logger)
+	notifDispatcher := notifications.NewDispatcher(queries, registry.Default, bus, logger, movieSvc)
 	notifDispatcher.Subscribe()
 
 	healthSvc := health.NewService(librarySvc, downloaderSvc, indexerSvc, logger)
@@ -316,6 +317,7 @@ func run() error {
 		MediaInfoService:         mediainfoSvc,
 		CollectionService:        collectionSvc,
 		WSHub:                    wsHub,
+		Bus:                      bus,
 	})
 
 	// ── HTTP server ───────────────────────────────────────────────────────────

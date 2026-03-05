@@ -5,26 +5,31 @@ package notifications
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
+	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/core/notification"
 	dbsqlite "github.com/davidfic/luminarr/internal/db/generated/sqlite"
 	"github.com/davidfic/luminarr/internal/events"
 	"github.com/davidfic/luminarr/internal/registry"
+	"github.com/davidfic/luminarr/pkg/plugin"
 )
 
 // Dispatcher subscribes to the event bus and dispatches matching events to
 // all enabled notification plugins.
 type Dispatcher struct {
-	q      dbsqlite.Querier
-	reg    *registry.Registry
-	bus    *events.Bus
-	logger *slog.Logger
+	q        dbsqlite.Querier
+	reg      *registry.Registry
+	bus      *events.Bus
+	logger   *slog.Logger
+	movieSvc *movie.Service
 }
 
 // NewDispatcher creates a Dispatcher. Call Subscribe() to start receiving events.
-func NewDispatcher(q dbsqlite.Querier, reg *registry.Registry, bus *events.Bus, logger *slog.Logger) *Dispatcher {
-	return &Dispatcher{q: q, reg: reg, bus: bus, logger: logger}
+// movieSvc may be nil — enrichment will be skipped.
+func NewDispatcher(q dbsqlite.Querier, reg *registry.Registry, bus *events.Bus, logger *slog.Logger, movieSvc *movie.Service) *Dispatcher {
+	return &Dispatcher{q: q, reg: reg, bus: bus, logger: logger, movieSvc: movieSvc}
 }
 
 // Subscribe registers the dispatcher as a handler on the event bus.
@@ -63,6 +68,7 @@ func (d *Dispatcher) handle(ctx context.Context, e events.Event) {
 		}
 
 		ne := notification.EventToNotification(eventType, e.MovieID, e.Data)
+		d.enrichFromMovie(ctx, &ne)
 
 		if err := n.Notify(ctx, ne); err != nil {
 			d.logger.Warn("dispatcher: notification failed",
@@ -72,6 +78,33 @@ func (d *Dispatcher) handle(ctx context.Context, e events.Event) {
 				"error", err,
 			)
 		}
+	}
+}
+
+// enrichFromMovie merges movie metadata into the notification data map.
+// Best-effort: errors are silently ignored.
+func (d *Dispatcher) enrichFromMovie(ctx context.Context, ne *plugin.NotificationEvent) {
+	if d.movieSvc == nil || ne.MovieID == "" {
+		return
+	}
+	m, err := d.movieSvc.Get(ctx, ne.MovieID)
+	if err != nil {
+		return
+	}
+	if ne.Data == nil {
+		ne.Data = make(map[string]any)
+	}
+	ne.Data["movie_title"] = m.Title
+	ne.Data["movie_year"] = m.Year
+	ne.Data["tmdb_id"] = m.TMDBID
+	ne.Data["imdb_id"] = m.IMDBID
+	ne.Data["poster_url"] = m.PosterURL
+	ne.Data["movie_path"] = m.Path
+	if m.IMDBID != "" {
+		ne.Data["imdb_url"] = fmt.Sprintf("https://www.imdb.com/title/%s/", m.IMDBID)
+	}
+	if m.TMDBID > 0 {
+		ne.Data["tmdb_url"] = fmt.Sprintf("https://www.themoviedb.org/movie/%d", m.TMDBID)
 	}
 }
 
