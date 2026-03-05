@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luminarr - Self-Hosted Movie Collection Manager</title>
+  <meta name="description" content="A self-hosted movie collection manager. Monitors your library, searches indexers, and automatically grabs the best available release — with quality profiles that make sense.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Luminarr - Movie Automation That Just Works">
+  <meta property="og:description" content="A self-hosted movie collection manager with quality profiles that actually make sense. 30 MB RAM, sub-second startup, zero telemetry.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://luminarr.dev">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Luminarr - Movie Automation That Just Works">
+  <meta name="twitter:description" content="A self-hosted movie collection manager with quality profiles that actually make sense.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #0d0d12;
+      color: #f0f0f5;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    code, pre { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    /* ── Colors (matching app theme) ──────────────────────────────── */
+    :root {
+      --bg-base: #0d0d12;
+      --bg-surface: #13131a;
+      --bg-elevated: #1c1c27;
+      --bg-subtle: #252535;
+      --border-subtle: rgba(255,255,255,0.08);
+      --border-default: rgba(255,255,255,0.13);
+      --border-strong: rgba(255,255,255,0.27);
+      --accent: #7c6af7;
+      --accent-hover: #9283f9;
+      --accent-glow: rgba(124,106,247,0.15);
+      --text-primary: #f0f0f5;
+      --text-secondary: #9898b0;
+      --text-muted: #5a5a72;
+      --green: #34d399;
+      --red: #f87171;
+      --blue: #3b9eff;
+      --amber: #fbbf24;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    section {
+      padding: 100px 0;
+    }
+
+    /* ── Nav ──────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      background: rgba(13,13,18,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    nav .nav-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-links .gh-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .nav-links .gh-link:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elevated);
+    }
+    .nav-links .gh-link svg { width: 18px; height: 18px; }
+
+    /* ── Hero ─────────────────────────────────────────────────────── */
+    .hero {
+      padding-top: 160px;
+      padding-bottom: 120px;
+      text-align: center;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse at center, rgba(124,106,247,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      border: 1px solid var(--border-default);
+      background: var(--bg-elevated);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero .subtitle {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+    }
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    /* Terminal-style command block */
+    .cmd-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      padding: 4px;
+      max-width: 620px;
+      width: 100%;
+    }
+    .cmd-block-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px 6px;
+    }
+    .cmd-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--bg-subtle);
+    }
+    .cmd-block-body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px 14px;
+      gap: 12px;
+    }
+    .cmd-block-body code {
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow-x: auto;
+      flex: 1;
+    }
+    .cmd-block-body code .cmd-prompt { color: var(--green); }
+    .cmd-block-body code .cmd-binary { color: var(--accent); }
+    .cmd-block-body code .cmd-flag { color: var(--blue); }
+    .copy-btn {
+      flex-shrink: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      padding: 6px 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+    }
+    .copy-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+    .copy-btn svg { width: 16px; height: 16px; }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elevated);
+    }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* ── Stats strip ─────────────────────────────────────────────── */
+    .stats {
+      padding: 0;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .stat {
+      text-align: center;
+      padding: 40px 24px;
+    }
+    .stat:not(:last-child) {
+      border-right: 1px solid var(--border-subtle);
+    }
+    .stat-value {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.blue { color: var(--blue); }
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ── Section headers ─────────────────────────────────────────── */
+    .section-label {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-desc {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      line-height: 1.6;
+    }
+    .section-header {
+      margin-bottom: 56px;
+    }
+
+    /* ── Quality comparison ───────────────────────────────────────── */
+    .quality-section {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .quality-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .quality-card {
+      border-radius: 16px;
+      border: 1px solid var(--border-default);
+      overflow: hidden;
+    }
+    .quality-card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .quality-card-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .quality-tag {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+    .quality-tag.old {
+      background: rgba(248,113,113,0.12);
+      color: var(--red);
+    }
+    .quality-tag.new {
+      background: rgba(52,211,153,0.12);
+      color: var(--green);
+    }
+    .quality-card-body {
+      padding: 24px;
+    }
+
+    /* Radarr side */
+    .cf-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cf-list li {
+      font-size: 14px;
+      color: var(--text-secondary);
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cf-list .cf-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(248,113,113,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--red);
+      font-size: 12px;
+    }
+
+    /* Luminarr side */
+    .profile-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .profile-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      width: 80px;
+      flex-shrink: 0;
+    }
+    .profile-value {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      font-size: 14px;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .profile-value .check {
+      color: var(--green);
+      font-size: 14px;
+    }
+
+    /* ── Features grid ───────────────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .feature-card {
+      padding: 28px;
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .feature-card:hover {
+      border-color: var(--border-default);
+      background: var(--bg-elevated);
+    }
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: var(--accent);
+    }
+    .feature-icon svg { width: 20px; height: 20px; }
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ── Comparison table ─────────────────────────────────────────── */
+    .comparison-section {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-default);
+    }
+    .comparison-table th,
+    .comparison-table td {
+      padding: 16px 24px;
+      text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .comparison-table thead th {
+      background: var(--bg-elevated);
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+    .comparison-table thead th:not(:first-child) {
+      text-align: center;
+    }
+    .comparison-table td:not(:first-child) {
+      text-align: center;
+    }
+    .comparison-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .comparison-table tbody tr {
+      background: var(--bg-base);
+    }
+    .comparison-table tbody tr:nth-child(even) {
+      background: var(--bg-surface);
+    }
+    .comparison-table td:first-child {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .comparison-table td:nth-child(2) {
+      color: var(--text-secondary);
+    }
+    .comparison-table td:nth-child(3) {
+      color: var(--green);
+      font-weight: 500;
+    }
+    .comparison-table .highlight-cell {
+      color: var(--green);
+      font-weight: 600;
+    }
+    .comparison-table .dim-cell {
+      color: var(--text-muted);
+    }
+
+    /* ── Migration section ────────────────────────────────────────── */
+    .migration-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-top: 48px;
+    }
+    .migration-step {
+      text-align: center;
+      position: relative;
+    }
+    .migration-step::after {
+      content: '';
+      position: absolute;
+      top: 24px;
+      right: -10px;
+      width: calc(100% - 48px);
+      height: 2px;
+      background: var(--border-default);
+      transform: translateX(50%);
+    }
+    .migration-step:last-child::after { display: none; }
+    .step-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      position: relative;
+      z-index: 1;
+    }
+    .migration-step h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .migration-step p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ── Getting started ─────────────────────────────────────────── */
+    .getting-started {
+      text-align: center;
+    }
+    .getting-started .section-desc {
+      margin: 0 auto 48px;
+    }
+    .compose-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 16px;
+      text-align: left;
+      max-width: 680px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .compose-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+    }
+    .compose-filename {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .compose-body {
+      padding: 20px;
+      overflow-x: auto;
+    }
+    .compose-body pre {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .compose-body .yaml-key { color: var(--blue); }
+    .compose-body .yaml-value { color: var(--green); }
+    .compose-body .yaml-comment { color: var(--text-muted); }
+
+    /* ── Privacy section ──────────────────────────────────────────── */
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .privacy-card {
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+    .privacy-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .privacy-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .privacy-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--green);
+    }
+
+    /* ── Transparency / AI section ────────────────────────────────── */
+    .transparency {
+      text-align: center;
+    }
+    .transparency .section-desc {
+      margin: 0 auto 40px;
+    }
+    .transparency-points {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .transparency-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+    .transparency-point .tp-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(52,211,153,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--green);
+    }
+    .transparency-point .tp-check svg { width: 12px; height: 12px; }
+    .transparency-point p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ── CTA ──────────────────────────────────────────────────────── */
+    .cta {
+      text-align: center;
+      padding: 100px 0 120px;
+    }
+    .cta h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .cta p {
+      font-size: 17px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 32px 0;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-left {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    .footer-links a {
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .quality-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .migration-steps { grid-template-columns: 1fr 1fr; }
+      .migration-step::after { display: none; }
+      .privacy-grid { grid-template-columns: 1fr; }
+      .transparency-points { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      section { padding: 64px 0; }
+      .hero { padding-top: 120px; padding-bottom: 80px; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .stat:not(:last-child) {
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .features-grid { grid-template-columns: 1fr; }
+      .migration-steps { grid-template-columns: 1fr; }
+      .nav-links a:not(.gh-link) { display: none; }
+      .footer-inner {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+    }
+
+    /* ── Animations ───────────────────────────────────────────────── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <!-- Nav -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">luminarr</a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#comparison">Compare</a>
+        <a href="#get-started">Get Started</a>
+        <a href="https://github.com/davidfic/luminarr" class="gh-link" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Open source &middot; MIT License
+      </div>
+      <h1>
+        Movie automation<br>
+        <span class="gradient">that just works.</span>
+      </h1>
+      <p class="subtitle">
+        A self-hosted movie collection manager. Monitors your library, searches indexers,
+        and grabs the best release &mdash; with quality profiles that actually make sense.
+      </p>
+      <div class="hero-actions">
+        <div class="cmd-block">
+          <div class="cmd-block-header">
+            <span class="cmd-dot"></span>
+            <span class="cmd-dot"></span>
+            <span class="cmd-dot"></span>
+          </div>
+          <div class="cmd-block-body">
+            <code><span class="cmd-prompt">$</span> <span class="cmd-binary">docker</span> run <span class="cmd-flag">-d</span> <span class="cmd-flag">-p</span> 8282:8282 <span class="cmd-flag">-v</span> data:/config ghcr.io/davidfic/luminarr</code>
+            <button class="copy-btn" onclick="copyCommand(this)" title="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="hero-buttons">
+          <a href="#get-started" class="btn btn-primary">Get Started</a>
+          <a href="https://github.com/davidfic/luminarr" class="btn btn-secondary" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="stats">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat fade-in">
+          <div class="stat-value accent">~30 MB</div>
+          <div class="stat-label">Memory at idle</div>
+        </div>
+        <div class="stat fade-in">
+          <div class="stat-value green">&lt; 1s</div>
+          <div class="stat-label">Startup time</div>
+        </div>
+        <div class="stat fade-in">
+          <div class="stat-value blue">Zero</div>
+          <div class="stat-label">Telemetry, ever</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quality profiles -->
+  <section class="quality-section" id="quality">
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-label">The difference</div>
+        <h2 class="section-title">Quality profiles that<br>actually make sense</h2>
+        <p class="section-desc">
+          Radarr makes you learn Custom Formats &mdash; regex patterns, scoring weights, and thresholds &mdash;
+          just to say "I want x265." Luminarr makes codec and HDR first-class dimensions. Pick what you want from a dropdown.
+        </p>
+      </div>
+      <div class="quality-grid">
+        <div class="quality-card fade-in">
+          <div class="quality-card-header">
+            <h3>The old way</h3>
+            <span class="quality-tag old">Complex</span>
+          </div>
+          <div class="quality-card-body">
+            <ul class="cf-list">
+              <li>
+                <span class="cf-icon">1</span>
+                Create a Custom Format with regex: <code>x265|HEVC</code>
+              </li>
+              <li>
+                <span class="cf-icon">2</span>
+                Assign a score weight: <code>+10</code>
+              </li>
+              <li>
+                <span class="cf-icon">3</span>
+                Set a minimum score threshold in your profile
+              </li>
+              <li>
+                <span class="cf-icon">4</span>
+                Repeat for HDR, DV, Atmos, and every other tag
+              </li>
+              <li>
+                <span class="cf-icon">5</span>
+                Hope the scores interact correctly across formats
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="quality-card fade-in">
+          <div class="quality-card-header">
+            <h3>The Luminarr way</h3>
+            <span class="quality-tag new">Simple</span>
+          </div>
+          <div class="quality-card-body">
+            <div class="profile-demo">
+              <div class="profile-row">
+                <span class="profile-label">Resolution</span>
+                <div class="profile-value">1080p <span class="check">&#10003;</span></div>
+              </div>
+              <div class="profile-row">
+                <span class="profile-label">Source</span>
+                <div class="profile-value">Bluray <span class="check">&#10003;</span></div>
+              </div>
+              <div class="profile-row">
+                <span class="profile-label">Codec</span>
+                <div class="profile-value">x265 <span class="check">&#10003;</span></div>
+              </div>
+              <div class="profile-row">
+                <span class="profile-label">HDR</span>
+                <div class="profile-value">None <span class="check">&#10003;</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header fade-in" style="text-align:center">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>
+          </div>
+          <h3>Movie gallery</h3>
+          <p>Poster grid or list view. Filter by status, quality, library, and search. TMDB metadata, cast, and posters.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Full automation</h3>
+          <p>RSS sync every 15 minutes. Automatic grabbing, downloading, and importing with blocklist protection.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Zero telemetry</h3>
+          <p>No analytics, no crash reports, no update checks, no phone home. Credentials use a Secret type that redacts in all output.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <h3>One-click Radarr import</h3>
+          <p>Import quality profiles, libraries, indexers, download clients, and your entire movie list from a running Radarr instance.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>WebSocket live updates</h3>
+          <p>Queue page updates in real time. No polling lag. See downloads progress the moment they change.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <h3>Media scanning</h3>
+          <p>Optional ffprobe integration verifies actual codec, resolution, and HDR. Flags mislabelled releases with a mismatch badge.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <h3>Notifications</h3>
+          <p>Discord, Slack, webhook, email, and script execution. Subscribe each channel to specific events.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <h3>Calendar &amp; Wanted</h3>
+          <p>Monthly calendar colour-coded by download status. Wanted page shows missing and cutoff-unmet movies at a glance.</p>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          </div>
+          <h3>Open API</h3>
+          <p>Interactive OpenAPI docs at /api/docs. Torznab and Newznab indexer support. Compatible with Prowlarr and Jackett.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison -->
+  <section class="comparison-section" id="comparison">
+    <div class="container">
+      <div class="section-header fade-in" style="text-align:center">
+        <div class="section-label">Side by side</div>
+        <h2 class="section-title">Luminarr vs Radarr</h2>
+        <p class="section-desc" style="margin:0 auto">
+          Not a replacement war. Radarr is proven software. Luminarr fixes the parts that frustrated us.
+        </p>
+      </div>
+      <table class="comparison-table fade-in" style="margin-top:48px">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Radarr</th>
+            <th>Luminarr</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Backend</td>
+            <td class="dim-cell">.NET / Mono</td>
+            <td class="highlight-cell">Go</td>
+          </tr>
+          <tr>
+            <td>Frontend</td>
+            <td class="dim-cell">Angular</td>
+            <td class="highlight-cell">React</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>SQLite / Postgres</td>
+            <td>SQLite</td>
+          </tr>
+          <tr>
+            <td>Memory (idle)</td>
+            <td class="dim-cell">300 &ndash; 500 MB</td>
+            <td class="highlight-cell">30 &ndash; 60 MB</td>
+          </tr>
+          <tr>
+            <td>Startup time</td>
+            <td class="dim-cell">10 &ndash; 30 s</td>
+            <td class="highlight-cell">&lt; 1 s</td>
+          </tr>
+          <tr>
+            <td>Quality system</td>
+            <td class="dim-cell">Custom Formats + scoring</td>
+            <td class="highlight-cell">Explicit codec &amp; HDR</td>
+          </tr>
+          <tr>
+            <td>Telemetry</td>
+            <td class="dim-cell">Optional analytics</td>
+            <td class="highlight-cell">None, ever</td>
+          </tr>
+          <tr>
+            <td>Migration</td>
+            <td>&mdash;</td>
+            <td class="highlight-cell">One-click import</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Migration -->
+  <section>
+    <div class="container">
+      <div class="section-header fade-in" style="text-align:center">
+        <div class="section-label">Migration</div>
+        <h2 class="section-title">Switch from Radarr in four steps</h2>
+        <p class="section-desc" style="margin:0 auto">
+          Radarr keeps running during the import. There's no cutover moment.
+          Take your time, verify everything, then switch when you're ready.
+        </p>
+      </div>
+      <div class="migration-steps">
+        <div class="migration-step fade-in">
+          <div class="step-number">1</div>
+          <h4>Connect</h4>
+          <p>Enter your Radarr URL and API key</p>
+        </div>
+        <div class="migration-step fade-in">
+          <div class="step-number">2</div>
+          <h4>Preview</h4>
+          <p>See everything Luminarr found</p>
+        </div>
+        <div class="migration-step fade-in">
+          <div class="step-number">3</div>
+          <h4>Import</h4>
+          <p>Pick what to bring over and click Import</p>
+        </div>
+        <div class="migration-step fade-in">
+          <div class="step-number">4</div>
+          <h4>Done</h4>
+          <p>Profiles, libraries, indexers, clients, movies &mdash; all there</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Getting Started -->
+  <section class="getting-started" id="get-started">
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-label">Get started</div>
+        <h2 class="section-title">Up and running in 60 seconds</h2>
+        <p class="section-desc" style="margin:0 auto">
+          Docker Compose is the easiest path. The API key auto-generates on first run and persists in the volume.
+        </p>
+      </div>
+      <div class="compose-block fade-in">
+        <div class="compose-header">
+          <span class="compose-filename">docker-compose.yml</span>
+          <button class="copy-btn" onclick="copyCompose(this)" title="Copy to clipboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <div class="compose-body">
+          <pre><span class="yaml-key">services</span>:
+  <span class="yaml-key">luminarr</span>:
+    <span class="yaml-key">image</span>: <span class="yaml-value">ghcr.io/davidfic/luminarr:latest</span>
+    <span class="yaml-key">ports</span>:
+      - <span class="yaml-value">"8282:8282"</span>
+    <span class="yaml-key">environment</span>:
+      <span class="yaml-key">LUMINARR_TMDB_API_KEY</span>: <span class="yaml-value">your-tmdb-key</span>
+    <span class="yaml-key">volumes</span>:
+      - <span class="yaml-value">luminarr-data:/config</span>
+      - <span class="yaml-value">/path/to/movies:/movies</span>
+    <span class="yaml-key">restart</span>: <span class="yaml-value">unless-stopped</span>
+
+<span class="yaml-key">volumes</span>:
+  <span class="yaml-key">luminarr-data</span>:</pre>
+        </div>
+      </div>
+      <p style="margin-top:24px;font-size:14px;color:var(--text-muted)">
+        Then <code style="color:var(--text-secondary)">docker compose up -d</code> and open <code style="color:var(--text-secondary)">http://localhost:8282</code>. That's it.
+      </p>
+    </div>
+  </section>
+
+  <!-- Privacy -->
+  <section id="privacy">
+    <div class="container">
+      <div class="section-header fade-in" style="text-align:center">
+        <div class="section-label">Privacy</div>
+        <h2 class="section-title">Your data stays yours</h2>
+        <p class="section-desc" style="margin:0 auto">
+          Luminarr connects only to services you explicitly configure. Nothing else.
+        </p>
+      </div>
+      <div class="privacy-grid fade-in">
+        <div class="privacy-card">
+          <h3>
+            <svg class="privacy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            No telemetry
+          </h3>
+          <p>No usage data, events, or analytics are sent anywhere. Errors are logged locally only.</p>
+        </div>
+        <div class="privacy-card">
+          <h3>
+            <svg class="privacy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            No crash reporting
+          </h3>
+          <p>Errors are logged to your local filesystem. No Sentry, no Bugsnag, no third-party services.</p>
+        </div>
+        <div class="privacy-card">
+          <h3>
+            <svg class="privacy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            No update checks
+          </h3>
+          <p>Luminarr never contacts any server to check for updates. You update when you choose to.</p>
+        </div>
+        <div class="privacy-card">
+          <h3>
+            <svg class="privacy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Credentials are redacted
+          </h3>
+          <p>A <code>Secret</code> type renders as <code>***</code> in all log output and JSON serialization. Keys never leak.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Transparency -->
+  <section style="border-top: 1px solid var(--border-subtle)">
+    <div class="container transparency">
+      <div class="section-header fade-in">
+        <div class="section-label">Transparency</div>
+        <h2 class="section-title">Built with AI. Reviewed by humans.</h2>
+        <p class="section-desc" style="margin:0 auto">
+          Luminarr was built with Claude as the primary code generator, with human design and review throughout.
+          We think that's worth being upfront about.
+        </p>
+      </div>
+      <div class="transparency-points fade-in">
+        <div class="transparency-point">
+          <span class="tp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <p>Every architectural decision was made by a human and documented</p>
+        </div>
+        <div class="transparency-point">
+          <span class="tp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <p>Security-sensitive code was explicitly designed and reviewed</p>
+        </div>
+        <div class="transparency-point">
+          <span class="tp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <p>Consistent patterns throughout &mdash; no style drift halfway through</p>
+        </div>
+        <div class="transparency-point">
+          <span class="tp-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <p>Test suite covers all core services with unit and integration tests</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="container fade-in">
+      <h2>Ready to try it?</h2>
+      <p>MIT licensed. One binary. Takes 60 seconds to set up.</p>
+      <div class="hero-buttons">
+        <a href="#get-started" class="btn btn-primary">Get Started</a>
+        <a href="https://github.com/davidfic/luminarr" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-left">
+          MIT License &middot; luminarr
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/davidfic/luminarr" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/davidfic/luminarr/blob/main/docs/GETTING_STARTED.md" target="_blank" rel="noopener">Docs</a>
+          <a href="https://github.com/davidfic/luminarr/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture</a>
+          <a href="https://github.com/davidfic/luminarr/issues" target="_blank" rel="noopener">Issues</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCommand(btn) {
+      var text = 'docker run -d -p 8282:8282 -v data:/config ghcr.io/davidfic/luminarr';
+      navigator.clipboard.writeText(text).then(function() {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:#34d399"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(function() {
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        }, 2000);
+      });
+    }
+
+    function copyCompose(btn) {
+      var text = 'services:\n  luminarr:\n    image: ghcr.io/davidfic/luminarr:latest\n    ports:\n      - "8282:8282"\n    environment:\n      LUMINARR_TMDB_API_KEY: your-tmdb-key\n    volumes:\n      - luminarr-data:/config\n      - /path/to/movies:/movies\n    restart: unless-stopped\n\nvolumes:\n  luminarr-data:';
+      navigator.clipboard.writeText(text).then(function() {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:#34d399"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(function() {
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        }, 2000);
+      });
+    }
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+  </script>
+</body>
+</html>
