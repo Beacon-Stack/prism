@@ -119,6 +119,16 @@ type MediaManagement struct {
 	UnmonitorDeletedMovies int64  `json:"unmonitorDeletedMovies"`
 }
 
+type MediaServerConfig struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	Enabled   int64  `json:"enabled"`
+	Settings  string `json:"settings"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
 type Movie struct {
 	ID                  string  `json:"id"`
 	TmdbID              int64   `json:"tmdbId"`

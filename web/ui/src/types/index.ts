@@ -501,3 +501,22 @@ export interface Collection {
   in_library: number;
   missing: number;
 }
+
+// ── Media Servers ───────────────────────────────────────────────────────────
+
+export interface MediaServerConfig {
+  id: string;
+  name: string;
+  kind: string;
+  enabled: boolean;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaServerRequest {
+  name: string;
+  kind: string;
+  enabled: boolean;
+  settings: Record<string, unknown>;
+}

@@ -25,6 +25,7 @@ import (
 	"github.com/davidfic/luminarr/internal/core/library"
 	"github.com/davidfic/luminarr/internal/core/mediainfo"
 	"github.com/davidfic/luminarr/internal/core/mediamanagement"
+	"github.com/davidfic/luminarr/internal/core/mediaserver"
 	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/core/notification"
 	"github.com/davidfic/luminarr/internal/core/quality"
@@ -64,6 +65,7 @@ type RouterConfig struct {
 	StatsService             *stats.Service
 	MediaInfoService         *mediainfo.Service
 	CollectionService        *collection.Service
+	MediaServerService       *mediaserver.Service
 	WSHub                    *ws.Hub
 	Bus                      *events.Bus
 }
@@ -194,6 +196,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.NotificationService != nil {
 		v1.RegisterNotificationRoutes(humaAPI, cfg.NotificationService)
+	}
+
+	if cfg.MediaServerService != nil {
+		v1.RegisterMediaServerRoutes(humaAPI, cfg.MediaServerService)
 	}
 
 	if cfg.HealthService != nil {

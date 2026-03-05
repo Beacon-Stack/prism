@@ -25,6 +25,7 @@ import (
 	"github.com/davidfic/luminarr/internal/core/library"
 	"github.com/davidfic/luminarr/internal/core/mediainfo"
 	"github.com/davidfic/luminarr/internal/core/mediamanagement"
+	"github.com/davidfic/luminarr/internal/core/mediaserver"
 	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/core/notification"
 	"github.com/davidfic/luminarr/internal/core/quality"
@@ -34,6 +35,7 @@ import (
 	dbsqlite "github.com/davidfic/luminarr/internal/db/generated/sqlite"
 	"github.com/davidfic/luminarr/internal/events"
 	"github.com/davidfic/luminarr/internal/logging"
+	"github.com/davidfic/luminarr/internal/mediaservers"
 	"github.com/davidfic/luminarr/internal/metadata/tmdb"
 	"github.com/davidfic/luminarr/internal/notifications"
 	"github.com/davidfic/luminarr/internal/radarrimport"
@@ -54,6 +56,9 @@ import (
 	_ "github.com/davidfic/luminarr/plugins/downloaders/transmission"
 	_ "github.com/davidfic/luminarr/plugins/indexers/newznab"
 	_ "github.com/davidfic/luminarr/plugins/indexers/torznab"
+	_ "github.com/davidfic/luminarr/plugins/mediaservers/emby"
+	_ "github.com/davidfic/luminarr/plugins/mediaservers/jellyfin"
+	_ "github.com/davidfic/luminarr/plugins/mediaservers/plex"
 	_ "github.com/davidfic/luminarr/plugins/notifications/command"
 	_ "github.com/davidfic/luminarr/plugins/notifications/discord"
 	_ "github.com/davidfic/luminarr/plugins/notifications/email"
@@ -168,6 +173,9 @@ func run() error {
 	for _, kind := range registry.Default.NotifierKinds() {
 		logger.Info("registered notifier plugin", "plugin", kind)
 	}
+	for _, kind := range registry.Default.MediaServerKinds() {
+		logger.Info("registered media server plugin", "plugin", kind)
+	}
 
 	// ── Feature warnings ──────────────────────────────────────────────────────
 	if cfg.TMDB.APIKey.IsEmpty() {
@@ -269,6 +277,10 @@ func run() error {
 	notifDispatcher := notifications.NewDispatcher(queries, registry.Default, bus, logger, movieSvc)
 	notifDispatcher.Subscribe()
 
+	mediaServerSvc := mediaserver.NewService(queries, registry.Default)
+	msDispatcher := mediaservers.NewDispatcher(queries, registry.Default, bus, logger)
+	msDispatcher.Subscribe()
+
 	healthSvc := health.NewService(librarySvc, downloaderSvc, indexerSvc, logger)
 
 	radarrImportSvc := radarrimport.NewService(movieSvc, qualitySvc, librarySvc, indexerSvc, downloaderSvc)
@@ -323,6 +335,7 @@ func run() error {
 		StatsService:             statsSvc,
 		MediaInfoService:         mediainfoSvc,
 		CollectionService:        collectionSvc,
+		MediaServerService:       mediaServerSvc,
 		WSHub:                    wsHub,
 		Bus:                      bus,
 	})

@@ -19,6 +19,9 @@ type DownloaderFactory func(settings json.RawMessage) (plugin.DownloadClient, er
 // NotifierFactory constructs a Notifier from a JSON settings blob.
 type NotifierFactory func(settings json.RawMessage) (plugin.Notifier, error)
 
+// MediaServerFactory constructs a MediaServer from a JSON settings blob.
+type MediaServerFactory func(settings json.RawMessage) (plugin.MediaServer, error)
+
 // SanitizerFunc redacts sensitive fields from a plugin settings blob so it is
 // safe to include in API responses and logs. It must never return nil.
 // Plugins register one via RegisterIndexerSanitizer / RegisterDownloaderSanitizer /
@@ -34,24 +37,28 @@ var emptySanitizer SanitizerFunc = func(_ json.RawMessage) json.RawMessage {
 // Registry maps plugin kind strings to their factory functions.
 // Use Default for the application-wide singleton.
 type Registry struct {
-	mu                   sync.RWMutex
-	indexers             map[string]IndexerFactory
-	indexerSanitizers    map[string]SanitizerFunc
-	downloaders          map[string]DownloaderFactory
-	downloaderSanitizers map[string]SanitizerFunc
-	notifiers            map[string]NotifierFactory
-	notifierSanitizers   map[string]SanitizerFunc
+	mu                    sync.RWMutex
+	indexers              map[string]IndexerFactory
+	indexerSanitizers     map[string]SanitizerFunc
+	downloaders           map[string]DownloaderFactory
+	downloaderSanitizers  map[string]SanitizerFunc
+	notifiers             map[string]NotifierFactory
+	notifierSanitizers    map[string]SanitizerFunc
+	mediaServers          map[string]MediaServerFactory
+	mediaServerSanitizers map[string]SanitizerFunc
 }
 
 // New returns an empty, ready-to-use Registry.
 func New() *Registry {
 	return &Registry{
-		indexers:             make(map[string]IndexerFactory),
-		indexerSanitizers:    make(map[string]SanitizerFunc),
-		downloaders:          make(map[string]DownloaderFactory),
-		downloaderSanitizers: make(map[string]SanitizerFunc),
-		notifiers:            make(map[string]NotifierFactory),
-		notifierSanitizers:   make(map[string]SanitizerFunc),
+		indexers:              make(map[string]IndexerFactory),
+		indexerSanitizers:     make(map[string]SanitizerFunc),
+		downloaders:           make(map[string]DownloaderFactory),
+		downloaderSanitizers:  make(map[string]SanitizerFunc),
+		notifiers:             make(map[string]NotifierFactory),
+		notifierSanitizers:    make(map[string]SanitizerFunc),
+		mediaServers:          make(map[string]MediaServerFactory),
+		mediaServerSanitizers: make(map[string]SanitizerFunc),
 	}
 }
 
@@ -216,6 +223,60 @@ func (r *Registry) NotifierKinds() []string {
 	defer r.mu.RUnlock()
 	kinds := make([]string, 0, len(r.notifiers))
 	for k := range r.notifiers {
+		kinds = append(kinds, k)
+	}
+	return kinds
+}
+
+// RegisterMediaServer adds a factory for the given media server kind string.
+// Panics if kind is already registered (caught at startup, not runtime).
+func (r *Registry) RegisterMediaServer(kind string, factory MediaServerFactory) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, exists := r.mediaServers[kind]; exists {
+		panic(fmt.Sprintf("registry: media server kind %q already registered", kind))
+	}
+	r.mediaServers[kind] = factory
+}
+
+// RegisterMediaServerSanitizer registers a settings sanitizer for the given
+// media server kind.
+func (r *Registry) RegisterMediaServerSanitizer(kind string, fn SanitizerFunc) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.mediaServerSanitizers[kind] = fn
+}
+
+// SanitizeMediaServerSettings returns a redacted copy of the settings blob safe
+// for API responses and logs. Falls back to "{}" if no sanitizer is registered.
+func (r *Registry) SanitizeMediaServerSettings(kind string, settings json.RawMessage) json.RawMessage {
+	r.mu.RLock()
+	fn, ok := r.mediaServerSanitizers[kind]
+	r.mu.RUnlock()
+	if !ok {
+		return emptySanitizer(settings)
+	}
+	return fn(settings)
+}
+
+// NewMediaServer constructs a MediaServer from the given kind and JSON settings.
+// Returns an error if the kind is unknown or settings are invalid.
+func (r *Registry) NewMediaServer(kind string, settings json.RawMessage) (plugin.MediaServer, error) {
+	r.mu.RLock()
+	factory, ok := r.mediaServers[kind]
+	r.mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("unknown media server kind %q", kind)
+	}
+	return factory(settings)
+}
+
+// MediaServerKinds returns the list of registered media server kind strings.
+func (r *Registry) MediaServerKinds() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	kinds := make([]string, 0, len(r.mediaServers))
+	for k := range r.mediaServers {
 		kinds = append(kinds, k)
 	}
 	return kinds

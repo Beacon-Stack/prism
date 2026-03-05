@@ -13,6 +13,7 @@ import QualityDefinitionsPage from "@/pages/settings/quality-definitions/Quality
 import IndexerList from "@/pages/settings/indexers/IndexerList";
 import DownloadClientList from "@/pages/settings/download-clients/DownloadClientList";
 import NotificationList from "@/pages/settings/notifications/NotificationList";
+import MediaServerList from "@/pages/settings/media-servers/MediaServerList";
 import ImportPage from "@/pages/settings/import/ImportPage";
 import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import MediaManagementPage from "@/pages/settings/media-management/MediaManagementPage";
@@ -58,6 +59,7 @@ export default function App() {
                 <Route path="indexers" element={<ErrorBoundary><IndexerList /></ErrorBoundary>} />
                 <Route path="download-clients" element={<ErrorBoundary><DownloadClientList /></ErrorBoundary>} />
                 <Route path="notifications" element={<ErrorBoundary><NotificationList /></ErrorBoundary>} />
+                <Route path="media-servers" element={<ErrorBoundary><MediaServerList /></ErrorBoundary>} />
                 <Route path="blocklist" element={<ErrorBoundary><BlocklistPage /></ErrorBoundary>} />
                 <Route path="media-management" element={<ErrorBoundary><MediaManagementPage /></ErrorBoundary>} />
                 <Route path="media-scanning" element={<ErrorBoundary><MediaScanningPage /></ErrorBoundary>} />

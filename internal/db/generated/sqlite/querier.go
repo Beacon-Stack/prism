@@ -22,6 +22,7 @@ type Querier interface {
 	CreateGrabHistory(ctx context.Context, arg CreateGrabHistoryParams) (GrabHistory, error)
 	CreateIndexerConfig(ctx context.Context, arg CreateIndexerConfigParams) (IndexerConfig, error)
 	CreateLibrary(ctx context.Context, arg CreateLibraryParams) (Library, error)
+	CreateMediaServerConfig(ctx context.Context, arg CreateMediaServerConfigParams) (MediaServerConfig, error)
 	CreateMovie(ctx context.Context, arg CreateMovieParams) (Movie, error)
 	CreateMovieFile(ctx context.Context, arg CreateMovieFileParams) (MovieFile, error)
 	CreateNotificationConfig(ctx context.Context, arg CreateNotificationConfigParams) (NotificationConfig, error)
@@ -33,6 +34,7 @@ type Querier interface {
 	DeleteIndexerConfig(ctx context.Context, id string) error
 	DeleteLibrary(ctx context.Context, id string) error
 	DeleteLibraryFileCandidate(ctx context.Context, arg DeleteLibraryFileCandidateParams) error
+	DeleteMediaServerConfig(ctx context.Context, id string) error
 	DeleteMovie(ctx context.Context, id string) error
 	DeleteMovieFile(ctx context.Context, id string) error
 	DeleteNotificationConfig(ctx context.Context, id string) error
@@ -49,6 +51,7 @@ type Querier interface {
 	GetIndexerConfig(ctx context.Context, id string) (IndexerConfig, error)
 	GetLibrary(ctx context.Context, id string) (Library, error)
 	GetMediaManagement(ctx context.Context) (MediaManagement, error)
+	GetMediaServerConfig(ctx context.Context, id string) (MediaServerConfig, error)
 	GetMovie(ctx context.Context, id string) (Movie, error)
 	GetMovieByTMDBID(ctx context.Context, tmdbID int64) (Movie, error)
 	GetMovieFile(ctx context.Context, id string) (MovieFile, error)
@@ -68,12 +71,14 @@ type Querier interface {
 	ListDownloadClientConfigs(ctx context.Context) ([]DownloadClientConfig, error)
 	ListEnabledDownloadClients(ctx context.Context) ([]DownloadClientConfig, error)
 	ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, error)
+	ListEnabledMediaServers(ctx context.Context) ([]MediaServerConfig, error)
 	ListEnabledNotifications(ctx context.Context) ([]NotificationConfig, error)
 	ListGrabHistory(ctx context.Context, limit int64) ([]GrabHistory, error)
 	ListGrabHistoryByMovie(ctx context.Context, movieID string) ([]GrabHistory, error)
 	ListIndexerConfigs(ctx context.Context) ([]IndexerConfig, error)
 	ListLibraries(ctx context.Context) ([]Library, error)
 	ListLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error)
+	ListMediaServerConfigs(ctx context.Context) ([]MediaServerConfig, error)
 	ListMonitoredMovies(ctx context.Context) ([]Movie, error)
 	ListMonitoredMoviesWithFiles(ctx context.Context) ([]ListMonitoredMoviesWithFilesRow, error)
 	ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMonitoredMoviesWithoutFileParams) ([]Movie, error)
@@ -105,6 +110,7 @@ type Querier interface {
 	UpdateIndexerConfig(ctx context.Context, arg UpdateIndexerConfigParams) (IndexerConfig, error)
 	UpdateLibrary(ctx context.Context, arg UpdateLibraryParams) (Library, error)
 	UpdateMediaManagement(ctx context.Context, arg UpdateMediaManagementParams) (MediaManagement, error)
+	UpdateMediaServerConfig(ctx context.Context, arg UpdateMediaServerConfigParams) (MediaServerConfig, error)
 	UpdateMovie(ctx context.Context, arg UpdateMovieParams) (Movie, error)
 	UpdateMovieFileIndexed(ctx context.Context, arg UpdateMovieFileIndexedParams) error
 	UpdateMovieFileMediainfo(ctx context.Context, arg UpdateMovieFileMediainfoParams) error
