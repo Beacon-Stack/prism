@@ -4,10 +4,11 @@ import {
   useSystemHealth,
   useTasks,
   useRunTask,
+  useCheckForUpdates,
 } from "@/api/system";
 import { useMovies } from "@/api/movies";
 import { useQueue } from "@/api/queue";
-import type { HealthStatus } from "@/types";
+import type { HealthStatus, UpdateCheck } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -155,143 +156,383 @@ function StatsStrip() {
   );
 }
 
-// ── Section 1: Status ─────────────────────────────────────────────────────────
+// ── Update Modal ──────────────────────────────────────────────────────────────
 
-type UpdateState =
-  | { type: "idle" }
-  | { type: "loading" }
-  | { type: "up-to-date" }
-  | { type: "available"; tag: string; url: string }
-  | { type: "error"; message: string };
+const DOCKER_IMAGE = "ghcr.io/davidfic/luminarr";
+
+const composeCmd = `docker compose pull\ndocker compose up -d`;
+const dockerPullCmd = `docker pull ${DOCKER_IMAGE}:latest\ndocker stop luminarr\ndocker rm luminarr\ndocker run -d --name luminarr \\\n  -p 8282:8282 \\\n  -v luminarr-config:/config \\\n  ${DOCKER_IMAGE}:latest`;
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      }}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "2px 6px",
+        fontSize: 11,
+        color: copied ? "var(--color-success)" : "var(--color-text-muted)",
+        cursor: "pointer",
+        borderRadius: 4,
+      }}
+      onMouseEnter={(e) => {
+        if (!copied) (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
+      }}
+      onMouseLeave={(e) => {
+        if (!copied) (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
+      }}
+    >
+      {copied ? "Copied!" : "Copy"}
+    </button>
+  );
+}
+
+function UpdateModal({ data, onClose }: { data: UpdateCheck; onClose: () => void }) {
+  const [method, setMethod] = useState<"compose" | "pull">("compose");
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0, 0, 0, 0.6)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--color-bg-surface)",
+          border: "1px solid var(--color-border-default)",
+          borderRadius: 12,
+          padding: 28,
+          maxWidth: 600,
+          width: "100%",
+          maxHeight: "85vh",
+          overflow: "auto",
+          boxShadow: "0 24px 48px rgba(0, 0, 0, 0.4)",
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "var(--color-text-primary)" }}>
+            Update Available
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: 18,
+              color: "var(--color-text-muted)",
+              cursor: "pointer",
+              padding: "4px 8px",
+              lineHeight: 1,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Version badges */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <span style={{
+            padding: "4px 10px",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 500,
+            fontFamily: "var(--font-family-mono)",
+            background: "var(--color-bg-subtle)",
+            color: "var(--color-text-secondary)",
+          }}>
+            {data.current_version}
+          </span>
+          <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>→</span>
+          <span style={{
+            padding: "4px 10px",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 500,
+            fontFamily: "var(--font-family-mono)",
+            background: "color-mix(in srgb, var(--color-success) 12%, transparent)",
+            color: "var(--color-success)",
+          }}>
+            {data.latest_version}
+          </span>
+          {data.published_at && (
+            <span style={{ fontSize: 12, color: "var(--color-text-muted)", marginLeft: "auto" }}>
+              {new Date(data.published_at).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+
+        {/* Release notes */}
+        {data.release_notes && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ ...sectionHeader, marginBottom: 8 }}>Release Notes</p>
+            <pre style={{
+              background: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border-subtle)",
+              borderRadius: 6,
+              padding: 14,
+              fontSize: 12,
+              fontFamily: "var(--font-family-mono)",
+              color: "var(--color-text-secondary)",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              maxHeight: 200,
+              overflow: "auto",
+              margin: 0,
+            }}>
+              {data.release_notes}
+            </pre>
+          </div>
+        )}
+
+        {/* How to update */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ ...sectionHeader, marginBottom: 10 }}>How to Update</p>
+
+          {/* Method tabs */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 12, borderBottom: "1px solid var(--color-border-subtle)" }}>
+            {(["compose", "pull"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMethod(m)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  borderBottom: method === m ? "2px solid var(--color-accent)" : "2px solid transparent",
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: method === m ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  cursor: "pointer",
+                  marginBottom: -1,
+                }}
+              >
+                {m === "compose" ? "Docker Compose" : "Docker Pull"}
+              </button>
+            ))}
+          </div>
+
+          {/* Command block */}
+          <div style={{ position: "relative" }}>
+            <pre style={{
+              background: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border-subtle)",
+              borderRadius: 6,
+              padding: 14,
+              fontSize: 12,
+              fontFamily: "var(--font-family-mono)",
+              color: "var(--color-text-primary)",
+              whiteSpace: "pre-wrap",
+              margin: 0,
+            }}>
+              {method === "compose" ? composeCmd : dockerPullCmd}
+            </pre>
+            <div style={{ position: "absolute", top: 6, right: 6 }}>
+              <CopyButton text={method === "compose" ? composeCmd : dockerPullCmd} />
+            </div>
+          </div>
+
+          {method === "pull" && (
+            <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 6, marginBottom: 0 }}>
+              Adjust the port, volume, and container name to match your setup.
+            </p>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {data.release_url && (
+            <a
+              href={data.release_url}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 13, color: "var(--color-accent)", textDecoration: "none" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none"; }}
+            >
+              View on GitHub →
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            style={{
+              background: "var(--color-bg-elevated)",
+              border: "1px solid var(--color-border-default)",
+              borderRadius: 6,
+              padding: "6px 16px",
+              fontSize: 13,
+              color: "var(--color-text-secondary)",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)";
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Section 1: Status ─────────────────────────────────────────────────────────
 
 function StatusSection() {
   const { data, isLoading } = useSystemStatus();
-  const [updateState, setUpdateState] = useState<UpdateState>({ type: "idle" });
+  const checkUpdates = useCheckForUpdates();
+  const [updateResult, setUpdateResult] = useState<UpdateCheck | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  const checkForUpdates = useCallback(async () => {
-    setUpdateState({ type: "loading" });
-    try {
-      const res = await fetch("https://api.github.com/repos/davidfic/luminarr/releases/latest");
-      if (!res.ok) throw new Error(`GitHub returned ${res.status}`);
-      const json = (await res.json()) as { tag_name: string; html_url: string };
-      const current = data?.version ?? "";
-      // Compare allowing "v" prefix mismatch (e.g. tag "v0.1.0" vs version "0.1.0")
-      const tagBare = json.tag_name.replace(/^v/, "");
-      const currentBare = current.replace(/^v/, "");
-      if (tagBare === currentBare) {
-        setUpdateState({ type: "up-to-date" });
-      } else {
-        setUpdateState({ type: "available", tag: json.tag_name, url: json.html_url });
-      }
-    } catch (e) {
-      setUpdateState({ type: "error", message: (e as Error).message });
-    }
-  }, [data?.version]);
+  const handleCheck = useCallback(() => {
+    checkUpdates.mutate(undefined, {
+      onSuccess: (result) => {
+        setUpdateResult(result);
+        if (result.update_available) {
+          setShowModal(true);
+        }
+      },
+    });
+  }, [checkUpdates]);
 
   return (
-    <div style={card}>
-      <p style={sectionHeader}>Status</p>
-      {isLoading ? (
-        <div>
-          <SkeletonRow width="60%" />
-          <SkeletonRow width="40%" />
-          <SkeletonRow width="50%" />
-          <SkeletonRow width="45%" />
-        </div>
-      ) : data ? (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "160px 1fr",
-            rowGap: 10,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ color: "var(--color-text-secondary)" }}>Application</span>
-          <span style={{ color: "var(--color-text-primary)" }}>
-            {data.app_name} {data.version}
-          </span>
-
-          <span style={{ color: "var(--color-text-secondary)" }}>Updates</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <button
-              onClick={checkForUpdates}
-              disabled={updateState.type === "loading"}
-              style={{
-                background: "var(--color-bg-elevated)",
-                border: "1px solid var(--color-border-default)",
-                borderRadius: 6,
-                padding: "3px 10px",
-                fontSize: 12,
-                color: updateState.type === "loading" ? "var(--color-text-muted)" : "var(--color-text-secondary)",
-                cursor: updateState.type === "loading" ? "not-allowed" : "pointer",
-              }}
-              onMouseEnter={(e) => {
-                if (updateState.type !== "loading") {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  updateState.type === "loading" ? "var(--color-text-muted)" : "var(--color-text-secondary)";
-              }}
-            >
-              {updateState.type === "loading" ? "Checking…" : "Check for updates"}
-            </button>
-            {updateState.type === "up-to-date" && (
-              <span style={{ fontSize: 12, color: "var(--color-success)" }}>Up to date ✓</span>
-            )}
-            {updateState.type === "available" && (
-              <a
-                href={updateState.url}
-                target="_blank"
-                rel="noreferrer"
-                style={{ fontSize: 12, color: "var(--color-accent)" }}
-              >
-                {updateState.tag} available →
-              </a>
-            )}
-            {updateState.type === "error" && (
-              <span style={{ fontSize: 12, color: "var(--color-danger)" }}>
-                {updateState.message}
-              </span>
-            )}
+    <>
+      {showModal && updateResult?.update_available && (
+        <UpdateModal data={updateResult} onClose={() => setShowModal(false)} />
+      )}
+      <div style={card}>
+        <p style={sectionHeader}>Status</p>
+        {isLoading ? (
+          <div>
+            <SkeletonRow width="60%" />
+            <SkeletonRow width="40%" />
+            <SkeletonRow width="50%" />
+            <SkeletonRow width="45%" />
           </div>
+        ) : data ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "160px 1fr",
+              rowGap: 10,
+              fontSize: 13,
+            }}
+          >
+            <span style={{ color: "var(--color-text-secondary)" }}>Application</span>
+            <span style={{ color: "var(--color-text-primary)" }}>
+              {data.app_name} {data.version}
+            </span>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>Go Version</span>
-          <span style={{ color: "var(--color-text-primary)" }}>{data.go_version}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Updates</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <button
+                onClick={handleCheck}
+                disabled={checkUpdates.isPending}
+                style={{
+                  background: "var(--color-bg-elevated)",
+                  border: "1px solid var(--color-border-default)",
+                  borderRadius: 6,
+                  padding: "3px 10px",
+                  fontSize: 12,
+                  color: checkUpdates.isPending ? "var(--color-text-muted)" : "var(--color-text-secondary)",
+                  cursor: checkUpdates.isPending ? "not-allowed" : "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  if (!checkUpdates.isPending) {
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.color =
+                    checkUpdates.isPending ? "var(--color-text-muted)" : "var(--color-text-secondary)";
+                }}
+              >
+                {checkUpdates.isPending ? "Checking…" : "Check for updates"}
+              </button>
+              {updateResult && !updateResult.update_available && (
+                <span style={{ fontSize: 12, color: "var(--color-success)" }}>Up to date ✓</span>
+              )}
+              {updateResult?.update_available && (
+                <button
+                  onClick={() => setShowModal(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    fontSize: 12,
+                    color: "var(--color-accent)",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.textDecoration = "underline"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.textDecoration = "none"; }}
+                >
+                  {updateResult.latest_version} available →
+                </button>
+              )}
+              {checkUpdates.isError && (
+                <span style={{ fontSize: 12, color: "var(--color-danger)" }}>
+                  {(checkUpdates.error as Error).message}
+                </span>
+              )}
+            </div>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>Build Time</span>
-          <span style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-family-mono)", fontSize: 12 }}>
-            {data.build_time}
-          </span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Go Version</span>
+            <span style={{ color: "var(--color-text-primary)" }}>{data.go_version}</span>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>Database</span>
-          <span style={{ color: "var(--color-text-primary)" }}>
-            {data.db_type}
-            {data.db_path && (
-              <span style={{ display: "block", fontSize: 11, fontFamily: "var(--font-family-mono)", color: "var(--color-text-muted)", marginTop: 2 }}>
-                {data.db_path}
-              </span>
-            )}
-          </span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Build Time</span>
+            <span style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-family-mono)", fontSize: 12 }}>
+              {data.build_time}
+            </span>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>Uptime</span>
-          <span style={{ color: "var(--color-text-primary)" }}>{formatUptime(data.uptime_seconds)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Database</span>
+            <span style={{ color: "var(--color-text-primary)" }}>
+              {data.db_type}
+              {data.db_path && (
+                <span style={{ display: "block", fontSize: 11, fontFamily: "var(--font-family-mono)", color: "var(--color-text-muted)", marginTop: 2 }}>
+                  {data.db_path}
+                </span>
+              )}
+            </span>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>Started</span>
-          <span style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-family-mono)", fontSize: 12 }}>
-            {data.start_time}
-          </span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Uptime</span>
+            <span style={{ color: "var(--color-text-primary)" }}>{formatUptime(data.uptime_seconds)}</span>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>AI</span>
-          <Pill ok={data.ai_enabled} labelTrue="Enabled" labelFalse="Disabled" />
+            <span style={{ color: "var(--color-text-secondary)" }}>Started</span>
+            <span style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-family-mono)", fontSize: 12 }}>
+              {data.start_time}
+            </span>
 
-          <span style={{ color: "var(--color-text-secondary)" }}>TMDB</span>
-          <Pill ok={data.tmdb_enabled} labelTrue="Configured" labelFalse="Not configured" />
-        </div>
-      ) : null}
-    </div>
+            <span style={{ color: "var(--color-text-secondary)" }}>AI</span>
+            <Pill ok={data.ai_enabled} labelTrue="Enabled" labelFalse="Disabled" />
+
+            <span style={{ color: "var(--color-text-secondary)" }}>TMDB</span>
+            <Pill ok={data.tmdb_enabled} labelTrue="Configured" labelFalse="Not configured" />
+          </div>
+        ) : null}
+      </div>
+    </>
   );
 }
 

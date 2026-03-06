@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "./client";
-import type { SystemStatus, HealthReport, Task, LogEntry, PluginList } from "@/types";
+import type { SystemStatus, HealthReport, Task, LogEntry, PluginList, UpdateCheck } from "@/types";
 
 export function useSystemStatus() {
   return useQuery({
@@ -54,6 +54,12 @@ export function usePlugins() {
     queryKey: ["system", "plugins"],
     queryFn: () => apiFetch<PluginList>("/system/plugins"),
     staleTime: Infinity,
+  });
+}
+
+export function useCheckForUpdates() {
+  return useMutation({
+    mutationFn: () => apiFetch<UpdateCheck>("/system/updates"),
   });
 }
 

@@ -2,8 +2,12 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -11,6 +15,7 @@ import (
 	"github.com/davidfic/luminarr/internal/config"
 	"github.com/davidfic/luminarr/internal/core/movie"
 	"github.com/davidfic/luminarr/internal/metadata/tmdb"
+	"github.com/davidfic/luminarr/internal/safedialer"
 	"github.com/davidfic/luminarr/internal/version"
 )
 
@@ -58,6 +63,28 @@ type updateConfigResult struct {
 
 type updateConfigOutput struct {
 	Body *updateConfigResult
+}
+
+// updateCheckBody is the response body for GET /api/v1/system/updates.
+type updateCheckBody struct {
+	UpdateAvailable bool   `json:"update_available"         doc:"Whether a newer version exists"`
+	CurrentVersion  string `json:"current_version"          doc:"Currently running version"`
+	LatestVersion   string `json:"latest_version"           doc:"Latest release tag from GitHub"`
+	ReleaseURL      string `json:"release_url,omitempty"    doc:"URL to the GitHub release page"`
+	ReleaseNotes    string `json:"release_notes,omitempty"  doc:"Release notes (markdown)"`
+	PublishedAt     string `json:"published_at,omitempty"   doc:"When the release was published (ISO 8601)"`
+}
+
+type updateCheckOutput struct {
+	Body *updateCheckBody
+}
+
+// githubRelease is the subset of the GitHub releases API response we need.
+type githubRelease struct {
+	TagName     string `json:"tag_name"`
+	HTMLURL     string `json:"html_url"`
+	Body        string `json:"body"`
+	PublishedAt string `json:"published_at"`
 }
 
 // RegisterSystemRoutes registers the /api/v1/system/* endpoints.
@@ -140,5 +167,71 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 			Saved:      true,
 			ConfigFile: writePath,
 		}}, nil
+	})
+
+	// GET /api/v1/system/updates — check GitHub for a newer release.
+	huma.Register(api, huma.Operation{
+		OperationID: "check-for-updates",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/system/updates",
+		Summary:     "Check for updates",
+		Description: "Queries the GitHub releases API and compares the latest tag against the running version.",
+		Tags:        []string{"System"},
+	}, func(ctx context.Context, _ *struct{}) (*updateCheckOutput, error) {
+		client := &http.Client{
+			Transport: safedialer.Transport(),
+			Timeout:   10 * time.Second,
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+			"https://api.github.com/repos/davidfic/luminarr/releases/latest", nil)
+		if err != nil {
+			return nil, huma.NewError(http.StatusBadGateway, "failed to build GitHub request", err)
+		}
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("User-Agent", fmt.Sprintf("Luminarr/%s", version.Version))
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, huma.NewError(http.StatusBadGateway, "failed to reach GitHub", err)
+		}
+		defer resp.Body.Close()
+
+		// GitHub returns 404 when there are no releases.
+		if resp.StatusCode == http.StatusNotFound {
+			return &updateCheckOutput{Body: &updateCheckBody{
+				UpdateAvailable: false,
+				CurrentVersion:  version.Version,
+				LatestVersion:   version.Version,
+			}}, nil
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+			return nil, huma.NewError(http.StatusBadGateway,
+				fmt.Sprintf("GitHub returned %d: %s", resp.StatusCode, string(body)))
+		}
+
+		var release githubRelease
+		if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+			return nil, huma.NewError(http.StatusBadGateway, "failed to parse GitHub response", err)
+		}
+
+		currentBare := strings.TrimPrefix(version.Version, "v")
+		latestBare := strings.TrimPrefix(release.TagName, "v")
+
+		result := &updateCheckBody{
+			UpdateAvailable: currentBare != latestBare,
+			CurrentVersion:  version.Version,
+			LatestVersion:   release.TagName,
+		}
+
+		if result.UpdateAvailable {
+			result.ReleaseURL = release.HTMLURL
+			result.ReleaseNotes = release.Body
+			result.PublishedAt = release.PublishedAt
+		}
+
+		return &updateCheckOutput{Body: result}, nil
 	})
 }
