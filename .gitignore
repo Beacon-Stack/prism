@@ -1,5 +1,6 @@
 # Binaries
 bin/
+luminarr
 radarr-import
 *.exe
 *.exe~
