@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   useSystemStatus,
   useSystemHealth,
@@ -8,6 +8,7 @@ import {
 } from "@/api/system";
 import { useMovies } from "@/api/movies";
 import { useQueue } from "@/api/queue";
+import { marked } from "marked";
 import type { HealthStatus, UpdateCheck } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -198,6 +199,11 @@ function CopyButton({ text }: { text: string }) {
 function UpdateModal({ data, onClose }: { data: UpdateCheck; onClose: () => void }) {
   const [method, setMethod] = useState<"compose" | "pull">("compose");
 
+  const renderedNotes = useMemo(() => {
+    if (!data.release_notes) return "";
+    return marked.parse(data.release_notes, { async: false }) as string;
+  }, [data.release_notes]);
+
   return (
     <div
       onClick={onClose}
@@ -282,25 +288,23 @@ function UpdateModal({ data, onClose }: { data: UpdateCheck; onClose: () => void
         </div>
 
         {/* Release notes */}
-        {data.release_notes && (
+        {renderedNotes && (
           <div style={{ marginBottom: 20 }}>
             <p style={{ ...sectionHeader, marginBottom: 8 }}>Release Notes</p>
-            <pre style={{
-              background: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border-subtle)",
-              borderRadius: 6,
-              padding: 14,
-              fontSize: 12,
-              fontFamily: "var(--font-family-mono)",
-              color: "var(--color-text-secondary)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              maxHeight: 200,
-              overflow: "auto",
-              margin: 0,
-            }}>
-              {data.release_notes}
-            </pre>
+            <div
+              className="release-notes"
+              dangerouslySetInnerHTML={{ __html: renderedNotes }}
+              style={{
+                background: "var(--color-bg-elevated)",
+                border: "1px solid var(--color-border-subtle)",
+                borderRadius: 6,
+                padding: 14,
+                fontSize: 13,
+                color: "var(--color-text-secondary)",
+                maxHeight: 240,
+                overflow: "auto",
+              }}
+            />
           </div>
         )}
 
