@@ -210,16 +210,39 @@ func bestFileQuality(files []dbsqlite.MovieFile) plugin.Quality {
 }
 
 // releaseMatchesMovie reports whether a release title is a plausible match for
-// a movie. Both the normalised movie title and the release year must appear in
-// the normalised release title.
+// a movie. The normalised movie title must appear as a word-boundary-aligned
+// substring and the release year must also appear in the normalised release.
 func releaseMatchesMovie(releaseTitle, movieTitle string, year int) bool {
 	normRelease := normalizeTitle(releaseTitle)
 	normMovie := normalizeTitle(movieTitle)
 	if normMovie == "" {
 		return false
 	}
-	return strings.Contains(normRelease, normMovie) &&
-		strings.Contains(normRelease, strconv.Itoa(year))
+	if !containsWordAligned(normRelease, normMovie) {
+		return false
+	}
+	return strings.Contains(normRelease, strconv.Itoa(year))
+}
+
+// containsWordAligned reports whether haystack contains needle aligned on word
+// (space) boundaries. This prevents a movie titled "it" from matching every
+// release that incidentally contains the substring "it".
+func containsWordAligned(haystack, needle string) bool {
+	idx := 0
+	for {
+		pos := strings.Index(haystack[idx:], needle)
+		if pos < 0 {
+			return false
+		}
+		abs := idx + pos
+		atStart := abs == 0 || haystack[abs-1] == ' '
+		end := abs + len(needle)
+		atEnd := end == len(haystack) || haystack[end] == ' '
+		if atStart && atEnd {
+			return true
+		}
+		idx = abs + 1
+	}
 }
 
 // movieEligibleForGrab reports whether a movie's TMDB status has reached the

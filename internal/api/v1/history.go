@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -49,25 +48,13 @@ func RegisterHistoryRoutes(api huma.API, svc *indexer.Service) {
 		if limit == 0 {
 			limit = 100
 		}
-		// Fetch with a higher cap when filters are active, to avoid filtering
-		// on an already-truncated result set.
-		fetchLimit := limit
-		if input.DownloadStatus != "" || input.Protocol != "" {
-			fetchLimit = 1000
-		}
-		rows, err := svc.ListHistory(ctx, fetchLimit)
+		rows, err := svc.ListHistory(ctx, limit, input.DownloadStatus, input.Protocol)
 		if err != nil {
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to list history", err)
 		}
 
 		items := make([]*historyItemBody, 0, len(rows))
 		for _, r := range rows {
-			if input.DownloadStatus != "" && !strings.EqualFold(r.DownloadStatus, input.DownloadStatus) {
-				continue
-			}
-			if input.Protocol != "" && !strings.EqualFold(r.Protocol, input.Protocol) {
-				continue
-			}
 			grabbedAt, _ := time.Parse(time.RFC3339, r.GrabbedAt)
 			item := &historyItemBody{
 				ID:                r.ID,
@@ -84,9 +71,6 @@ func RegisterHistoryRoutes(api huma.API, svc *indexer.Service) {
 				item.ScoreBreakdown = json.RawMessage(r.ScoreBreakdown)
 			}
 			items = append(items, item)
-			if len(items) == limit {
-				break
-			}
 		}
 		return &historyListOutput{Body: items}, nil
 	})

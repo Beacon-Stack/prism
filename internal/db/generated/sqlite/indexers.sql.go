@@ -397,6 +397,157 @@ func (q *Queries) ListGrabHistoryByMovie(ctx context.Context, movieID string) ([
 	return items, nil
 }
 
+const listGrabHistoryByProtocol = `-- name: ListGrabHistoryByProtocol :many
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown FROM grab_history WHERE protocol = ? ORDER BY grabbed_at DESC LIMIT ?
+`
+
+type ListGrabHistoryByProtocolParams struct {
+	Protocol string `json:"protocol"`
+	Limit    int64  `json:"limit"`
+}
+
+func (q *Queries) ListGrabHistoryByProtocol(ctx context.Context, arg ListGrabHistoryByProtocolParams) ([]GrabHistory, error) {
+	rows, err := q.db.QueryContext(ctx, listGrabHistoryByProtocol, arg.Protocol, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GrabHistory
+	for rows.Next() {
+		var i GrabHistory
+		if err := rows.Scan(
+			&i.ID,
+			&i.MovieID,
+			&i.IndexerID,
+			&i.ReleaseGuid,
+			&i.ReleaseTitle,
+			&i.ReleaseSource,
+			&i.ReleaseResolution,
+			&i.ReleaseCodec,
+			&i.ReleaseHdr,
+			&i.Protocol,
+			&i.Size,
+			&i.DownloadClientID,
+			&i.ClientItemID,
+			&i.GrabbedAt,
+			&i.DownloadStatus,
+			&i.DownloadedBytes,
+			&i.ScoreBreakdown,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGrabHistoryByStatus = `-- name: ListGrabHistoryByStatus :many
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown FROM grab_history WHERE download_status = ? ORDER BY grabbed_at DESC LIMIT ?
+`
+
+type ListGrabHistoryByStatusParams struct {
+	DownloadStatus string `json:"downloadStatus"`
+	Limit          int64  `json:"limit"`
+}
+
+func (q *Queries) ListGrabHistoryByStatus(ctx context.Context, arg ListGrabHistoryByStatusParams) ([]GrabHistory, error) {
+	rows, err := q.db.QueryContext(ctx, listGrabHistoryByStatus, arg.DownloadStatus, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GrabHistory
+	for rows.Next() {
+		var i GrabHistory
+		if err := rows.Scan(
+			&i.ID,
+			&i.MovieID,
+			&i.IndexerID,
+			&i.ReleaseGuid,
+			&i.ReleaseTitle,
+			&i.ReleaseSource,
+			&i.ReleaseResolution,
+			&i.ReleaseCodec,
+			&i.ReleaseHdr,
+			&i.Protocol,
+			&i.Size,
+			&i.DownloadClientID,
+			&i.ClientItemID,
+			&i.GrabbedAt,
+			&i.DownloadStatus,
+			&i.DownloadedBytes,
+			&i.ScoreBreakdown,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGrabHistoryByStatusAndProtocol = `-- name: ListGrabHistoryByStatusAndProtocol :many
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown FROM grab_history WHERE download_status = ? AND protocol = ? ORDER BY grabbed_at DESC LIMIT ?
+`
+
+type ListGrabHistoryByStatusAndProtocolParams struct {
+	DownloadStatus string `json:"downloadStatus"`
+	Protocol       string `json:"protocol"`
+	Limit          int64  `json:"limit"`
+}
+
+func (q *Queries) ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg ListGrabHistoryByStatusAndProtocolParams) ([]GrabHistory, error) {
+	rows, err := q.db.QueryContext(ctx, listGrabHistoryByStatusAndProtocol, arg.DownloadStatus, arg.Protocol, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GrabHistory
+	for rows.Next() {
+		var i GrabHistory
+		if err := rows.Scan(
+			&i.ID,
+			&i.MovieID,
+			&i.IndexerID,
+			&i.ReleaseGuid,
+			&i.ReleaseTitle,
+			&i.ReleaseSource,
+			&i.ReleaseResolution,
+			&i.ReleaseCodec,
+			&i.ReleaseHdr,
+			&i.Protocol,
+			&i.Size,
+			&i.DownloadClientID,
+			&i.ClientItemID,
+			&i.GrabbedAt,
+			&i.DownloadStatus,
+			&i.DownloadedBytes,
+			&i.ScoreBreakdown,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIndexerConfigs = `-- name: ListIndexerConfigs :many
 SELECT id, name, kind, enabled, priority, settings, created_at, updated_at FROM indexer_configs ORDER BY priority ASC, name ASC
 `

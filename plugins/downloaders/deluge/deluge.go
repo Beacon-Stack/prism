@@ -79,7 +79,7 @@ func (c *Client) Protocol() plugin.Protocol { return plugin.ProtocolTorrent }
 
 // Test verifies connectivity and authentication.
 func (c *Client) Test(ctx context.Context) error {
-	return c.login(ctx)
+	return c.ensureAuth(ctx)
 }
 
 // Add submits a torrent to Deluge. Magnet URIs are added directly via
@@ -149,15 +149,19 @@ func (c *Client) Remove(ctx context.Context, clientItemID string, deleteFiles bo
 
 func (c *Client) ensureAuth(ctx context.Context) error {
 	c.mu.Lock()
-	authed := c.authed
-	c.mu.Unlock()
-	if authed {
+	defer c.mu.Unlock()
+	if c.authed {
 		return nil
 	}
-	return c.login(ctx)
+	if err := c.loginLocked(ctx); err != nil {
+		return err
+	}
+	c.authed = true
+	return nil
 }
 
-func (c *Client) login(ctx context.Context) error {
+// loginLocked performs the RPC login request. Must be called with c.mu held.
+func (c *Client) loginLocked(ctx context.Context) error {
 	var ok bool
 	if err := c.call(ctx, "auth.login", []any{c.cfg.Password}, &ok); err != nil {
 		return fmt.Errorf("deluge: auth.login: %w", err)
@@ -165,9 +169,6 @@ func (c *Client) login(ctx context.Context) error {
 	if !ok {
 		return errors.New("deluge: authentication failed — check password")
 	}
-	c.mu.Lock()
-	c.authed = true
-	c.mu.Unlock()
 	return nil
 }
 

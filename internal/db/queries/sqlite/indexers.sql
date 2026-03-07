@@ -70,5 +70,14 @@ LIMIT 1;
 -- name: MarkGrabRemoved :exec
 UPDATE grab_history SET download_status = 'removed' WHERE id = ?;
 
+-- name: ListGrabHistoryByStatus :many
+SELECT * FROM grab_history WHERE download_status = ? ORDER BY grabbed_at DESC LIMIT ?;
+
+-- name: ListGrabHistoryByProtocol :many
+SELECT * FROM grab_history WHERE protocol = ? ORDER BY grabbed_at DESC LIMIT ?;
+
+-- name: ListGrabHistoryByStatusAndProtocol :many
+SELECT * FROM grab_history WHERE download_status = ? AND protocol = ? ORDER BY grabbed_at DESC LIMIT ?;
+
 -- name: GetGrabByID :one
 SELECT * FROM grab_history WHERE id = ?;

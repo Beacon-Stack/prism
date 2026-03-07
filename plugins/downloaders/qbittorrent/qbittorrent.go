@@ -87,7 +87,7 @@ func (c *Client) Protocol() plugin.Protocol { return plugin.ProtocolTorrent }
 
 // Test verifies connectivity and authentication to the qBittorrent instance.
 func (c *Client) Test(ctx context.Context) error {
-	if err := c.login(ctx); err != nil {
+	if err := c.ensureAuth(ctx); err != nil {
 		return err
 	}
 	resp, err := c.get(ctx, "/api/v2/app/version")
@@ -192,15 +192,19 @@ func (c *Client) Remove(ctx context.Context, clientItemID string, deleteFiles bo
 
 func (c *Client) ensureAuth(ctx context.Context) error {
 	c.mu.Lock()
-	authed := c.authed
-	c.mu.Unlock()
-	if authed {
+	defer c.mu.Unlock()
+	if c.authed {
 		return nil
 	}
-	return c.login(ctx)
+	if err := c.loginLocked(ctx); err != nil {
+		return err
+	}
+	c.authed = true
+	return nil
 }
 
-func (c *Client) login(ctx context.Context) error {
+// loginLocked performs the HTTP login request. Must be called with c.mu held.
+func (c *Client) loginLocked(ctx context.Context) error {
 	form := url.Values{
 		"username": {c.cfg.Username},
 		"password": {c.cfg.Password},
@@ -218,9 +222,6 @@ func (c *Client) login(ctx context.Context) error {
 		return errors.New("qbittorrent: authentication failed — check username and password")
 	}
 
-	c.mu.Lock()
-	c.authed = true
-	c.mu.Unlock()
 	return nil
 }
 

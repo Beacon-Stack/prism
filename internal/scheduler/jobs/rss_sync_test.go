@@ -76,6 +76,20 @@ func TestReleaseMatchesMovie(t *testing.T) {
 			year:    2008,
 			want:    false,
 		},
+		{
+			// Short title "It" must not match "Godzilla" releases containing "it" as substring.
+			release: "Godzilla.Minus.One.Limited.Edition.2024.BluRay.1080p",
+			title:   "It",
+			year:    2024,
+			want:    false,
+		},
+		{
+			// Short title "It" should match an actual "It" release.
+			release: "It.2017.1080p.BluRay.x264",
+			title:   "It",
+			year:    2017,
+			want:    true,
+		},
 	}
 
 	for _, tc := range cases {
@@ -83,6 +97,30 @@ func TestReleaseMatchesMovie(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("releaseMatchesMovie(%q, %q, %d) = %v; want %v",
 				tc.release, tc.title, tc.year, got, tc.want)
+		}
+	}
+}
+
+func TestContainsWordAligned(t *testing.T) {
+	cases := []struct {
+		haystack string
+		needle   string
+		want     bool
+	}{
+		{"the dark knight 2008", "the dark knight", true},
+		{"it 2017 1080p", "it", true},
+		{"godzilla minus one limited edition 2024", "it", false},
+		{"hermit 2024 bluray", "it", false},
+		{"item 2024 bluray", "it", false},
+		{"", "it", false},
+		{"it", "it", true},
+		{"the it crowd 2006", "it", true},
+	}
+	for _, tc := range cases {
+		got := containsWordAligned(tc.haystack, tc.needle)
+		if got != tc.want {
+			t.Errorf("containsWordAligned(%q, %q) = %v; want %v",
+				tc.haystack, tc.needle, got, tc.want)
 		}
 	}
 }
