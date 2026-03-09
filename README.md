@@ -6,7 +6,7 @@
   <img src="https://github.com/luminarr/luminarr/actions/workflows/ci.yml/badge.svg" alt="CI">
   <a href="https://github.com/luminarr/luminarr/releases/latest"><img src="https://img.shields.io/github/v/release/luminarr/luminarr" alt="Release"></a>
   <a href="https://github.com/luminarr/luminarr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/luminarr/luminarr" alt="License"></a>
-  <a href="https://goreportcard.com/report/github.com/luminarr/luminarr"><img src="https://goreportcard.com/badge/github.com/luminarr/luminarr" alt="Go Report Card"></a>
+  <img src="https://img.shields.io/badge/go-1.25-00ADD8?logo=go&logoColor=white" alt="Go 1.25">
 </p>
 <p align="center">
   <a href="https://luminarr.video">Website</a> ·
