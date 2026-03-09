@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/luminarr/luminarr/internal/core/movie"
 	"github.com/luminarr/luminarr/internal/core/stats"
@@ -151,6 +152,158 @@ func TestGrabStats_empty(t *testing.T) {
 	}
 	if len(indexers) != 0 {
 		t.Errorf("expected 0 indexers, got %d", len(indexers))
+	}
+}
+
+func TestDecadeDistribution_empty(t *testing.T) {
+	svc, _, ctx := newService(t)
+	buckets, err := svc.DecadeDistribution(ctx)
+	if err != nil {
+		t.Fatalf("DecadeDistribution: %v", err)
+	}
+	if len(buckets) != 0 {
+		t.Errorf("expected 0 buckets, got %d", len(buckets))
+	}
+}
+
+func TestDecadeDistribution_groups(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	bus := events.New(logger)
+	movieSvc := movie.NewService(q, nil, bus, logger)
+	svc := stats.NewService(q, movieSvc)
+
+	// Default SeedMovie year is 2010.
+	testutil.SeedMovie(t, q, testutil.WithTMDBID(5001))
+	testutil.SeedMovie(t, q, testutil.WithTMDBID(5002))
+
+	buckets, err := svc.DecadeDistribution(ctx)
+	if err != nil {
+		t.Fatalf("DecadeDistribution: %v", err)
+	}
+	if len(buckets) != 1 {
+		t.Fatalf("expected 1 decade bucket, got %d", len(buckets))
+	}
+	if buckets[0].Decade != "2010s" {
+		t.Errorf("Decade = %q, want 2010s", buckets[0].Decade)
+	}
+	if buckets[0].Count != 2 {
+		t.Errorf("Count = %d, want 2", buckets[0].Count)
+	}
+}
+
+func TestLibraryGrowth_empty(t *testing.T) {
+	svc, _, ctx := newService(t)
+	points, err := svc.LibraryGrowth(ctx)
+	if err != nil {
+		t.Fatalf("LibraryGrowth: %v", err)
+	}
+	if len(points) != 0 {
+		t.Errorf("expected 0 points, got %d", len(points))
+	}
+}
+
+func TestLibraryGrowth_cumulative(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	bus := events.New(logger)
+	movieSvc := movie.NewService(q, nil, bus, logger)
+	svc := stats.NewService(q, movieSvc)
+
+	// Seed movies — they'll all have the same added_at month.
+	testutil.SeedMovie(t, q, testutil.WithTMDBID(6001))
+	testutil.SeedMovie(t, q, testutil.WithTMDBID(6002))
+
+	points, err := svc.LibraryGrowth(ctx)
+	if err != nil {
+		t.Fatalf("LibraryGrowth: %v", err)
+	}
+	if len(points) != 1 {
+		t.Fatalf("expected 1 month point, got %d", len(points))
+	}
+	if points[0].Added != 2 {
+		t.Errorf("Added = %d, want 2", points[0].Added)
+	}
+	if points[0].Cumulative != 2 {
+		t.Errorf("Cumulative = %d, want 2", points[0].Cumulative)
+	}
+}
+
+func TestGenreDistribution_empty(t *testing.T) {
+	svc, _, ctx := newService(t)
+	buckets, err := svc.GenreDistribution(ctx)
+	if err != nil {
+		t.Fatalf("GenreDistribution: %v", err)
+	}
+	if len(buckets) != 0 {
+		t.Errorf("expected 0 buckets, got %d", len(buckets))
+	}
+}
+
+func TestGenreDistribution_counts(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	bus := events.New(logger)
+	movieSvc := movie.NewService(q, nil, bus, logger)
+	svc := stats.NewService(q, movieSvc)
+
+	// Default SeedMovie genres: ["Action","Sci-Fi"]
+	testutil.SeedMovie(t, q, testutil.WithTMDBID(7001))
+	testutil.SeedMovie(t, q, testutil.WithTMDBID(7002))
+
+	buckets, err := svc.GenreDistribution(ctx)
+	if err != nil {
+		t.Fatalf("GenreDistribution: %v", err)
+	}
+	if len(buckets) != 2 {
+		t.Fatalf("expected 2 genre buckets, got %d", len(buckets))
+	}
+	// Both should have count=2 (both movies have Action and Sci-Fi).
+	for _, b := range buckets {
+		if b.Count != 2 {
+			t.Errorf("genre %q: Count = %d, want 2", b.Genre, b.Count)
+		}
+	}
+}
+
+func TestPruneSnapshots(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	bus := events.New(logger)
+	movieSvc := movie.NewService(q, nil, bus, logger)
+	svc := stats.NewService(q, movieSvc)
+
+	// Seed a movie + file so snapshots have data.
+	m := testutil.SeedMovie(t, q, testutil.WithTMDBID(8001))
+	if err := movieSvc.AttachFile(ctx, m.ID, "/movies/z.mkv", 1_000_000_000, plugin.Quality{}); err != nil {
+		t.Fatalf("AttachFile: %v", err)
+	}
+
+	if err := svc.TakeSnapshot(ctx); err != nil {
+		t.Fatalf("TakeSnapshot: %v", err)
+	}
+
+	// Prune anything older than 0 (should remove everything since snapshot is now-ish).
+	// Use a very long duration so nothing gets pruned.
+	if err := svc.PruneSnapshots(ctx, 365*24*time.Hour); err != nil {
+		t.Fatalf("PruneSnapshots: %v", err)
+	}
+	trend, _ := svc.StorageTrend(ctx, 10)
+	if len(trend) != 1 {
+		t.Errorf("expected 1 snapshot after prune with long duration, got %d", len(trend))
+	}
+
+	// Now prune with zero duration (everything older than now).
+	if err := svc.PruneSnapshots(ctx, 0); err != nil {
+		t.Fatalf("PruneSnapshots(0): %v", err)
+	}
+	trend, _ = svc.StorageTrend(ctx, 10)
+	if len(trend) != 0 {
+		t.Errorf("expected 0 snapshots after prune with 0 duration, got %d", len(trend))
 	}
 }
 
