@@ -22,9 +22,8 @@
 
 If you're coming from Radarr, Luminarr can import your entire setup — quality profiles, libraries, indexers, download clients, and movie list — in one click.
 
-<!-- Screenshots — replace these with actual screenshots -->
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Dashboard" width="800">
+  <img src="docs/screenshots/dashboard.png" alt="Luminarr Dashboard" width="800">
 </p>
 
 ## Current Features
@@ -52,10 +51,9 @@ If you're coming from Radarr, Luminarr can import your entire setup — quality 
 
 ## Preview
 
-<!-- Replace with actual screenshots -->
-| Dashboard | Movie Detail | Quality Profiles |
-|:-:|:-:|:-:|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Movie Detail](docs/screenshots/movie-detail.png) | ![Quality Profiles](docs/screenshots/quality-profiles.png) |
+| Library | Quality Profiles |
+|:-:|:-:|
+| ![Library](docs/screenshots/dashboard.png) | ![Quality Profiles](docs/screenshots/quality-profiles.png) |
 
 ## Getting Started
 
