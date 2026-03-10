@@ -29,7 +29,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: "--max-turns 10 --allowedTools Bash,Read,Glob,Grep"
+          claude_args: "--max-turns 15 --allowedTools Bash,Read,Glob,Grep"
           prompt: |
             Review this newly opened issue. Analyze the bug report or feature request,
             identify the relevant code areas, and post a comment on the issue with your
