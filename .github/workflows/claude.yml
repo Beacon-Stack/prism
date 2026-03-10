@@ -17,9 +17,28 @@ permissions:
   id-token: write
 
 jobs:
+  # Auto-triage new issues — no @claude needed.
+  claude-issue-triage:
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--max-turns 10"
+          prompt: |
+            Review this newly opened issue. Analyze the bug report or feature request,
+            identify the relevant code areas, and comment with your analysis and a
+            suggested approach. If it's a bug, try to identify the root cause. If it's
+            a feature request, outline what would need to change.
+
+  # Respond to @claude mentions in comments and review PRs.
   claude:
     if: |
-      (github.event_name == 'issues' && github.event.action == 'opened') ||
       (github.event_name == 'pull_request') ||
       (github.event_name == 'issue_comment' && !startsWith(github.event.comment.user.login, 'github-actions')) ||
       (github.event_name == 'pull_request_review_comment')
@@ -33,4 +52,3 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--max-turns 30"
-          mode: "agent"
