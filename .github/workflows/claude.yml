@@ -30,6 +30,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: "--max-turns 10"
+          show_full_output: true
           prompt: |
             Review this newly opened issue. Analyze the bug report or feature request,
             identify the relevant code areas, and comment with your analysis and a
