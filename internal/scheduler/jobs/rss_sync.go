@@ -221,7 +221,7 @@ func releaseMatchesMovie(releaseTitle, movieTitle string, year int) bool {
 	if !containsWordAligned(normRelease, normMovie) {
 		return false
 	}
-	return strings.Contains(normRelease, strconv.Itoa(year))
+	return containsWordAligned(normRelease, strconv.Itoa(year))
 }
 
 // containsWordAligned reports whether haystack contains needle aligned on word
