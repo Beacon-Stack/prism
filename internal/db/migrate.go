@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"sync"
 
 	"github.com/pressly/goose/v3"
 )
@@ -11,19 +12,27 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+var gooseInit sync.Once
+
 // Migrate runs all pending database migrations.
 // It is safe to call on every startup — goose is idempotent.
 func Migrate(sqlDB *sql.DB, driver string) error {
-	goose.SetBaseFS(migrationsFS)
+	// goose global state (SetBaseFS, SetDialect) is not goroutine-safe,
+	// so initialise it exactly once.
+	var initErr error
+	gooseInit.Do(func() {
+		goose.SetBaseFS(migrationsFS)
 
-	// goose dialect name for SQLite is "sqlite3".
-	dialect := driver
-	if driver == "sqlite" {
-		dialect = "sqlite3"
-	}
+		// goose dialect name for SQLite is "sqlite3".
+		dialect := driver
+		if driver == "sqlite" {
+			dialect = "sqlite3"
+		}
 
-	if err := goose.SetDialect(dialect); err != nil {
-		return fmt.Errorf("setting goose dialect %q: %w", dialect, err)
+		initErr = goose.SetDialect(dialect)
+	})
+	if initErr != nil {
+		return fmt.Errorf("setting goose dialect: %w", initErr)
 	}
 
 	if err := goose.Up(sqlDB, "migrations"); err != nil {
