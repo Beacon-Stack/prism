@@ -17,7 +17,7 @@ export async function apiFetch<T>(
   const res = await fetch(`/api/v1${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...(init?.headers ?? {}),
     },
   });

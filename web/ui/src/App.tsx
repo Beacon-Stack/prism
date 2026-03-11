@@ -1,8 +1,14 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import type { ReactNode } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { Shell } from "@/layouts/Shell";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+function RouteEB({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
+}
 import Dashboard from "@/pages/dashboard/Dashboard";
 import MovieDetail from "@/pages/movies/MovieDetail";
 import Queue from "@/pages/queue/Queue";
@@ -43,30 +49,30 @@ export default function App() {
         <ErrorBoundary>
           <Routes>
             <Route element={<Shell />}>
-              <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-              <Route path="movies/:id" element={<ErrorBoundary><MovieDetail /></ErrorBoundary>} />
-              <Route path="queue" element={<ErrorBoundary><Queue /></ErrorBoundary>} />
-              <Route path="history" element={<ErrorBoundary><HistoryPage /></ErrorBoundary>} />
-              <Route path="calendar" element={<ErrorBoundary><CalendarPage /></ErrorBoundary>} />
-              <Route path="wanted" element={<ErrorBoundary><WantedPage /></ErrorBoundary>} />
-              <Route path="stats" element={<ErrorBoundary><StatsPage /></ErrorBoundary>} />
-              <Route path="collections" element={<ErrorBoundary><CollectionsPage /></ErrorBoundary>} />
-              <Route path="collections/:id" element={<ErrorBoundary><CollectionDetail /></ErrorBoundary>} />
-              <Route path="library-sync" element={<ErrorBoundary><LibrarySyncPage /></ErrorBoundary>} />
+              <Route index element={<RouteEB><Dashboard /></RouteEB>} />
+              <Route path="movies/:id" element={<RouteEB><MovieDetail /></RouteEB>} />
+              <Route path="queue" element={<RouteEB><Queue /></RouteEB>} />
+              <Route path="history" element={<RouteEB><HistoryPage /></RouteEB>} />
+              <Route path="calendar" element={<RouteEB><CalendarPage /></RouteEB>} />
+              <Route path="wanted" element={<RouteEB><WantedPage /></RouteEB>} />
+              <Route path="stats" element={<RouteEB><StatsPage /></RouteEB>} />
+              <Route path="collections" element={<RouteEB><CollectionsPage /></RouteEB>} />
+              <Route path="collections/:id" element={<RouteEB><CollectionDetail /></RouteEB>} />
+              <Route path="library-sync" element={<RouteEB><LibrarySyncPage /></RouteEB>} />
               <Route path="settings">
-                <Route path="app" element={<ErrorBoundary><AppSettingsPage /></ErrorBoundary>} />
-                <Route path="libraries" element={<ErrorBoundary><LibraryList /></ErrorBoundary>} />
-                <Route path="quality-profiles" element={<ErrorBoundary><QualityProfileList /></ErrorBoundary>} />
-                <Route path="quality-definitions" element={<ErrorBoundary><QualityDefinitionsPage /></ErrorBoundary>} />
-                <Route path="indexers" element={<ErrorBoundary><IndexerList /></ErrorBoundary>} />
-                <Route path="download-clients" element={<ErrorBoundary><DownloadClientList /></ErrorBoundary>} />
-                <Route path="notifications" element={<ErrorBoundary><NotificationList /></ErrorBoundary>} />
-                <Route path="media-servers" element={<ErrorBoundary><MediaServerList /></ErrorBoundary>} />
-                <Route path="blocklist" element={<ErrorBoundary><BlocklistPage /></ErrorBoundary>} />
-                <Route path="media-management" element={<ErrorBoundary><MediaManagementPage /></ErrorBoundary>} />
-                <Route path="media-scanning" element={<ErrorBoundary><MediaScanningPage /></ErrorBoundary>} />
-                <Route path="system" element={<ErrorBoundary><SystemPage /></ErrorBoundary>} />
-                <Route path="import" element={<ErrorBoundary><ImportPage /></ErrorBoundary>} />
+                <Route path="app" element={<RouteEB><AppSettingsPage /></RouteEB>} />
+                <Route path="libraries" element={<RouteEB><LibraryList /></RouteEB>} />
+                <Route path="quality-profiles" element={<RouteEB><QualityProfileList /></RouteEB>} />
+                <Route path="quality-definitions" element={<RouteEB><QualityDefinitionsPage /></RouteEB>} />
+                <Route path="indexers" element={<RouteEB><IndexerList /></RouteEB>} />
+                <Route path="download-clients" element={<RouteEB><DownloadClientList /></RouteEB>} />
+                <Route path="notifications" element={<RouteEB><NotificationList /></RouteEB>} />
+                <Route path="media-servers" element={<RouteEB><MediaServerList /></RouteEB>} />
+                <Route path="blocklist" element={<RouteEB><BlocklistPage /></RouteEB>} />
+                <Route path="media-management" element={<RouteEB><MediaManagementPage /></RouteEB>} />
+                <Route path="media-scanning" element={<RouteEB><MediaScanningPage /></RouteEB>} />
+                <Route path="system" element={<RouteEB><SystemPage /></RouteEB>} />
+                <Route path="import" element={<RouteEB><ImportPage /></RouteEB>} />
               </Route>
             </Route>
           </Routes>

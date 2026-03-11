@@ -93,7 +93,7 @@ export function useWebSocket() {
 
         case "health_issue":
         case "health_ok":
-          qc.invalidateQueries({ queryKey: ["health"] });
+          qc.invalidateQueries({ queryKey: ["system", "health"] });
           break;
 
         case "task_started":

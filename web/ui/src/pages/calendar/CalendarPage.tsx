@@ -152,10 +152,11 @@ export default function CalendarPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth()); // 0-indexed
 
-  // Fetch all movies — the list is typically small enough to filter client-side.
-  // Per-page=1000 gives us the full library in one shot.
-  const { data, isLoading } = useMovies({ per_page: 1000, page: 1 });
+  // Fetch all movies for client-side filtering by release date.
+  const { data, isLoading } = useMovies({ per_page: 10000, page: 1 });
   const allMovies = data?.movies ?? [];
+  const totalMovies = data?.total ?? 0;
+  const truncated = allMovies.length < totalMovies;
 
   // Build a map from "YYYY-MM-DD" string → movies releasing that day.
   const moviesByDate = useMemo(() => {
@@ -269,6 +270,11 @@ export default function CalendarPage() {
         ))}
         {isLoading && (
           <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginLeft: "auto" }}>Loading…</span>
+        )}
+        {truncated && (
+          <span style={{ fontSize: 11, color: "var(--color-warning, #f59e0b)", marginLeft: "auto" }}>
+            Showing {allMovies.length} of {totalMovies} movies
+          </span>
         )}
       </div>
 

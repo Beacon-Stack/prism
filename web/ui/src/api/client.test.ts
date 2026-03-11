@@ -15,17 +15,30 @@ describe("apiFetch", () => {
     expect(result).toEqual({ message: "ok" });
   });
 
-  it("sends Content-Type application/json", async () => {
+  it("sends Content-Type application/json when body is present", async () => {
     let receivedContentType = "";
     server.use(
-      http.get("/api/v1/test", ({ request }) => {
+      http.post("/api/v1/test", ({ request }) => {
         receivedContentType = request.headers.get("content-type") ?? "";
         return HttpResponse.json({});
       })
     );
 
-    await apiFetch("/test");
+    await apiFetch("/test", { method: "POST", body: JSON.stringify({ a: 1 }) });
     expect(receivedContentType).toBe("application/json");
+  });
+
+  it("does not send Content-Type on GET requests", async () => {
+    let receivedContentType: string | null = null;
+    server.use(
+      http.get("/api/v1/test", ({ request }) => {
+        receivedContentType = request.headers.get("content-type");
+        return HttpResponse.json({});
+      })
+    );
+
+    await apiFetch("/test");
+    expect(receivedContentType).toBeNull();
   });
 
   it("throws APIError on non-ok response", async () => {

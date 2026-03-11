@@ -201,7 +201,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
         setTimeout(() => setGrabErrors((prev) => { const n = { ...prev }; delete n[release.guid]; return n; }), 5000);
       },
     });
-  }, [movieId, grab]);
+  }, [movieId, grab.mutate]);
 
   return (
     <div

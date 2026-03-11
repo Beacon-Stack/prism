@@ -10,6 +10,7 @@ import {
 import { useMovies } from "@/api/movies";
 import { useQueue } from "@/api/queue";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import type { HealthStatus, UpdateCheck, LogEntry } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -202,7 +203,8 @@ function UpdateModal({ data, onClose }: { data: UpdateCheck; onClose: () => void
 
   const renderedNotes = useMemo(() => {
     if (!data.release_notes) return "";
-    return marked.parse(data.release_notes, { async: false }) as string;
+    const raw = marked.parse(data.release_notes, { async: false }) as string;
+    return DOMPurify.sanitize(raw);
   }, [data.release_notes]);
 
   return (
