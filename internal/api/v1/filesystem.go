@@ -49,6 +49,24 @@ func RegisterFilesystemRoutes(api huma.API) {
 			return nil, huma.NewError(http.StatusBadRequest, "path must be absolute")
 		}
 
+		// Block virtual/pseudo filesystems that are never valid media paths.
+		for _, blocked := range []string{"/proc", "/sys", "/dev"} {
+			if path == blocked || strings.HasPrefix(path, blocked+"/") {
+				return nil, huma.NewError(http.StatusForbidden, "browsing "+blocked+" is not allowed")
+			}
+		}
+
+		// Resolve symlinks and re-check to prevent traversal into blocked paths.
+		resolved, err := filepath.EvalSymlinks(path)
+		if err == nil && resolved != path {
+			for _, blocked := range []string{"/proc", "/sys", "/dev"} {
+				if resolved == blocked || strings.HasPrefix(resolved, blocked+"/") {
+					return nil, huma.NewError(http.StatusForbidden, "path resolves to "+blocked+" which is not allowed")
+				}
+			}
+			path = resolved
+		}
+
 		info, err := os.Stat(path)
 		if err != nil {
 			if os.IsNotExist(err) {
