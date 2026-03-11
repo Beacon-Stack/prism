@@ -64,9 +64,9 @@ const MaxBulkMovies = 100
 // a bulk operation.
 const bulkConcurrency = 2
 
-// bulkStagger is the delay between starting successive movie searches in a
-// bulk operation to avoid hammering indexers.
-const bulkStagger = 1 * time.Second
+// bulkStagger is the delay inserted between successive movie search starts
+// to spread indexer load.
+const bulkStagger = 2 * time.Second
 
 // Service orchestrates automatic search and grab for movies.
 type Service struct {
@@ -259,7 +259,22 @@ func (s *Service) SearchMovies(ctx context.Context, movieIDs []string) *BulkResu
 		go func(idx int, movieID string) {
 			defer wg.Done()
 
-			// Stagger starts to avoid hammering indexers.
+			// Acquire semaphore slot (limits concurrency).
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				mu.Lock()
+				bulk.Results[idx] = &Result{
+					MovieID: movieID,
+					Status:  StatusSkipped,
+					Reason:  "cancelled",
+				}
+				mu.Unlock()
+				return
+			}
+			defer func() { <-sem }()
+
+			// Stagger after acquiring slot to avoid burst-searching indexers.
 			if idx > 0 {
 				select {
 				case <-ctx.Done():
@@ -271,12 +286,9 @@ func (s *Service) SearchMovies(ctx context.Context, movieIDs []string) *BulkResu
 					}
 					mu.Unlock()
 					return
-				case <-time.After(time.Duration(idx) * bulkStagger):
+				case <-time.After(bulkStagger):
 				}
 			}
-
-			sem <- struct{}{}
-			defer func() { <-sem }()
 
 			result, err := s.SearchMovie(ctx, movieID)
 			if err != nil {
