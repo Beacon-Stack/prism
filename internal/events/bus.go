@@ -11,18 +11,20 @@ import (
 type Type string
 
 const (
-	TypeMovieAdded     Type = "movie_added"
-	TypeMovieDeleted   Type = "movie_deleted"
-	TypeMovieUpdated   Type = "movie_updated"
-	TypeGrabStarted    Type = "grab_started"
-	TypeGrabFailed     Type = "grab_failed"
-	TypeDownloadDone   Type = "download_done"
-	TypeImportComplete Type = "import_complete"
-	TypeImportFailed   Type = "import_failed"
-	TypeHealthIssue    Type = "health_issue"
-	TypeHealthOK       Type = "health_ok"
-	TypeTaskStarted    Type = "task_started"
-	TypeTaskFinished   Type = "task_finished"
+	TypeMovieAdded         Type = "movie_added"
+	TypeMovieDeleted       Type = "movie_deleted"
+	TypeMovieUpdated       Type = "movie_updated"
+	TypeGrabStarted        Type = "grab_started"
+	TypeGrabFailed         Type = "grab_failed"
+	TypeDownloadDone       Type = "download_done"
+	TypeImportComplete     Type = "import_complete"
+	TypeImportFailed       Type = "import_failed"
+	TypeHealthIssue        Type = "health_issue"
+	TypeHealthOK           Type = "health_ok"
+	TypeTaskStarted        Type = "task_started"
+	TypeTaskFinished       Type = "task_finished"
+	TypeBulkSearchProgress Type = "bulk_search_progress"
+	TypeBulkSearchComplete Type = "bulk_search_complete"
 )
 
 // Event carries the context of something that happened.

@@ -9,6 +9,10 @@
       "Bash(go *)",
       "Bash(make *)",
       "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(sort *)",
       "WebSearch"
     ]
   }

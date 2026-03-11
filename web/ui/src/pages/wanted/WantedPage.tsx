@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { useWantedMissing, useWantedCutoff } from "@/api/wanted";
+import { useBulkAutoSearch } from "@/api/movies";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
 import type { Movie } from "@/types";
 
@@ -136,6 +138,16 @@ const PER_PAGE = 50;
 function MissingTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useWantedMissing(page, PER_PAGE);
+  const bulkSearch = useBulkAutoSearch();
+
+  function handleSearchAll() {
+    const ids = (data?.movies ?? []).map((m) => m.id);
+    if (ids.length === 0) return;
+    bulkSearch.mutate(ids, {
+      onSuccess: (res) => toast.info(`Searching ${res.total} movie${res.total !== 1 ? "s" : ""}… results via notification.`),
+      onError: (err) => toast.error((err as Error).message),
+    });
+  }
 
   if (isLoading) {
     return (
@@ -174,9 +186,28 @@ function MissingTab({ onSearch }: { onSearch: (m: Movie) => void }) {
 
   return (
     <div>
-      <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--color-text-muted)" }}>
-        {total} movie{total !== 1 ? "s" : ""} missing a file
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 12px" }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
+          {total} movie{total !== 1 ? "s" : ""} missing a file
+        </p>
+        <button
+          onClick={handleSearchAll}
+          disabled={bulkSearch.isPending}
+          style={{
+            background: "var(--color-accent)",
+            border: "1px solid var(--color-border-default)",
+            borderRadius: 5,
+            padding: "5px 12px",
+            fontSize: 12,
+            color: "var(--color-accent-fg)",
+            cursor: bulkSearch.isPending ? "default" : "pointer",
+            whiteSpace: "nowrap",
+            opacity: bulkSearch.isPending ? 0.7 : 1,
+          }}
+        >
+          {bulkSearch.isPending ? "Starting…" : "Search All Missing"}
+        </button>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {movies.map((m) => <MovieRow key={m.id} movie={m} onSearch={() => onSearch(m)} />)}
       </div>
@@ -225,6 +256,16 @@ function MissingTab({ onSearch }: { onSearch: (m: Movie) => void }) {
 
 function CutoffTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   const { data, isLoading, error } = useWantedCutoff();
+  const bulkSearch = useBulkAutoSearch();
+
+  function handleSearchAll() {
+    const ids = (data?.movies ?? []).map((m) => m.id);
+    if (ids.length === 0) return;
+    bulkSearch.mutate(ids, {
+      onSuccess: (res) => toast.info(`Searching ${res.total} movie${res.total !== 1 ? "s" : ""}… results via notification.`),
+      onError: (err) => toast.error((err as Error).message),
+    });
+  }
 
   if (isLoading) {
     return (
@@ -261,9 +302,28 @@ function CutoffTab({ onSearch }: { onSearch: (m: Movie) => void }) {
 
   return (
     <div>
-      <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--color-text-muted)" }}>
-        {movies.length} movie{movies.length !== 1 ? "s" : ""} below cutoff quality
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 12px" }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
+          {movies.length} movie{movies.length !== 1 ? "s" : ""} below cutoff quality
+        </p>
+        <button
+          onClick={handleSearchAll}
+          disabled={bulkSearch.isPending}
+          style={{
+            background: "var(--color-accent)",
+            border: "1px solid var(--color-border-default)",
+            borderRadius: 5,
+            padding: "5px 12px",
+            fontSize: 12,
+            color: "var(--color-accent-fg)",
+            cursor: bulkSearch.isPending ? "default" : "pointer",
+            whiteSpace: "nowrap",
+            opacity: bulkSearch.isPending ? 0.7 : 1,
+          }}
+        >
+          {bulkSearch.isPending ? "Starting…" : "Search All Cutoff Unmet"}
+        </button>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {movies.map((m) => <MovieRow key={m.id} movie={m} onSearch={() => onSearch(m)} />)}
       </div>

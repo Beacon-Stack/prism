@@ -6,10 +6,12 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/luminarr/luminarr/internal/core/autosearch"
 	"github.com/luminarr/luminarr/internal/core/blocklist"
 	"github.com/luminarr/luminarr/internal/core/downloader"
 	"github.com/luminarr/luminarr/internal/core/indexer"
@@ -80,6 +82,31 @@ type grabOutput struct {
 	Body *grabHistoryBody
 }
 
+// ── Auto-search shapes ──────────────────────────────────────────────────────
+
+type autoSearchInput struct {
+	MovieID string `path:"id"`
+}
+
+type autoSearchOutput struct {
+	Body *autosearch.Result
+}
+
+type bulkSearchInput struct {
+	Body struct {
+		MovieIDs []string `json:"movie_ids" minItems:"1" maxItems:"100" doc:"Movie UUIDs to search (max 100)"`
+	}
+}
+
+type bulkSearchAcceptedBody struct {
+	Message string `json:"message"`
+	Total   int    `json:"total"`
+}
+
+type bulkSearchAcceptedOutput struct {
+	Body bulkSearchAcceptedBody
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 func indexerResultToBody(r indexer.SearchResult) *releaseBody {
@@ -102,12 +129,13 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 
 // ── Route registration ───────────────────────────────────────────────────────
 
-// RegisterReleaseRoutes registers the release search and grab endpoints.
+// RegisterReleaseRoutes registers the release search, grab, and auto-search endpoints.
 // downloaderSvc may be nil; in that case grabs are recorded to history without
 // being sent to a download client (backward-compatible with Phase 2 mode).
 // blocklistSvc may be nil; in that case blocklist checking is skipped.
 // qualitySvc may be nil; in that case score breakdowns are omitted from responses.
-func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *movie.Service, downloaderSvc *downloader.Service, blocklistSvc *blocklist.Service, qualitySvc *quality.Service, logger *slog.Logger) {
+// autoSearchSvc may be nil; in that case auto-search endpoints are not registered.
+func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *movie.Service, downloaderSvc *downloader.Service, blocklistSvc *blocklist.Service, qualitySvc *quality.Service, autoSearchSvc *autosearch.Service, logger *slog.Logger) {
 	// GET /api/v1/movies/{id}/releases
 	huma.Register(api, huma.Operation{
 		OperationID: "search-releases",
@@ -262,5 +290,61 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			out.ScoreBreakdown = json.RawMessage(history.ScoreBreakdown)
 		}
 		return &grabOutput{Body: out}, nil
+	})
+
+	if autoSearchSvc == nil {
+		return
+	}
+
+	// POST /api/v1/movies/{id}/search — single-movie automatic search.
+	huma.Register(api, huma.Operation{
+		OperationID: "auto-search-movie",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/movies/{id}/search",
+		Summary:     "Automatic search — find the best release and grab it",
+		Description: "Searches all indexers, picks the best release that satisfies the movie's quality profile, and submits it to a download client. Works on both monitored and unmonitored movies.",
+		Tags:        []string{"Releases"},
+	}, func(ctx context.Context, input *autoSearchInput) (*autoSearchOutput, error) {
+		result, err := autoSearchSvc.SearchMovie(ctx, input.MovieID)
+		if err != nil {
+			if errors.Is(err, movie.ErrNotFound) {
+				return nil, huma.Error404NotFound("movie not found")
+			}
+			errMsg := err.Error()
+			switch {
+			case strings.Contains(errMsg, "no download client configured"):
+				return nil, huma.NewError(http.StatusServiceUnavailable, errMsg)
+			case strings.Contains(errMsg, "all indexers failed"):
+				return nil, huma.NewError(http.StatusBadGateway, errMsg)
+			default:
+				return nil, huma.NewError(http.StatusInternalServerError, errMsg)
+			}
+		}
+		return &autoSearchOutput{Body: result}, nil
+	})
+
+	// POST /api/v1/movies/search — bulk automatic search (async).
+	huma.Register(api, huma.Operation{
+		OperationID:   "bulk-auto-search",
+		Method:        http.MethodPost,
+		Path:          "/api/v1/movies/search",
+		Summary:       "Bulk automatic search — search and grab for multiple movies",
+		Description:   "Accepts up to 100 movie IDs, returns 202 immediately, and processes searches asynchronously. Progress is pushed via WebSocket events (bulk_search_progress, bulk_search_complete).",
+		Tags:          []string{"Releases"},
+		DefaultStatus: http.StatusAccepted,
+	}, func(ctx context.Context, input *bulkSearchInput) (*bulkSearchAcceptedOutput, error) {
+		ids := input.Body.MovieIDs
+		if len(ids) > autosearch.MaxBulkMovies {
+			return nil, huma.NewError(http.StatusBadRequest,
+				"too many movie IDs (max 100)")
+		}
+
+		// Run async — detach from the HTTP request context.
+		go autoSearchSvc.SearchMovies(context.WithoutCancel(ctx), ids)
+
+		return &bulkSearchAcceptedOutput{Body: bulkSearchAcceptedBody{
+			Message: "bulk search started",
+			Total:   len(ids),
+		}}, nil
 	})
 }

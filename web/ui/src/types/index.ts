@@ -145,6 +145,30 @@ export interface GrabHistory {
   score_breakdown?: ScoreBreakdown;
 }
 
+// ── Auto-search ─────────────────────────────────────────────────────────
+
+export interface AutoSearchGrab {
+  id: string;
+  movie_id: string;
+  release_title: string;
+  protocol: string;
+  size: number;
+  grabbed_at: string;
+  score_breakdown?: ScoreBreakdown;
+}
+
+export interface AutoSearchResult {
+  movie_id: string;
+  result: "grabbed" | "no_match" | "skipped";
+  reason?: string;
+  grab?: AutoSearchGrab;
+}
+
+export interface BulkSearchAccepted {
+  message: string;
+  total: number;
+}
+
 export interface RenamePreviewItem {
   file_id: string;
   old_path: string;

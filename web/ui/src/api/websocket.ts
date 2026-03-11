@@ -100,6 +100,16 @@ export function useWebSocket() {
         case "task_finished":
           qc.invalidateQueries({ queryKey: ["tasks"] });
           break;
+
+        case "bulk_search_complete": {
+          const searched = (e.data?.searched as number) ?? 0;
+          const grabbed = (e.data?.grabbed as number) ?? 0;
+          qc.invalidateQueries({ queryKey: ["queue"] });
+          qc.invalidateQueries({ queryKey: ["movies"] });
+          qc.invalidateQueries({ queryKey: ["wanted"] });
+          toast.success(`Grabbed ${grabbed} of ${searched} movie${searched !== 1 ? "s" : ""}`);
+          break;
+        }
       }
     }
 

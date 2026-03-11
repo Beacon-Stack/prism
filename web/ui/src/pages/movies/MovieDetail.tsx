@@ -16,6 +16,7 @@ import {
   useLookupMovies,
   useMovieSuggestions,
   useRenameMovie,
+  useAutoSearch,
   type GrabReleaseRequest,
 } from "@/api/movies";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
@@ -1092,6 +1093,7 @@ export default function MovieDetail() {
   const { data: movie, isLoading, error } = useMovie(id ?? "");
   const updateMovie = useUpdateMovie();
   const refreshMovie = useRefreshMovie();
+  const autoSearch = useAutoSearch();
 
   const [tab, setTab] = useState<Tab>("overview");
   const [confirming, setConfirming] = useState(false);
@@ -1129,6 +1131,26 @@ export default function MovieDetail() {
         setRefreshed(true);
         setTimeout(() => setRefreshed(false), 2000);
       },
+    });
+  }
+
+  function handleAutoSearch() {
+    if (!movie) return;
+    autoSearch.mutate(movie.id, {
+      onSuccess: (data) => {
+        switch (data.result) {
+          case "grabbed":
+            toast.success(`Grabbed: ${data.grab?.release_title ?? "release"}`);
+            break;
+          case "no_match":
+            toast.info(data.reason ?? "No suitable release found");
+            break;
+          case "skipped":
+            toast.info(data.reason ?? "Already downloading");
+            break;
+        }
+      },
+      onError: (err) => toast.error((err as Error).message),
     });
   }
 
@@ -1223,10 +1245,17 @@ export default function MovieDetail() {
             </button>
           )}
           <button
+            onClick={handleAutoSearch}
+            disabled={autoSearch.isPending}
+            style={actionBtn("var(--color-accent-fg)", "var(--color-accent)")}
+          >
+            {autoSearch.isPending ? "Searching…" : "Auto Search"}
+          </button>
+          <button
             onClick={() => setSearchOpen(true)}
             style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}
           >
-            Search
+            Interactive Search
           </button>
           <button
             onClick={() => setConfirming((v) => !v)}

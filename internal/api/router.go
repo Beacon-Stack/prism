@@ -17,6 +17,7 @@ import (
 	v3 "github.com/luminarr/luminarr/internal/api/v3"
 	"github.com/luminarr/luminarr/internal/api/ws"
 	"github.com/luminarr/luminarr/internal/config"
+	"github.com/luminarr/luminarr/internal/core/autosearch"
 	"github.com/luminarr/luminarr/internal/core/blocklist"
 	"github.com/luminarr/luminarr/internal/core/collection"
 	"github.com/luminarr/luminarr/internal/core/downloader"
@@ -195,7 +196,16 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.IndexerService != nil {
 		v1.RegisterIndexerRoutes(humaAPI, cfg.IndexerService)
-		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.BlocklistService, cfg.QualityService, cfg.Logger)
+
+		var autoSvc *autosearch.Service
+		if cfg.MovieService != nil && cfg.DownloaderService != nil && cfg.QualityService != nil {
+			autoSvc = autosearch.NewService(
+				cfg.IndexerService, cfg.MovieService, cfg.DownloaderService,
+				cfg.BlocklistService, cfg.QualityService, cfg.Bus, cfg.Logger,
+			)
+		}
+		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.BlocklistService, cfg.QualityService, autoSvc, cfg.Logger)
+
 		v1.RegisterHistoryRoutes(humaAPI, cfg.IndexerService)
 	}
 

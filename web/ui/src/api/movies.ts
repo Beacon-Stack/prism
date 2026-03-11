@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "./client";
-import type { Movie, MovieListResponse, TMDBResult, Release, GrabHistory, MovieFile, RenameMovieResult } from "@/types";
+import type { Movie, MovieListResponse, TMDBResult, Release, GrabHistory, MovieFile, RenameMovieResult, AutoSearchResult, BulkSearchAccepted } from "@/types";
 
 interface MovieFilters {
   library_id?: string;
@@ -202,5 +202,30 @@ export function useMovieHistory(movieId: string) {
     queryKey: ["movies", movieId, "history"],
     queryFn: () => apiFetch<GrabHistory[]>(`/movies/${movieId}/history`),
     enabled: !!movieId,
+  });
+}
+
+export function useAutoSearch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (movieId: string) =>
+      apiFetch<AutoSearchResult>(`/movies/${movieId}/search`, { method: "POST" }),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["queue"] });
+      if (data.movie_id) {
+        qc.invalidateQueries({ queryKey: ["movies", data.movie_id] });
+        qc.invalidateQueries({ queryKey: ["movies", data.movie_id, "history"] });
+      }
+    },
+  });
+}
+
+export function useBulkAutoSearch() {
+  return useMutation({
+    mutationFn: (movieIds: string[]) =>
+      apiFetch<BulkSearchAccepted>("/movies/search", {
+        method: "POST",
+        body: JSON.stringify({ movie_ids: movieIds }),
+      }),
   });
 }
