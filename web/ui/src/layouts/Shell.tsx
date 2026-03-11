@@ -30,6 +30,8 @@ import {
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
 import { applyTheme } from "@/theme";
+import { useCommandPalette } from "@/components/command-palette/useCommandPalette";
+import { CommandPalette } from "@/components/command-palette/CommandPalette";
 
 interface NavItem {
   to: string;
@@ -337,6 +339,7 @@ function Sidebar({
 
 export function Shell() {
   useWebSocket();
+  const commandPalette = useCommandPalette();
 
   // Apply persisted theme once on mount.
   useEffect(() => { applyTheme(); }, []);
@@ -469,6 +472,7 @@ export function Shell() {
 
         <Outlet />
       </main>
+      {commandPalette.isOpen && <CommandPalette onClose={commandPalette.close} />}
     </div>
   );
 }
