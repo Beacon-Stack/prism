@@ -13,49 +13,8 @@ import {
   resolveMode,
 } from "@/theme";
 import type { ThemeMode } from "@/theme";
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-
-const card: React.CSSProperties = {
-  background: "var(--color-bg-surface)",
-  border: "1px solid var(--color-border-subtle)",
-  borderRadius: 8,
-  padding: 20,
-  boxShadow: "var(--shadow-card)",
-};
-
-const sectionHeader: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "var(--color-text-muted)",
-  marginBottom: 16,
-  marginTop: 0,
-};
-
-function Pill({ ok, labelTrue, labelFalse }: { ok: boolean; labelTrue: string; labelFalse: string }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "2px 8px",
-        borderRadius: 4,
-        fontSize: 12,
-        fontWeight: 500,
-        color: ok ? "var(--color-success)" : "var(--color-text-muted)",
-        background: ok
-          ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
-          : "var(--color-bg-subtle)",
-      }}
-    >
-      {ok ? labelTrue : labelFalse}
-    </span>
-  );
-}
-
-// ── Section 1: Appearance ─────────────────────────────────────────────────────
+import { card, sectionHeader } from "@/lib/styles";
+import Pill from "@/components/Pill";
 
 function AppearanceSection() {
   const [mode, setMode] = useState<ThemeMode>(getStoredMode);
@@ -342,7 +301,7 @@ function ToggleRow({
             width: 16,
             height: 16,
             borderRadius: "50%",
-            background: "#ffffff",
+            background: "var(--color-bg-base)",
             transition: "left 150ms ease",
           }}
         />
@@ -368,48 +327,11 @@ function UIPreferencesSection() {
         checked={tooltips}
         onChange={handleTooltipsChange}
       />
-      {/* Last row — remove bottom border */}
-      <div style={{ borderBottom: "none", paddingBottom: 0, marginBottom: 0 }}>
-        <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-          More preferences will appear here as features are added.
-        </span>
-      </div>
     </div>
   );
 }
 
-// ── Section 3: AI ─────────────────────────────────────────────────────────────
-
-function AISection() {
-  return (
-    <div style={{ ...card, opacity: 0.5, pointerEvents: "none", userSelect: "none" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ ...sectionHeader, marginBottom: 0 }}>AI Integration</p>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            color: "var(--color-text-muted)",
-            background: "var(--color-bg-subtle)",
-            padding: "3px 10px",
-            borderRadius: 4,
-          }}
-        >
-          In Development
-        </span>
-      </div>
-      <p style={{ margin: "12px 0 0", fontSize: 13, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-        AI-powered features like smart matching, release scoring, and content filtering are
-        planned for a future release. This section will allow you to configure an Anthropic
-        API key and manage AI preferences.
-      </p>
-    </div>
-  );
-}
-
-// ── Section 4: Configuration ──────────────────────────────────────────────────
+// ── Configuration ─────────────────────────────────────────────────────────────
 
 function ConfigSection() {
   const { data: status } = useSystemStatus();
@@ -834,7 +756,6 @@ export default function AppSettingsPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <AppearanceSection />
         <UIPreferencesSection />
-        <AISection />
         <ConfigSection />
         <APIKeySection />
         <BackupSection />

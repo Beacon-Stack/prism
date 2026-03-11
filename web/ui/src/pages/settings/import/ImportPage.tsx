@@ -51,7 +51,7 @@ const labelStyle: React.CSSProperties = {
 const btnPrimary: React.CSSProperties = {
   padding: "8px 20px",
   background: "var(--color-accent)",
-  color: "#fff",
+  color: "var(--color-accent-fg)",
   border: "none",
   borderRadius: 6,
   fontSize: 13,
@@ -144,10 +144,10 @@ function QuickSyncCard({
           style={{
             padding: "8px 12px",
             background: "var(--color-danger-muted, rgba(239,68,68,0.08))",
-            border: "1px solid var(--color-danger, #ef4444)",
+            border: "1px solid var(--color-danger)",
             borderRadius: 6,
             fontSize: 12,
-            color: "var(--color-danger, #ef4444)",
+            color: "var(--color-danger)",
           }}
         >
           {preview.error.message}
@@ -270,10 +270,10 @@ function ConnectStep({
           style={{
             padding: "10px 14px",
             background: "var(--color-danger-muted, rgba(239,68,68,0.08))",
-            border: "1px solid var(--color-danger, #ef4444)",
+            border: "1px solid var(--color-danger)",
             borderRadius: 6,
             fontSize: 13,
-            color: "var(--color-danger, #ef4444)",
+            color: "var(--color-danger)",
           }}
         >
           {preview.error.message}
@@ -470,10 +470,10 @@ function PreviewStep({
           style={{
             padding: "10px 14px",
             background: "var(--color-danger-muted, rgba(239,68,68,0.08))",
-            border: "1px solid var(--color-danger, #ef4444)",
+            border: "1px solid var(--color-danger)",
             borderRadius: 6,
             fontSize: 13,
-            color: "var(--color-danger, #ef4444)",
+            color: "var(--color-danger)",
           }}
         >
           {importMutation.error.message}
@@ -523,7 +523,7 @@ function CategoryRow({ label, result }: { label: string; result: CategoryResult 
           padding: "10px 12px",
           borderBottom: "1px solid var(--color-border-subtle)",
           fontSize: 13,
-          color: "var(--color-success, #22c55e)",
+          color: "var(--color-success)",
           textAlign: "center",
         }}
       >
@@ -534,7 +534,7 @@ function CategoryRow({ label, result }: { label: string; result: CategoryResult 
           padding: "10px 12px",
           borderBottom: "1px solid var(--color-border-subtle)",
           fontSize: 13,
-          color: allSkipped ? "var(--color-text-muted)" : "var(--color-warning, #f59e0b)",
+          color: allSkipped ? "var(--color-text-muted)" : "var(--color-warning)",
           textAlign: "center",
         }}
       >
@@ -545,7 +545,7 @@ function CategoryRow({ label, result }: { label: string; result: CategoryResult 
           padding: "10px 12px",
           borderBottom: "1px solid var(--color-border-subtle)",
           fontSize: 13,
-          color: hasIssues ? "var(--color-danger, #ef4444)" : "var(--color-text-muted)",
+          color: hasIssues ? "var(--color-danger)" : "var(--color-text-muted)",
           textAlign: "center",
         }}
       >
@@ -580,14 +580,14 @@ function DoneStep({ result }: { result: RadarrImportResult }) {
           background: hasErrors
             ? "var(--color-warning-muted, rgba(245,158,11,0.08))"
             : "var(--color-success-muted, rgba(34,197,94,0.08))",
-          border: `1px solid ${hasErrors ? "var(--color-warning, #f59e0b)" : "var(--color-success, #22c55e)"}`,
+          border: `1px solid ${hasErrors ? "var(--color-warning)" : "var(--color-success)"}`,
           borderRadius: 8,
         }}
       >
         {hasErrors ? (
-          <AlertCircle size={20} color="var(--color-warning, #f59e0b)" />
+          <AlertCircle size={20} color="var(--color-warning)" />
         ) : (
-          <CheckCircle size={20} color="var(--color-success, #22c55e)" />
+          <CheckCircle size={20} color="var(--color-success)" />
         )}
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)" }}>
@@ -689,7 +689,7 @@ function DoneStep({ result }: { result: RadarrImportResult }) {
               padding: 0,
               fontSize: 13,
               fontWeight: 600,
-              color: "var(--color-warning, #f59e0b)",
+              color: "var(--color-warning)",
             }}
           >
             <XCircle size={15} />

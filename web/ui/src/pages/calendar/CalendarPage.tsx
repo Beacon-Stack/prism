@@ -8,7 +8,7 @@ import type { Movie } from "@/types";
 function movieBorderColor(movie: Movie): string {
   if (!movie.monitored) return "var(--color-border-default)";
   if (movie.status === "downloaded") return "var(--color-success)";
-  return "var(--color-warning, #f59e0b)";
+  return "var(--color-warning)";
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -122,7 +122,7 @@ function DayCell({
             width: 18,
             height: 18,
             background: "var(--color-accent)",
-            color: "#fff",
+            color: "var(--color-accent-fg)",
             borderRadius: "50%",
           }),
         }}
@@ -260,7 +260,7 @@ export default function CalendarPage() {
       <div style={{ display: "flex", gap: 16, marginBottom: 14, alignItems: "center" }}>
         {[
           { color: "var(--color-success)", label: "Downloaded" },
-          { color: "var(--color-warning, #f59e0b)", label: "Monitored" },
+          { color: "var(--color-warning)", label: "Monitored" },
           { color: "var(--color-border-default)", label: "Unmonitored" },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -272,7 +272,7 @@ export default function CalendarPage() {
           <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginLeft: "auto" }}>Loading…</span>
         )}
         {truncated && (
-          <span style={{ fontSize: 11, color: "var(--color-warning, #f59e0b)", marginLeft: "auto" }}>
+          <span style={{ fontSize: 11, color: "var(--color-warning)", marginLeft: "auto" }}>
             Showing {allMovies.length} of {totalMovies} movies
           </span>
         )}

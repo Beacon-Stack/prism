@@ -21,11 +21,10 @@ import {
 } from "@/api/movies";
 import ScoreChip from "@/components/ScoreChip";
 import IndexerPill from "@/components/IndexerPill";
+import QualityBadge from "@/components/QualityBadge";
 import type { Release, RenamePreviewItem, TMDBResult, MediaInfo, Quality } from "@/types";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, sortReleases, RELEASE_SORT_LABELS, type ReleaseSortField } from "@/lib/utils";
 import { useMediainfoStatus, useScanMovieFile } from "@/api/mediainfo";
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatRuntime(minutes: number): string {
   if (!minutes) return "—";
@@ -47,47 +46,8 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-// ── Release quality badge ──────────────────────────────────────────────────────
-
-function QualityBadge({ quality }: { quality: Release["quality"] }) {
-  const label = [quality.resolution, quality.source].filter(Boolean).join(" ");
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 6px",
-        borderRadius: 4,
-        fontSize: 10,
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        background: "color-mix(in srgb, var(--color-accent) 12%, transparent)",
-        color: "var(--color-accent)",
-      }}
-    >
-      {label || "Unknown"}
-    </span>
-  );
-}
-
-// ── Releases tab ───────────────────────────────────────────────────────────────
-
 interface ReleasesTabProps {
   movieId: string;
-}
-
-type ReleaseSortField = "size" | "seeds" | "age";
-const releaseSortLabels: Record<ReleaseSortField, string> = { seeds: "Seeds", size: "Size", age: "Age" };
-
-function sortReleases(releases: Release[], field: ReleaseSortField, dir: "asc" | "desc"): Release[] {
-  const sorted = [...releases].sort((a, b) => {
-    switch (field) {
-      case "size": return a.size - b.size;
-      case "seeds": return (a.seeds ?? 0) - (b.seeds ?? 0);
-      case "age": return (a.age_days ?? 0) - (b.age_days ?? 0);
-    }
-  });
-  return dir === "desc" ? sorted.reverse() : sorted;
 }
 
 function ReleasesTab({ movieId }: ReleasesTabProps) {
@@ -189,11 +149,11 @@ function ReleasesTab({ movieId }: ReleasesTabProps) {
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 4 }}>Sort:</span>
-          {(Object.keys(releaseSortLabels) as ReleaseSortField[]).map((field) => (
+          {(Object.keys(RELEASE_SORT_LABELS) as ReleaseSortField[]).map((field) => (
             <button
               key={field}
               onClick={() => toggleSort(field)}
-              aria-label={`Sort by ${releaseSortLabels[field]}`}
+              aria-label={`Sort by ${RELEASE_SORT_LABELS[field]}`}
               style={{
                 background: sortField === field ? "var(--color-bg-elevated)" : "transparent",
                 border: sortField === field ? "1px solid var(--color-border-default)" : "1px solid transparent",
@@ -205,7 +165,7 @@ function ReleasesTab({ movieId }: ReleasesTabProps) {
                 fontWeight: sortField === field ? 600 : 400,
               }}
             >
-              {releaseSortLabels[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
+              {RELEASE_SORT_LABELS[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
             </button>
           ))}
         </div>
@@ -491,8 +451,8 @@ function MediainfoRow({ info, claimed }: { info: MediaInfo; claimed: Quality }) 
             borderRadius: 4,
             fontSize: 10,
             fontWeight: 600,
-            background: "color-mix(in srgb, #f59e0b 15%, transparent)",
-            color: "#f59e0b",
+            background: "color-mix(in srgb, var(--color-warning) 15%, transparent)",
+            color: "var(--color-warning)",
             cursor: "help",
           }}
         >
@@ -721,7 +681,7 @@ function FilesTab({ movieId }: { movieId: string }) {
                   flexShrink: 0,
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-danger, #ef4444)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-danger)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
@@ -1181,8 +1141,6 @@ export default function MovieDetail() {
     );
   }
 
-  const posterSrc = movie.poster_url || null;
-
   return (
     <div style={{ padding: 24, maxWidth: 1000 }}>
       {/* Back link */}
@@ -1249,7 +1207,7 @@ export default function MovieDetail() {
           >
             {autoSearch.isPending ? "Searching…" : "Auto Search"}
           </button>
-<button
+          <button
             onClick={() => setConfirming((v) => !v)}
             style={actionBtn("var(--color-danger)", "color-mix(in srgb, var(--color-danger) 10%, transparent)")}
           >
@@ -1262,9 +1220,9 @@ export default function MovieDetail() {
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
         {/* Poster */}
         <div style={{ flexShrink: 0 }}>
-          {posterSrc ? (
+          {movie.poster_url ? (
             <img
-              src={posterSrc}
+              src={movie.poster_url}
               alt={movie.title}
               style={{
                 width: 180,

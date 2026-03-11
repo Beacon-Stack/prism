@@ -176,8 +176,10 @@ function AddCollectionModal({ onClose }: { onClose: () => void }) {
                         fontWeight: 500,
                         padding: "1px 5px",
                         borderRadius: 3,
-                        background: isFranchise ? "rgba(139,92,246,0.15)" : "rgba(59,130,246,0.12)",
-                        color: isFranchise ? "#8b5cf6" : "#60a5fa",
+                        background: isFranchise
+                          ? "color-mix(in srgb, var(--color-accent) 15%, transparent)"
+                          : "color-mix(in srgb, var(--color-success) 12%, transparent)",
+                        color: isFranchise ? "var(--color-accent)" : "var(--color-success)",
                       }}
                     >
                       {isFranchise ? "Franchise" : "Person"}

@@ -234,7 +234,7 @@ function FilmCard({
   // Determine border color based on 3 states.
   let borderColor = "var(--color-border-subtle)";
   if (item.in_library) {
-    borderColor = item.has_file ? "var(--color-success)" : "#d97706"; // amber for monitored-no-file
+    borderColor = item.has_file ? "var(--color-success)" : "var(--color-warning)"; // amber for monitored-no-file
   }
   if (selected) {
     borderColor = "var(--color-accent)";
@@ -285,8 +285,8 @@ function FilmCard({
             position: "absolute",
             top: 6,
             right: 6,
-            background: item.has_file ? "var(--color-success)" : "#d97706",
-            color: "#fff",
+            background: item.has_file ? "var(--color-success)" : "var(--color-warning)",
+            color: "var(--color-accent-fg)",
             borderRadius: 3,
             fontSize: 10,
             fontWeight: 700,
@@ -313,7 +313,7 @@ function FilmCard({
             alignItems: "center",
             justifyContent: "center",
             fontSize: 11,
-            color: "#fff",
+            color: "var(--color-accent-fg)",
             fontWeight: 700,
           }}
         >
@@ -567,7 +567,7 @@ export default function CollectionDetail() {
             On disk
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: "#d97706", display: "inline-block" }} />
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--color-warning)", display: "inline-block" }} />
             Monitored
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>

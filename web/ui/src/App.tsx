@@ -4,11 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { Shell } from "@/layouts/Shell";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-
-function RouteEB({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
-  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
-}
 import Dashboard from "@/pages/dashboard/Dashboard";
 import MovieDetail from "@/pages/movies/MovieDetail";
 import Queue from "@/pages/queue/Queue";
@@ -32,6 +27,11 @@ import StatsPage from "@/pages/stats/StatsPage";
 import CollectionsPage from "@/pages/collections/CollectionsPage";
 import CollectionDetail from "@/pages/collections/CollectionDetail";
 import LibrarySyncPage from "@/pages/library-sync/LibrarySyncPage";
+
+function RouteEB({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

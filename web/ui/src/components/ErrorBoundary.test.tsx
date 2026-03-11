@@ -41,7 +41,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByText("Failed to render")).toBeInTheDocument();
     expect(screen.getByText("test crash")).toBeInTheDocument();
     expect(screen.getByText("Try again")).toBeInTheDocument();
   });
@@ -55,7 +55,7 @@ describe("ErrorBoundary", () => {
     );
 
     expect(screen.getByText("Custom error UI")).toBeInTheDocument();
-    expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
+    expect(screen.queryByText("Failed to render")).not.toBeInTheDocument();
   });
 
   it("recovers when Try again is clicked", () => {
@@ -73,13 +73,13 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByText("Failed to render")).toBeInTheDocument();
 
     // Fix the condition and click Try again
     shouldThrow = false;
     fireEvent.click(screen.getByText("Try again"));
 
     expect(screen.getByText("Recovered")).toBeInTheDocument();
-    expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
+    expect(screen.queryByText("Failed to render")).not.toBeInTheDocument();
   });
 });

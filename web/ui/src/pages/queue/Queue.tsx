@@ -1,83 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQueue, useRemoveFromQueue, useBlocklistQueueItem } from "@/api/queue";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, formatDate } from "@/lib/utils";
+import StatusBadge from "@/components/StatusBadge";
 import type { QueueItem } from "@/types";
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function progressPct(item: QueueItem): number {
   if (!item.size || item.size === 0) return 0;
   return Math.min(100, Math.round((item.downloaded_bytes / item.size) * 100));
 }
-
-// ── Status badge ───────────────────────────────────────────────────────────────
-
-const statusStyles: Record<string, { bg: string; color: string; label: string }> = {
-  downloading: {
-    bg: "color-mix(in srgb, var(--color-accent) 15%, transparent)",
-    color: "var(--color-accent)",
-    label: "Downloading",
-  },
-  queued: {
-    bg: "color-mix(in srgb, var(--color-warning) 15%, transparent)",
-    color: "var(--color-warning)",
-    label: "Queued",
-  },
-  completed: {
-    bg: "color-mix(in srgb, var(--color-success) 15%, transparent)",
-    color: "var(--color-success)",
-    label: "Completed",
-  },
-  paused: {
-    bg: "color-mix(in srgb, var(--color-text-muted) 15%, transparent)",
-    color: "var(--color-text-muted)",
-    label: "Paused",
-  },
-  failed: {
-    bg: "color-mix(in srgb, var(--color-danger) 15%, transparent)",
-    color: "var(--color-danger)",
-    label: "Failed",
-  },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const style = statusStyles[status] ?? {
-    bg: "color-mix(in srgb, var(--color-text-muted) 15%, transparent)",
-    color: "var(--color-text-muted)",
-    label: status,
-  };
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        background: style.bg,
-        color: style.color,
-        borderRadius: 4,
-        padding: "2px 8px",
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-        textTransform: "capitalize",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {style.label}
-    </span>
-  );
-}
-
-// ── Progress bar ───────────────────────────────────────────────────────────────
 
 function ProgressBar({ pct, status }: { pct: number; status: string }) {
   const color =
@@ -109,8 +40,6 @@ function ProgressBar({ pct, status }: { pct: number; status: string }) {
     </div>
   );
 }
-
-// ── Queue row ──────────────────────────────────────────────────────────────────
 
 function QueueRow({
   item,
@@ -192,7 +121,7 @@ function QueueRow({
                     borderRadius: 5,
                     padding: "4px 12px",
                     fontSize: 12,
-                    color: "#fff",
+                    color: "var(--color-accent-fg)",
                     fontWeight: 600,
                     cursor: remove.isPending ? "not-allowed" : "pointer",
                     opacity: remove.isPending ? 0.7 : 1,
@@ -284,7 +213,7 @@ function QueueRow({
                 borderRadius: 5,
                 padding: "3px 10px",
                 fontSize: 12,
-                color: "var(--color-warning, #f59e0b)",
+                color: "var(--color-warning)",
                 cursor: blocklist.isPending ? "not-allowed" : "pointer",
                 opacity: blocklist.isPending ? 0.6 : 1,
               }}
@@ -311,8 +240,6 @@ function QueueRow({
     </>
   );
 }
-
-// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function Queue() {
   const { data, isLoading } = useQueue();

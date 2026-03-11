@@ -2,24 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { useBlocklist, useDeleteBlocklistEntry, useClearBlocklist } from "@/api/blocklist";
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { formatBytes, formatDate } from "@/lib/utils";
 
 export default function BlocklistPage() {
   const [page, setPage] = useState(1);
@@ -93,13 +76,13 @@ export default function BlocklistPage() {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              background: "var(--color-danger-muted, rgba(239,68,68,0.12))",
-              border: "1px solid var(--color-danger, #ef4444)",
+              background: "var(--color-danger-muted)",
+              border: "1px solid var(--color-danger)",
               borderRadius: 6,
               padding: "7px 14px",
               fontSize: 13,
               fontWeight: 500,
-              color: "var(--color-danger, #ef4444)",
+              color: "var(--color-danger)",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
@@ -128,10 +111,10 @@ export default function BlocklistPage() {
         <div
           style={{
             background: "var(--color-danger-muted, rgba(239,68,68,0.08))",
-            border: "1px solid var(--color-danger, #ef4444)",
+            border: "1px solid var(--color-danger)",
             borderRadius: 8,
             padding: "16px 20px",
-            color: "var(--color-danger, #ef4444)",
+            color: "var(--color-danger)",
             fontSize: 13,
           }}
         >
@@ -264,7 +247,7 @@ export default function BlocklistPage() {
 
                 {/* Added at */}
                 <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                  {formatDate(entry.added_at)}
+                  {formatDate(entry.added_at, true)}
                 </div>
 
                 {/* Delete */}
@@ -286,7 +269,7 @@ export default function BlocklistPage() {
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLButtonElement).style.color =
-                        "var(--color-danger, #ef4444)";
+                        "var(--color-danger)";
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLButtonElement).style.color =

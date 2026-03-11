@@ -12,8 +12,8 @@ import { useQueue } from "@/api/queue";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { HealthStatus, UpdateCheck, LogEntry } from "@/types";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+import { card, sectionHeader } from "@/lib/styles";
+import Pill from "@/components/Pill";
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -30,47 +30,6 @@ function healthColor(status: HealthStatus): string {
   if (status === "healthy") return "var(--color-success)";
   if (status === "degraded") return "var(--color-warning)";
   return "var(--color-danger)";
-}
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-
-const card: React.CSSProperties = {
-  background: "var(--color-bg-surface)",
-  border: "1px solid var(--color-border-subtle)",
-  borderRadius: 8,
-  padding: 20,
-  boxShadow: "var(--shadow-card)",
-};
-
-const sectionHeader: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  color: "var(--color-text-muted)",
-  marginBottom: 16,
-  marginTop: 0,
-};
-
-function Pill({ ok, labelTrue, labelFalse }: { ok: boolean; labelTrue: string; labelFalse: string }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "2px 8px",
-        borderRadius: 4,
-        fontSize: 12,
-        fontWeight: 500,
-        color: ok ? "var(--color-success)" : "var(--color-text-muted)",
-        background: ok
-          ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
-          : "var(--color-bg-subtle)",
-      }}
-    >
-      {ok ? labelTrue : labelFalse}
-    </span>
-  );
 }
 
 function SkeletonRow({ width = "100%", height = 16 }: { width?: string | number; height?: number }) {

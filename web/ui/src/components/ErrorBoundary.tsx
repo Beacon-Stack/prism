@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
               color: "var(--color-danger)",
             }}
           >
-            Something went wrong
+            Failed to render
           </h2>
           <p
             style={{

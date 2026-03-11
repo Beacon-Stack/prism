@@ -304,7 +304,7 @@ function MediaServerForm({
           disabled={saving || !form.name || !form.url}
           style={{
             background: "var(--color-accent)",
-            color: "var(--color-accent-fg, #fff)",
+            color: "var(--color-accent-fg)",
             border: "none",
             borderRadius: 5,
             padding: "6px 16px",
@@ -391,7 +391,7 @@ export default function MediaServerList() {
             onClick={startAdd}
             style={{
               background: "var(--color-accent)",
-              color: "var(--color-accent-fg, #fff)",
+              color: "var(--color-accent-fg)",
               border: "none",
               borderRadius: 6,
               padding: "7px 16px",

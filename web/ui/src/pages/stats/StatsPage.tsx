@@ -30,17 +30,7 @@ import type {
   GrowthPoint,
   GenreBucket,
 } from "@/api/stats";
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
-
-function formatBytes(bytes: number): string {
-  if (bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
-
-// Shared recharts style helpers
+import { formatBytes } from "@/lib/utils";
 const tooltipStyle = {
   contentStyle: {
     background: "var(--color-bg-elevated)",
@@ -156,12 +146,12 @@ function CollectionCard({ data }: { data: CollectionStats }) {
         <StatBlock
           label="Missing"
           value={data.missing.toLocaleString()}
-          accent={data.missing > 0 ? "var(--color-warning, #f59e0b)" : undefined}
+          accent={data.missing > 0 ? "var(--color-warning)" : undefined}
         />
         <StatBlock
           label="Needs Upgrade"
           value={data.needs_upgrade.toLocaleString()}
-          accent={data.needs_upgrade > 0 ? "var(--color-warning, #f59e0b)" : undefined}
+          accent={data.needs_upgrade > 0 ? "var(--color-warning)" : undefined}
         />
         <StatBlock
           label="Added Last 30d"
@@ -539,7 +529,7 @@ function GrabsCard({ data }: { data: GrabStats }) {
               successPct >= 90
                 ? "var(--color-success)"
                 : successPct >= 70
-                ? "var(--color-warning, #f59e0b)"
+                ? "var(--color-warning)"
                 : "var(--color-danger, #ef4444)"
             }
           />
@@ -611,7 +601,7 @@ function GrabsCard({ data }: { data: GrabStats }) {
                         idx.success_rate >= 0.9
                           ? "var(--color-success)"
                           : idx.success_rate >= 0.7
-                          ? "var(--color-warning, #f59e0b)"
+                          ? "var(--color-warning)"
                           : "var(--color-danger, #ef4444)",
                       fontWeight: 600,
                     }}

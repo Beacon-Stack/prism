@@ -32,7 +32,7 @@ const card: React.CSSProperties = {
 const btnPrimary: React.CSSProperties = {
   padding: "8px 20px",
   background: "var(--color-accent)",
-  color: "#fff",
+  color: "var(--color-accent-fg)",
   border: "none",
   borderRadius: 6,
   fontSize: 13,
@@ -176,10 +176,10 @@ function SelectStep({
           style={{
             padding: "8px 12px",
             background: "rgba(239,68,68,0.08)",
-            border: "1px solid var(--color-danger, #ef4444)",
+            border: "1px solid var(--color-danger)",
             borderRadius: 6,
             fontSize: 12,
-            color: "var(--color-danger, #ef4444)",
+            color: "var(--color-danger)",
             marginBottom: 16,
           }}
         >
@@ -252,9 +252,9 @@ function DiffView({
   }
 
   const summaryItems = [
-    { label: "In sync", value: preview.already_synced, color: "var(--color-success, #22c55e)" },
+    { label: "In sync", value: preview.already_synced, color: "var(--color-success)" },
     { label: "Server only", value: preview.in_plex_only.length, color: "var(--color-accent)" },
-    { label: "Luminarr only", value: preview.in_luminarr_only.length, color: "var(--color-warning, #eab308)" },
+    { label: "Luminarr only", value: preview.in_luminarr_only.length, color: "var(--color-warning)" },
     { label: "Unmatched", value: preview.unmatched, color: "var(--color-text-muted)" },
   ];
 
@@ -467,9 +467,9 @@ function DiffView({
                           ? "rgba(234,179,8,0.1)"
                           : "rgba(148,163,184,0.1)",
                       m.status === "downloaded"
-                        ? "var(--color-success, #22c55e)"
+                        ? "var(--color-success)"
                         : m.status === "wanted"
-                          ? "var(--color-warning, #eab308)"
+                          ? "var(--color-warning)"
                           : "var(--color-text-muted)",
                     )}
                   >
@@ -502,15 +502,15 @@ function ResultView({
 
       <div style={{ display: "flex", gap: 24, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-          <CheckCircle size={16} color="var(--color-success, #22c55e)" />
+          <CheckCircle size={16} color="var(--color-success)" />
           <span style={{ color: "var(--color-text-primary)" }}>{result.imported} imported</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-          <AlertCircle size={16} color="var(--color-warning, #eab308)" />
+          <AlertCircle size={16} color="var(--color-warning)" />
           <span style={{ color: "var(--color-text-primary)" }}>{result.skipped} skipped</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-          <XCircle size={16} color="var(--color-danger, #ef4444)" />
+          <XCircle size={16} color="var(--color-danger)" />
           <span style={{ color: "var(--color-text-primary)" }}>{result.failed} failed</span>
         </div>
       </div>
@@ -528,7 +528,7 @@ function ResultView({
           }}
         >
           {result.errors.map((e, i) => (
-            <div key={i} style={{ fontSize: 12, color: "var(--color-danger, #ef4444)", padding: "2px 0" }}>
+            <div key={i} style={{ fontSize: 12, color: "var(--color-danger)", padding: "2px 0" }}>
               {e}
             </div>
           ))}

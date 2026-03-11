@@ -1,6 +1,4 @@
-export function cn(...inputs: (string | undefined | null | false)[]): string {
-  return inputs.filter(Boolean).join(" ");
-}
+import type { Release } from "@/types";
 
 export function formatBytes(bytes: number): string {
   if (bytes <= 0) return "0 B";
@@ -10,11 +8,32 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function formatDuration(seconds: number): string {
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+export function formatDate(iso: string, includeYear = false): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+  if (includeYear) opts.year = "numeric";
+  return new Date(iso).toLocaleString(undefined, opts);
+}
+
+export type ReleaseSortField = "size" | "seeds" | "age";
+
+export const RELEASE_SORT_LABELS: Record<ReleaseSortField, string> = {
+  seeds: "Seeds",
+  size: "Size",
+  age: "Age",
+};
+
+export function sortReleases(releases: Release[], field: ReleaseSortField, dir: "asc" | "desc"): Release[] {
+  const sorted = [...releases].sort((a, b) => {
+    switch (field) {
+      case "size": return a.size - b.size;
+      case "seeds": return (a.seeds ?? 0) - (b.seeds ?? 0);
+      case "age": return (a.age_days ?? 0) - (b.age_days ?? 0);
+    }
+  });
+  return dir === "desc" ? sorted.reverse() : sorted;
 }

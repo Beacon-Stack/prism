@@ -1,54 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useMovieReleases, useGrabRelease, type GrabReleaseRequest } from "@/api/movies";
 import type { Release } from "@/types";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, sortReleases, RELEASE_SORT_LABELS, type ReleaseSortField } from "@/lib/utils";
 import IndexerPill from "@/components/IndexerPill";
-
-// ── Sort helpers ──────────────────────────────────────────────────────────────
-
-type SortField = "size" | "seeds" | "age";
-
-const sortLabels: Record<SortField, string> = {
-  seeds: "Seeds",
-  size: "Size",
-  age: "Age",
-};
-
-function sortReleases(releases: Release[], field: SortField, dir: "asc" | "desc"): Release[] {
-  const sorted = [...releases].sort((a, b) => {
-    switch (field) {
-      case "size": return a.size - b.size;
-      case "seeds": return (a.seeds ?? 0) - (b.seeds ?? 0);
-      case "age": return (a.age_days ?? 0) - (b.age_days ?? 0);
-    }
-  });
-  return dir === "desc" ? sorted.reverse() : sorted;
-}
-
-// ── Quality badge ─────────────────────────────────────────────────────────────
-
-function QualityBadge({ quality }: { quality: Release["quality"] }) {
-  const label = [quality.resolution, quality.source].filter(Boolean).join(" ");
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 6px",
-        borderRadius: 4,
-        fontSize: 10,
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        background: "color-mix(in srgb, var(--color-accent) 12%, transparent)",
-        color: "var(--color-accent)",
-      }}
-    >
-      {label || "Unknown"}
-    </span>
-  );
-}
-
-// ── Release row ───────────────────────────────────────────────────────────────
+import QualityBadge from "@/components/QualityBadge";
 
 interface ReleaseRowProps {
   release: Release;
@@ -140,8 +95,6 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
   );
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-
 interface ManualSearchModalProps {
   movieId: string;
   movieTitle: string;
@@ -154,7 +107,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
   const [grabbedGuids, setGrabbedGuids] = useState<Set<string>>(new Set());
   const [pendingGuids, setPendingGuids] = useState<Set<string>>(new Set());
   const [grabErrors, setGrabErrors] = useState<Record<string, string>>({});
-  const [sortField, setSortField] = useState<SortField>("seeds");
+  const [sortField, setSortField] = useState<ReleaseSortField>("seeds");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const sortedReleases = useMemo(
@@ -162,7 +115,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
     [data, sortField, sortDir]
   );
 
-  function toggleSort(field: SortField) {
+  function toggleSort(field: ReleaseSortField) {
     if (sortField === field) {
       setSortDir((d) => (d === "desc" ? "asc" : "desc"));
     } else {
@@ -201,7 +154,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
         setTimeout(() => setGrabErrors((prev) => { const n = { ...prev }; delete n[release.guid]; return n; }), 5000);
       },
     });
-  }, [movieId, grab.mutate]);
+  }, [movieId, grab]);
 
   return (
     <div
@@ -335,11 +288,11 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
                 </p>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 4 }}>Sort:</span>
-                  {(Object.keys(sortLabels) as SortField[]).map((field) => (
+                  {(Object.keys(RELEASE_SORT_LABELS) as ReleaseSortField[]).map((field) => (
                     <button
                       key={field}
                       onClick={() => toggleSort(field)}
-                      aria-label={`Sort by ${sortLabels[field]}`}
+                      aria-label={`Sort by ${RELEASE_SORT_LABELS[field]}`}
                       style={{
                         background: sortField === field ? "var(--color-bg-elevated)" : "transparent",
                         border: sortField === field ? "1px solid var(--color-border-default)" : "1px solid transparent",
@@ -351,7 +304,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
                         fontWeight: sortField === field ? 600 : 400,
                       }}
                     >
-                      {sortLabels[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
+                      {RELEASE_SORT_LABELS[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
                     </button>
                   ))}
                 </div>

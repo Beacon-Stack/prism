@@ -20,7 +20,7 @@ function statusBadge(status: string, monitored: boolean): React.CSSProperties {
   };
   if (!monitored) return { ...base, background: "var(--color-bg-elevated)", color: "var(--color-text-muted)" };
   if (status === "downloaded") return { ...base, background: "color-mix(in srgb, var(--color-success) 15%, transparent)", color: "var(--color-success)" };
-  return { ...base, background: "color-mix(in srgb, var(--color-warning, #f59e0b) 15%, transparent)", color: "var(--color-warning, #f59e0b)" };
+  return { ...base, background: "color-mix(in srgb, var(--color-warning) 15%, transparent)", color: "var(--color-warning)" };
 }
 
 // ── Movie row ─────────────────────────────────────────────────────────────────

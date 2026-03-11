@@ -3,7 +3,6 @@ import { useQualityDefinitions, useUpdateQualityDefinitions } from "@/api/qualit
 import { RangeSlider } from "@/components/RangeSlider";
 import type { QualityDefinition } from "@/types";
 
-// ── Defaults ──────────────────────────────────────────────────────────────────
 // preferred = max (TRaSH Guides: set preferred as high as possible within range)
 
 const DEFAULTS: Record<string, { min: number; max: number; preferred: number }> = {
@@ -22,8 +21,6 @@ const DEFAULTS: Record<string, { min: number; max: number; preferred: number }> 
   "2160p-bluray-x265-hdr10": { min: 15, max: 250, preferred: 250 },
   "2160p-remux-x265-hdr10":  { min: 35, max: 800, preferred: 800 },
 };
-
-// ── Resolution badge ──────────────────────────────────────────────────────────
 
 function resolutionColor(resolution: string): string {
   switch (resolution) {
@@ -55,15 +52,11 @@ function ResolutionBadge({ resolution }: { resolution: string }) {
   );
 }
 
-// ── Row state ─────────────────────────────────────────────────────────────────
-
 interface RowState {
   min: number;
   max: number;
   preferred: number;
 }
-
-// ── Table row ─────────────────────────────────────────────────────────────────
 
 interface DefinitionRowProps {
   def: QualityDefinition;
@@ -135,8 +128,6 @@ function DefinitionRow({ def, row, isLast, onChange, onReset }: DefinitionRowPro
     </tr>
   );
 }
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function QualityDefinitionsPage() {
   const { data, isLoading, error } = useQualityDefinitions();
@@ -233,7 +224,7 @@ export default function QualityDefinitionsPage() {
               padding: "7px 18px",
               fontSize: 13,
               fontWeight: 600,
-              color: dirty ? "#fff" : "var(--color-text-muted)",
+              color: dirty ? "var(--color-accent-fg)" : "var(--color-text-muted)",
               cursor: dirty ? "pointer" : "default",
               transition: "background 0.15s, border-color 0.15s",
             }}

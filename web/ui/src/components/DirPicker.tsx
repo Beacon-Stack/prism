@@ -24,9 +24,6 @@ export function DirPicker({ open, value, onSelect, onClose }: DirPickerProps) {
     value && value.startsWith("/") ? value : "/"
   );
 
-  // Reset to value whenever the modal is re-opened.
-  // (Done via key prop in LibraryModal — no effect needed here.)
-
   const { data, isLoading, error } = useFsBrowse(open ? currentPath : "");
 
   if (!open) return null;

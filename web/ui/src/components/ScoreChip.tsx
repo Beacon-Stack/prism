@@ -11,7 +11,7 @@ export default function ScoreChip({ breakdown }: { breakdown?: ScoreBreakdown })
     score >= 80
       ? "var(--color-success)"
       : score >= 50
-        ? "var(--color-warning, #f59e0b)"
+        ? "var(--color-warning)"
         : "var(--color-danger)";
 
   return (

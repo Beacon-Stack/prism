@@ -1,19 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, formatBytes, formatDuration } from "./utils";
-
-describe("cn", () => {
-  it("joins class names", () => {
-    expect(cn("a", "b", "c")).toBe("a b c");
-  });
-
-  it("filters falsy values", () => {
-    expect(cn("a", false, null, undefined, "b")).toBe("a b");
-  });
-
-  it("returns empty string for no inputs", () => {
-    expect(cn()).toBe("");
-  });
-});
+import { formatBytes, formatDate } from "./utils";
 
 describe("formatBytes", () => {
   it("formats 0 bytes", () => {
@@ -43,20 +29,21 @@ describe("formatBytes", () => {
   });
 });
 
-describe("formatDuration", () => {
-  it("formats minutes only", () => {
-    expect(formatDuration(120)).toBe("2m");
-    expect(formatDuration(0)).toBe("0m");
-    expect(formatDuration(59)).toBe("0m");
+describe("formatDate", () => {
+  it("formats an ISO date string", () => {
+    const result = formatDate("2024-06-15T14:30:00Z");
+    expect(result).toBeTruthy();
+    expect(result).toContain("Jun");
+    expect(result).toContain("15");
   });
 
-  it("formats hours and minutes", () => {
-    expect(formatDuration(3600)).toBe("1h 0m");
-    expect(formatDuration(5400)).toBe("1h 30m");
+  it("includes year when includeYear is true", () => {
+    const result = formatDate("2024-06-15T14:30:00Z", true);
+    expect(result).toContain("2024");
   });
 
-  it("formats days and hours", () => {
-    expect(formatDuration(86400)).toBe("1d 0h");
-    expect(formatDuration(90000)).toBe("1d 1h");
+  it("omits year by default", () => {
+    const result = formatDate("2024-06-15T14:30:00Z");
+    expect(result).not.toContain("2024");
   });
 });

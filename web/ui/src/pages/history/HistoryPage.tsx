@@ -1,105 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useHistory } from "@/api/history";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, formatDate } from "@/lib/utils";
 import ScoreChip from "@/components/ScoreChip";
+import QualityBadge from "@/components/QualityBadge";
+import StatusBadge from "@/components/StatusBadge";
 import type { GrabHistory } from "@/types";
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-// ── Status badge ─────────────────────────────────────────────────────────────
-
-const statusStyles: Record<string, { bg: string; color: string; label: string }> = {
-  completed: {
-    bg: "color-mix(in srgb, var(--color-success) 15%, transparent)",
-    color: "var(--color-success)",
-    label: "Completed",
-  },
-  downloading: {
-    bg: "color-mix(in srgb, var(--color-accent) 15%, transparent)",
-    color: "var(--color-accent)",
-    label: "Downloading",
-  },
-  queued: {
-    bg: "color-mix(in srgb, var(--color-warning) 15%, transparent)",
-    color: "var(--color-warning)",
-    label: "Queued",
-  },
-  failed: {
-    bg: "color-mix(in srgb, var(--color-danger) 15%, transparent)",
-    color: "var(--color-danger)",
-    label: "Failed",
-  },
-  removed: {
-    bg: "color-mix(in srgb, var(--color-text-muted) 15%, transparent)",
-    color: "var(--color-text-muted)",
-    label: "Removed",
-  },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const style = statusStyles[status] ?? {
-    bg: "color-mix(in srgb, var(--color-text-muted) 15%, transparent)",
-    color: "var(--color-text-muted)",
-    label: status,
-  };
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        background: style.bg,
-        color: style.color,
-        borderRadius: 4,
-        padding: "2px 8px",
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-        textTransform: "capitalize",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {style.label}
-    </span>
-  );
-}
-
-// ── Quality badge ────────────────────────────────────────────────────────────
-
-function QualityBadge({ source, resolution }: { source?: string; resolution?: string }) {
-  const label = [resolution, source].filter(Boolean).join(" ");
-  if (!label) return <span style={{ color: "var(--color-text-muted)", fontSize: 11 }}>—</span>;
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        background: "var(--color-bg-elevated)",
-        border: "1px solid var(--color-border-subtle)",
-        borderRadius: 4,
-        padding: "2px 6px",
-        fontSize: 10,
-        fontWeight: 600,
-        letterSpacing: "0.05em",
-        textTransform: "uppercase",
-        color: "var(--color-text-secondary)",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-// ── Table row ────────────────────────────────────────────────────────────────
 
 function HistoryRow({ item, isLast }: { item: GrabHistory; isLast: boolean }) {
   return (
@@ -145,8 +51,6 @@ function HistoryRow({ item, isLast }: { item: GrabHistory; isLast: boolean }) {
   );
 }
 
-// ── Filter bar ───────────────────────────────────────────────────────────────
-
 const SELECT_STYLE: React.CSSProperties = {
   background: "var(--color-bg-elevated)",
   border: "1px solid var(--color-border-default)",
@@ -157,8 +61,6 @@ const SELECT_STYLE: React.CSSProperties = {
   cursor: "pointer",
   outline: "none",
 };
-
-// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState("");
