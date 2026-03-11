@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -32,7 +33,13 @@ func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerF
 		tmp.Close()
 		defer func() { _ = os.Remove(tmpPath) }()
 
-		// VACUUM INTO produces a consistent, compacted copy even under concurrent writes.
+		// VACUUM INTO requires a string literal (no parameter binding).
+		// Guard against injection even though tmpPath comes from os.CreateTemp.
+		if strings.ContainsRune(tmpPath, '\'') {
+			logger.ErrorContext(r.Context(), "backup: temp path contains single quote", slog.String("path", tmpPath))
+			http.Error(w, "failed to create backup", http.StatusInternalServerError)
+			return
+		}
 		if _, err := db.ExecContext(r.Context(), fmt.Sprintf("VACUUM INTO '%s'", tmpPath)); err != nil {
 			logger.ErrorContext(r.Context(), "backup: VACUUM INTO failed", slog.Any("error", err))
 			http.Error(w, "failed to create backup", http.StatusInternalServerError)
