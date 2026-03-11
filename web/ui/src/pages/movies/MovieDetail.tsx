@@ -19,7 +19,6 @@ import {
   useAutoSearch,
   type GrabReleaseRequest,
 } from "@/api/movies";
-import { ManualSearchModal } from "@/components/ManualSearchModal";
 import ScoreChip from "@/components/ScoreChip";
 import IndexerPill from "@/components/IndexerPill";
 import type { Release, RenamePreviewItem, TMDBResult, MediaInfo, Quality } from "@/types";
@@ -1098,7 +1097,6 @@ export default function MovieDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const [confirming, setConfirming] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   function handleMonitoredToggle() {
     if (!movie) return;
@@ -1251,13 +1249,7 @@ export default function MovieDetail() {
           >
             {autoSearch.isPending ? "Searching…" : "Auto Search"}
           </button>
-          <button
-            onClick={() => setSearchOpen(true)}
-            style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}
-          >
-            Interactive Search
-          </button>
-          <button
+<button
             onClick={() => setConfirming((v) => !v)}
             style={actionBtn("var(--color-danger)", "color-mix(in srgb, var(--color-danger) 10%, transparent)")}
           >
@@ -1447,13 +1439,6 @@ export default function MovieDetail() {
         </div>
       </div>
 
-      {searchOpen && (
-        <ManualSearchModal
-          movieId={movie.id}
-          movieTitle={movie.title}
-          onClose={() => setSearchOpen(false)}
-        />
-      )}
     </div>
   );
 }
