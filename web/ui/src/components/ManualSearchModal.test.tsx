@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "@/test/handlers";
 import { renderWithProviders } from "@/test/helpers";
 import { releaseFixture } from "@/test/fixtures";
+import type { Release } from "@/types";
 import { ManualSearchModal } from "./ManualSearchModal";
 
 const defaultProps = {
@@ -171,5 +172,87 @@ describe("ManualSearchModal", () => {
     await waitFor(() => {
       expect(screen.getByText("No download client")).toBeInTheDocument();
     });
+  });
+
+  // ── Sorting tests ─────────────────────────────────────────────────────────
+
+  function makeRelease(overrides: Partial<Release> & { guid: string; title: string }): Release {
+    return { ...releaseFixture, ...overrides };
+  }
+
+  const sortableReleases: Release[] = [
+    makeRelease({ guid: "r-low", title: "Low.Score", quality_score: 200, size: 5_000_000_000, seeds: 100, age_days: 10 }),
+    makeRelease({ guid: "r-high", title: "High.Score", quality_score: 900, size: 1_000_000_000, seeds: 5, age_days: 500 }),
+    makeRelease({ guid: "r-mid", title: "Mid.Score", quality_score: 500, size: 10_000_000_000, seeds: 50, age_days: 100 }),
+  ];
+
+  function getReleaseOrder(): string[] {
+    // Each release title is in a monospace-font div — grab them in DOM order
+    return Array.from(document.querySelectorAll("[style*='font-family: var(--font-family-mono)']"))
+      .map((el) => el.textContent ?? "");
+  }
+
+  it("shows sort buttons when releases are loaded", async () => {
+    server.use(
+      http.get("/api/v1/movies/movie-1/releases", () => HttpResponse.json(sortableReleases))
+    );
+    renderWithProviders(<ManualSearchModal {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText("3 releases found")).toBeInTheDocument());
+
+    expect(screen.getByLabelText("Sort by Seeds")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sort by Size")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sort by Age")).toBeInTheDocument();
+  });
+
+  it("sorts by seeds descending by default", async () => {
+    server.use(
+      http.get("/api/v1/movies/movie-1/releases", () => HttpResponse.json(sortableReleases))
+    );
+    renderWithProviders(<ManualSearchModal {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText("3 releases found")).toBeInTheDocument());
+
+    const titles = getReleaseOrder();
+    // Descending seeds: Low.Score (100) → Mid.Score (50) → High.Score (5)
+    expect(titles).toEqual(["Low.Score", "Mid.Score", "High.Score"]);
+  });
+
+  it("toggles sort direction when clicking active sort field", async () => {
+    server.use(
+      http.get("/api/v1/movies/movie-1/releases", () => HttpResponse.json(sortableReleases))
+    );
+    renderWithProviders(<ManualSearchModal {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText("3 releases found")).toBeInTheDocument());
+
+    // Click Seeds again to flip to ascending
+    fireEvent.click(screen.getByLabelText("Sort by Seeds"));
+    const titles = getReleaseOrder();
+    // Ascending seeds: High.Score (5) → Mid.Score (50) → Low.Score (100)
+    expect(titles).toEqual(["High.Score", "Mid.Score", "Low.Score"]);
+  });
+
+  it("sorts by size when Size button is clicked", async () => {
+    server.use(
+      http.get("/api/v1/movies/movie-1/releases", () => HttpResponse.json(sortableReleases))
+    );
+    renderWithProviders(<ManualSearchModal {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText("3 releases found")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText("Sort by Size"));
+    const titles = getReleaseOrder();
+    // Descending size: Mid (10GB) → Low (5GB) → High (1GB)
+    expect(titles).toEqual(["Mid.Score", "Low.Score", "High.Score"]);
+  });
+
+  it("sorts by age when Age button is clicked", async () => {
+    server.use(
+      http.get("/api/v1/movies/movie-1/releases", () => HttpResponse.json(sortableReleases))
+    );
+    renderWithProviders(<ManualSearchModal {...defaultProps} />);
+    await waitFor(() => expect(screen.getByText("3 releases found")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByLabelText("Sort by Age"));
+    const titles = getReleaseOrder();
+    // Descending age: High (500d) → Mid (100d) → Low (10d)
+    expect(titles).toEqual(["High.Score", "Mid.Score", "Low.Score"]);
   });
 });

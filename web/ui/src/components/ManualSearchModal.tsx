@@ -1,9 +1,29 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useMovieReleases, useGrabRelease, type GrabReleaseRequest } from "@/api/movies";
 import type { Release } from "@/types";
 import { formatBytes } from "@/lib/utils";
-import ScoreChip from "@/components/ScoreChip";
 import IndexerPill from "@/components/IndexerPill";
+
+// ── Sort helpers ──────────────────────────────────────────────────────────────
+
+type SortField = "size" | "seeds" | "age";
+
+const sortLabels: Record<SortField, string> = {
+  seeds: "Seeds",
+  size: "Size",
+  age: "Age",
+};
+
+function sortReleases(releases: Release[], field: SortField, dir: "asc" | "desc"): Release[] {
+  const sorted = [...releases].sort((a, b) => {
+    switch (field) {
+      case "size": return a.size - b.size;
+      case "seeds": return (a.seeds ?? 0) - (b.seeds ?? 0);
+      case "age": return (a.age_days ?? 0) - (b.age_days ?? 0);
+    }
+  });
+  return dir === "desc" ? sorted.reverse() : sorted;
+}
 
 // ── Quality badge ─────────────────────────────────────────────────────────────
 
@@ -68,7 +88,6 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
           <QualityBadge quality={release.quality} />
-          <ScoreChip breakdown={release.score_breakdown} />
           <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
             {formatBytes(release.size)}
           </span>
@@ -135,6 +154,22 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
   const [grabbedGuids, setGrabbedGuids] = useState<Set<string>>(new Set());
   const [pendingGuids, setPendingGuids] = useState<Set<string>>(new Set());
   const [grabErrors, setGrabErrors] = useState<Record<string, string>>({});
+  const [sortField, setSortField] = useState<SortField>("seeds");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sortedReleases = useMemo(
+    () => (data ? sortReleases(data, sortField, sortDir) : []),
+    [data, sortField, sortDir]
+  );
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -294,10 +329,34 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
 
           {data && data.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--color-text-muted)" }}>
-                {data.length} release{data.length !== 1 ? "s" : ""} found
-              </p>
-              {data.map((release) => (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
+                  {data.length} release{data.length !== 1 ? "s" : ""} found
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 4 }}>Sort:</span>
+                  {(Object.keys(sortLabels) as SortField[]).map((field) => (
+                    <button
+                      key={field}
+                      onClick={() => toggleSort(field)}
+                      aria-label={`Sort by ${sortLabels[field]}`}
+                      style={{
+                        background: sortField === field ? "var(--color-bg-elevated)" : "transparent",
+                        border: sortField === field ? "1px solid var(--color-border-default)" : "1px solid transparent",
+                        borderRadius: 4,
+                        padding: "2px 8px",
+                        fontSize: 11,
+                        color: sortField === field ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                        cursor: "pointer",
+                        fontWeight: sortField === field ? 600 : 400,
+                      }}
+                    >
+                      {sortLabels[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {sortedReleases.map((release) => (
                 <ReleaseRow
                   key={release.guid}
                   release={release}

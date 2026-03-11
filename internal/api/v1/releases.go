@@ -144,7 +144,7 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 		bodies := make([]*releaseBody, len(results))
 		for i, r := range results {
 			if prof != nil {
-				_, r.ScoreBreakdown = prof.ScoreWithBreakdown(r.Quality)
+				r.QualityScore, r.ScoreBreakdown = prof.ScoreWithBreakdown(r.Quality)
 			}
 			bodies[i] = indexerResultToBody(r)
 		}

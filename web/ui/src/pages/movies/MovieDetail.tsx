@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -76,12 +76,42 @@ interface ReleasesTabProps {
   movieId: string;
 }
 
+type ReleaseSortField = "size" | "seeds" | "age";
+const releaseSortLabels: Record<ReleaseSortField, string> = { seeds: "Seeds", size: "Size", age: "Age" };
+
+function sortReleases(releases: Release[], field: ReleaseSortField, dir: "asc" | "desc"): Release[] {
+  const sorted = [...releases].sort((a, b) => {
+    switch (field) {
+      case "size": return a.size - b.size;
+      case "seeds": return (a.seeds ?? 0) - (b.seeds ?? 0);
+      case "age": return (a.age_days ?? 0) - (b.age_days ?? 0);
+    }
+  });
+  return dir === "desc" ? sorted.reverse() : sorted;
+}
+
 function ReleasesTab({ movieId }: ReleasesTabProps) {
   const { data, isLoading, error, refetch } = useMovieReleases(movieId);
   const grab = useGrabRelease();
   const [grabbedGuids, setGrabbedGuids] = useState<Set<string>>(new Set());
   const [pendingGuids, setPendingGuids] = useState<Set<string>>(new Set());
   const [grabErrors, setGrabErrors] = useState<Record<string, string>>({});
+  const [sortField, setSortField] = useState<ReleaseSortField>("seeds");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sortedReleases = useMemo(
+    () => (data ? sortReleases(data, sortField, sortDir) : []),
+    [data, sortField, sortDir]
+  );
+
+  function toggleSort(field: ReleaseSortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDir("desc");
+    }
+  }
 
   const handleGrab = useCallback((release: Release) => {
     const body: GrabReleaseRequest & { movieId: string } = {
@@ -153,10 +183,34 @@ function ReleasesTab({ movieId }: ReleasesTabProps) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <p style={{ margin: "0 0 12px", fontSize: 12, color: "var(--color-text-muted)" }}>
-        {data.length} release{data.length !== 1 ? "s" : ""} found across all indexers.
-      </p>
-      {data.map((release) => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
+          {data.length} release{data.length !== 1 ? "s" : ""} found across all indexers.
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 4 }}>Sort:</span>
+          {(Object.keys(releaseSortLabels) as ReleaseSortField[]).map((field) => (
+            <button
+              key={field}
+              onClick={() => toggleSort(field)}
+              aria-label={`Sort by ${releaseSortLabels[field]}`}
+              style={{
+                background: sortField === field ? "var(--color-bg-elevated)" : "transparent",
+                border: sortField === field ? "1px solid var(--color-border-default)" : "1px solid transparent",
+                borderRadius: 4,
+                padding: "2px 8px",
+                fontSize: 11,
+                color: sortField === field ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                cursor: "pointer",
+                fontWeight: sortField === field ? 600 : 400,
+              }}
+            >
+              {releaseSortLabels[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
+            </button>
+          ))}
+        </div>
+      </div>
+      {sortedReleases.map((release) => (
         <ReleaseRow
           key={release.guid}
           release={release}
