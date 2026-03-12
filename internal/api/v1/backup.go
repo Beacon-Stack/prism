@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"io"
@@ -91,8 +92,39 @@ func RestoreHandler(dbPath string, logger *slog.Logger) http.HandlerFunc {
 			return
 		}
 
+		// Validate the uploaded file is a real SQLite database by checking
+		// the 16-byte magic header ("SQLite format 3\000").
+		if err := validateSQLiteMagic(stagingPath); err != nil {
+			_ = os.Remove(stagingPath)
+			logger.WarnContext(r.Context(), "restore: uploaded file is not a valid SQLite database", slog.Any("error", err))
+			http.Error(w, "uploaded file is not a valid SQLite database", http.StatusBadRequest)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"Restore file saved. Restart Luminarr to complete the restore."}`))
 	}
+}
+
+// sqliteMagic is the 16-byte header that every SQLite database starts with.
+var sqliteMagic = []byte("SQLite format 3\000")
+
+// validateSQLiteMagic opens path and checks that the first 16 bytes match the
+// SQLite file header. Returns an error if the file is too small or doesn't match.
+func validateSQLiteMagic(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	header := make([]byte, 16)
+	if _, err := io.ReadFull(f, header); err != nil {
+		return fmt.Errorf("file too small to be a SQLite database")
+	}
+	if !bytes.Equal(header, sqliteMagic) {
+		return fmt.Errorf("file header does not match SQLite magic bytes")
+	}
+	return nil
 }

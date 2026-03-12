@@ -35,12 +35,12 @@ func Auth(api huma.API, apiKey []byte) func(huma.Context, func(huma.Context)) {
 			return
 		}
 		// X-Api-Key header (standard Radarr auth).
-		if subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKey) == 1 {
+		if len(apiKey) > 0 && subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKey) == 1 {
 			next(ctx)
 			return
 		}
 		// ?apikey= query param (Homepage, Home Assistant style).
-		if subtle.ConstantTimeCompare([]byte(ctx.Query("apikey")), apiKey) == 1 {
+		if len(apiKey) > 0 && subtle.ConstantTimeCompare([]byte(ctx.Query("apikey")), apiKey) == 1 {
 			next(ctx)
 			return
 		}

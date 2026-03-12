@@ -16,6 +16,8 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		// Do not send the Referer header to third-party origins.
 		h.Set("Referrer-Policy", "same-origin")
+		// Tell browsers to always use HTTPS for this origin.
+		h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 		// Basic CSP: only allow resources from the same origin.
 		// unsafe-inline is needed for the React SPA's inline scripts/styles
 		// until a nonce-based CSP can be implemented.

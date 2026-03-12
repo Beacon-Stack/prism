@@ -106,7 +106,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 					next(w, r)
 					return
 				}
-				if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Api-Key")), authKey) == 1 {
+				if len(authKey) > 0 && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Api-Key")), authKey) == 1 {
 					next(w, r)
 					return
 				}
@@ -161,7 +161,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			next(ctx)
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKeyBytes) == 1 {
+		if len(apiKeyBytes) > 0 && subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKeyBytes) == 1 {
 			next(ctx)
 			return
 		}

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/luminarr/luminarr/internal/registry"
+	"github.com/luminarr/luminarr/internal/safedialer"
 	"github.com/luminarr/luminarr/pkg/plugin"
 )
 
@@ -100,24 +101,68 @@ func (n *Notifier) Test(ctx context.Context) error {
 }
 
 // sendSTARTTLS connects on a plain port and upgrades to TLS via STARTTLS.
+// It uses safedialer to validate the target address before connecting.
 func (n *Notifier) sendSTARTTLS(addr string, msg []byte) error {
-	var auth smtp.Auth
-	if n.cfg.Username != "" {
-		auth = smtp.PlainAuth("", n.cfg.Username, n.cfg.Password, n.cfg.Host)
-	}
-	return smtp.SendMail(addr, auth, n.cfg.From, n.cfg.To, msg)
-}
-
-// sendTLS connects directly over TLS (implicit TLS, port 465).
-func (n *Notifier) sendTLS(addr string, msg []byte) error {
-	tlsCfg := &tls.Config{ServerName: n.cfg.Host, MinVersion: tls.VersionTLS12}
-	conn, err := tls.Dial("tcp", addr, tlsCfg)
+	conn, err := safedialer.DialContext(context.Background(), "tcp", addr)
 	if err != nil {
-		return fmt.Errorf("email: TLS dial: %w", err)
+		return fmt.Errorf("email: dial: %w", err)
 	}
 	defer conn.Close()
 
 	host, _, _ := net.SplitHostPort(addr)
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return fmt.Errorf("email: SMTP client: %w", err)
+	}
+	defer client.Quit() //nolint:errcheck
+
+	tlsCfg := &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
+	if err := client.StartTLS(tlsCfg); err != nil {
+		return fmt.Errorf("email: STARTTLS: %w", err)
+	}
+
+	if n.cfg.Username != "" {
+		auth := smtp.PlainAuth("", n.cfg.Username, n.cfg.Password, host)
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("email: auth: %w", err)
+		}
+	}
+
+	if err := client.Mail(n.cfg.From); err != nil {
+		return fmt.Errorf("email: MAIL FROM: %w", err)
+	}
+	for _, to := range n.cfg.To {
+		if err := client.Rcpt(to); err != nil {
+			return fmt.Errorf("email: RCPT TO %q: %w", to, err)
+		}
+	}
+	wc, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("email: DATA: %w", err)
+	}
+	if _, err := wc.Write(msg); err != nil {
+		return fmt.Errorf("email: writing message: %w", err)
+	}
+	return wc.Close()
+}
+
+// sendTLS connects directly over TLS (implicit TLS, port 465).
+// It uses safedialer to validate the target address before connecting.
+func (n *Notifier) sendTLS(addr string, msg []byte) error {
+	host, _, _ := net.SplitHostPort(addr)
+
+	rawConn, err := safedialer.DialContext(context.Background(), "tcp", addr)
+	if err != nil {
+		return fmt.Errorf("email: dial: %w", err)
+	}
+
+	tlsCfg := &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
+	conn := tls.Client(rawConn, tlsCfg)
+	if err := conn.Handshake(); err != nil {
+		rawConn.Close()
+		return fmt.Errorf("email: TLS handshake: %w", err)
+	}
+	defer conn.Close()
 	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		return fmt.Errorf("email: SMTP client: %w", err)
