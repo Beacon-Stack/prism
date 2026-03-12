@@ -124,15 +124,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Docs and OpenAPI spec are disabled — they expose the full API surface
-	// without authentication. Use the Go source or run locally with a client
-	// that supports OpenAPI to explore the API.
 	humaConfig := huma.DefaultConfig("Luminarr API", version.Version)
-	humaConfig.DocsPath = ""
-	humaConfig.OpenAPIPath = ""
-	humaConfig.SchemasPath = ""
+	humaConfig.DocsPath = "/api/docs"
+	humaConfig.OpenAPIPath = "/api/openapi"
+	humaConfig.SchemasPath = "/api/schemas"
 	humaConfig.Info.Description = "Luminarr movie collection manager API. " +
-		"All endpoints require the X-Api-Key header."
+		"Browser requests are authenticated via Sec-Fetch-Site; external clients must provide X-Api-Key."
 
 	humaAPI := humachi.New(r, humaConfig)
 
