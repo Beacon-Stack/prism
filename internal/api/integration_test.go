@@ -1939,6 +1939,109 @@ func TestIntegration_V3_Auth_SameOrigin(t *testing.T) {
 	}
 }
 
+// ── Empty API key guard ──────────────────────────────────────────────────────
+
+// newEmptyKeyRouter builds a router with an empty API key to verify that
+// empty-vs-empty comparisons don't accidentally authenticate requests.
+func newEmptyKeyRouter(t *testing.T) http.Handler {
+	t.Helper()
+	q, sqlDB := testutil.NewTestDBWithSQL(t)
+	logger := slog.Default()
+	bus := events.New(logger)
+	reg := registry.New()
+	registerTestPlugins(reg)
+
+	qualSvc := quality.NewService(q, bus)
+	qualDefSvc := quality.NewDefinitionService(q)
+	libSvc := library.NewService(q, bus, nil)
+	movieSvc := movie.NewService(q, nil, bus, logger)
+	idxSvc := indexer.NewService(q, reg, bus, ratelimit.New())
+	dlSvc := downloader.NewService(q, reg, bus)
+	queueSvc := queue.NewService(q, dlSvc, bus, logger)
+	notifSvc := notification.NewService(q, reg)
+	healthSvc := health.NewService(libSvc, dlSvc, idxSvc, logger)
+	blockSvc := blocklist.NewService(q)
+	statsSvc := stats.NewService(q, movieSvc)
+	mmSvc := mediamanagement.NewService(q)
+	dhSvc := downloadhandling.NewService(q)
+	msSvc := mediaserver.NewService(q, reg)
+	sched := scheduler.New(logger)
+
+	return api.NewRouter(api.RouterConfig{
+		Auth:                     config.Secret(""), // empty key
+		Logger:                   logger,
+		StartTime:                time.Now(),
+		DB:                       sqlDB,
+		DBType:                   "sqlite",
+		AIEnabled:                false,
+		QualityService:           qualSvc,
+		QualityDefinitionService: qualDefSvc,
+		LibraryService:           libSvc,
+		MovieService:             movieSvc,
+		IndexerService:           idxSvc,
+		DownloaderService:        dlSvc,
+		BlocklistService:         blockSvc,
+		QueueService:             queueSvc,
+		Scheduler:                sched,
+		NotificationService:      notifSvc,
+		HealthService:            healthSvc,
+		StatsService:             statsSvc,
+		MediaManagementService:   mmSvc,
+		DownloadHandlingService:  dhSvc,
+		MediaServerService:       msSvc,
+		Bus:                      bus,
+	})
+}
+
+func TestIntegration_Auth_EmptyKey_RejectsEmptyHeader(t *testing.T) {
+	h := newEmptyKeyRouter(t)
+	// Send an empty X-Api-Key — must NOT authenticate even though the server
+	// key is also empty (subtle.ConstantTimeCompare("","") == 1).
+	rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
+		"X-Api-Key": "",
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("empty key + empty header = %d, want 401; body: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestIntegration_Auth_EmptyKey_RejectsNoHeader(t *testing.T) {
+	h := newEmptyKeyRouter(t)
+	rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("empty key + no header = %d, want 401; body: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestIntegration_Auth_EmptyKey_SameOriginStillWorks(t *testing.T) {
+	h := newEmptyKeyRouter(t)
+	// Sec-Fetch-Site: same-origin should still authenticate — it doesn't rely on API key.
+	rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
+		"Sec-Fetch-Site": "same-origin",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("empty key + same-origin = %d, want 200; body: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestIntegration_V3_Auth_EmptyKey_RejectsEmptyHeader(t *testing.T) {
+	h := newEmptyKeyRouter(t)
+	rec := doNoAuth(t, h, http.MethodGet, "/api/v3/system/status", map[string]string{
+		"X-Api-Key": "",
+	})
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("v3 empty key + empty header = %d, want 401; body: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestIntegration_V3_Auth_EmptyKey_RejectsEmptyQueryParam(t *testing.T) {
+	h := newEmptyKeyRouter(t)
+	rec := doNoAuth(t, h, http.MethodGet, "/api/v3/system/status?apikey=", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("v3 empty key + empty apikey param = %d, want 401; body: %s", rec.Code, rec.Body)
+	}
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func mustDecode(t *testing.T, rec *httptest.ResponseRecorder, out any) {

@@ -181,7 +181,8 @@ func ParseQualityFromPath(path string) plugin.Quality {
 	switch {
 	case strings.Contains(upper, "HDR10PLUS") || strings.Contains(upper, "HDR10+"):
 		q.HDR = plugin.HDRHDR10Plus
-	case strings.Contains(upper, "DOLBY.VISION") || strings.Contains(upper, "DV.") || strings.Contains(upper, ".DV"):
+	case strings.Contains(upper, "DOLBY.VISION") || strings.Contains(upper, "DOLBY VISION") ||
+		strings.Contains(upper, ".DV.") || strings.Contains(upper, ".DOVI."):
 		q.HDR = plugin.HDRDolbyVision
 	case strings.Contains(upper, "HLG"):
 		q.HDR = plugin.HDRHLG

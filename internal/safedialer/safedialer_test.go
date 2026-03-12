@@ -1,6 +1,7 @@
 package safedialer
 
 import (
+	"context"
 	"net"
 	"testing"
 )
@@ -124,5 +125,39 @@ func TestLANTransport_ReturnsNonNil(t *testing.T) {
 	}
 	if tr.DialContext == nil {
 		t.Fatal("LANTransport().DialContext is nil")
+	}
+}
+
+func TestDialContext_BlocksLoopback(t *testing.T) {
+	_, err := DialContext(context.Background(), "tcp", "127.0.0.1:80")
+	if err == nil {
+		t.Fatal("DialContext to 127.0.0.1 should be blocked")
+	}
+}
+
+func TestDialContext_BlocksPrivate(t *testing.T) {
+	for _, addr := range []string{
+		"10.0.0.1:80",
+		"172.16.0.1:80",
+		"192.168.1.1:80",
+	} {
+		_, err := DialContext(context.Background(), "tcp", addr)
+		if err == nil {
+			t.Errorf("DialContext to %s should be blocked", addr)
+		}
+	}
+}
+
+func TestDialContext_BlocksMetadata(t *testing.T) {
+	_, err := DialContext(context.Background(), "tcp", "169.254.169.254:80")
+	if err == nil {
+		t.Fatal("DialContext to cloud metadata should be blocked")
+	}
+}
+
+func TestDialContext_InvalidAddr(t *testing.T) {
+	_, err := DialContext(context.Background(), "tcp", "not-a-valid-addr")
+	if err == nil {
+		t.Fatal("DialContext with no port should return error")
 	}
 }

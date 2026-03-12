@@ -1,6 +1,20 @@
 package health
 
-import "testing"
+import (
+	"context"
+	"log/slog"
+	"testing"
+
+	"github.com/luminarr/luminarr/internal/core/downloader"
+	"github.com/luminarr/luminarr/internal/core/indexer"
+	"github.com/luminarr/luminarr/internal/core/library"
+	"github.com/luminarr/luminarr/internal/core/quality"
+	"github.com/luminarr/luminarr/internal/events"
+	"github.com/luminarr/luminarr/internal/ratelimit"
+	"github.com/luminarr/luminarr/internal/registry"
+	"github.com/luminarr/luminarr/internal/testutil"
+	"github.com/luminarr/luminarr/pkg/plugin"
+)
 
 func TestFormatBytes(t *testing.T) {
 	tests := []struct {
@@ -102,5 +116,102 @@ func TestOverallStatus_Aggregation(t *testing.T) {
 				t.Errorf("overall = %q, want %q", overall, tt.want)
 			}
 		})
+	}
+}
+
+func TestDiskFreeBytes_TempDir(t *testing.T) {
+	dir := t.TempDir()
+	free, err := diskFreeBytes(dir)
+	if err != nil {
+		t.Fatalf("diskFreeBytes(%q): %v", dir, err)
+	}
+	if free == 0 {
+		t.Error("expected non-zero free bytes on temp dir")
+	}
+}
+
+func TestDiskFreeBytes_NonExistent(t *testing.T) {
+	_, err := diskFreeBytes("/this/path/does/not/exist-xyz")
+	if err == nil {
+		t.Fatal("expected error for non-existent path")
+	}
+}
+
+func TestCheck_NoLibrariesNoClientsNoIndexers(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	logger := slog.Default()
+	bus := events.New(logger)
+	reg := registry.New()
+
+	libSvc := library.NewService(q, bus, nil)
+	dlSvc := downloader.NewService(q, reg, bus)
+	idxSvc := indexer.NewService(q, reg, bus, ratelimit.New())
+
+	svc := NewService(libSvc, dlSvc, idxSvc, logger)
+	report := svc.Check(context.Background())
+
+	if report.Status != StatusHealthy {
+		t.Errorf("status = %q, want %q (empty system should be healthy)", report.Status, StatusHealthy)
+	}
+	if len(report.Checks) != 3 {
+		t.Fatalf("expected 3 checks, got %d", len(report.Checks))
+	}
+	// All checks should be healthy when nothing is configured.
+	for _, c := range report.Checks {
+		if c.Status != StatusHealthy {
+			t.Errorf("check %q = %q, want %q", c.Name, c.Status, StatusHealthy)
+		}
+	}
+}
+
+func TestCheck_WithLibrary_DiskSpace(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	logger := slog.Default()
+	bus := events.New(logger)
+	reg := registry.New()
+
+	qualSvc := quality.NewService(q, bus)
+	// Create a quality profile so we can create a library.
+	cutoff := plugin.Quality{Resolution: plugin.Resolution1080p, Source: plugin.SourceWEBDL, Codec: plugin.CodecX264, HDR: plugin.HDRNone}
+	profile, err := qualSvc.Create(context.Background(), quality.CreateRequest{
+		Name:      "Test",
+		Cutoff:    cutoff,
+		Qualities: []plugin.Quality{cutoff},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	libSvc := library.NewService(q, bus, nil)
+	// Create a library pointing at a temp dir so disk space check works.
+	dir := t.TempDir()
+	_, err = libSvc.Create(context.Background(), library.CreateRequest{
+		Name:                    "Test Lib",
+		RootPath:                dir,
+		DefaultQualityProfileID: profile.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dlSvc := downloader.NewService(q, reg, bus)
+	idxSvc := indexer.NewService(q, reg, bus, ratelimit.New())
+
+	svc := NewService(libSvc, dlSvc, idxSvc, logger)
+	report := svc.Check(context.Background())
+
+	// Find the disk_space check.
+	var diskCheck *CheckResult
+	for i := range report.Checks {
+		if report.Checks[i].Name == "disk_space" {
+			diskCheck = &report.Checks[i]
+			break
+		}
+	}
+	if diskCheck == nil {
+		t.Fatal("disk_space check not found in report")
+	}
+	if diskCheck.Status != StatusHealthy {
+		t.Errorf("disk_space = %q (%s), want healthy (temp dir should have space)", diskCheck.Status, diskCheck.Message)
 	}
 }

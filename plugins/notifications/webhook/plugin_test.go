@@ -102,3 +102,80 @@ func TestNotify_CustomMethod(t *testing.T) {
 		t.Errorf("method = %s, want PUT", gotMethod)
 	}
 }
+
+func TestName(t *testing.T) {
+	n := New(Config{URL: "http://example.com"})
+	if n.Name() != "Webhook" {
+		t.Errorf("Name() = %q, want %q", n.Name(), "Webhook")
+	}
+}
+
+func TestTest_SendsTestEvent(t *testing.T) {
+	var gotEvent plugin.NotificationEvent
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &gotEvent)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	n := &Notifier{
+		cfg:    Config{URL: srv.URL, Method: http.MethodPost},
+		client: srv.Client(),
+	}
+
+	if err := n.Test(context.Background()); err != nil {
+		t.Fatalf("Test() = %v", err)
+	}
+	if gotEvent.Type != "test" {
+		t.Errorf("event type = %q, want %q", gotEvent.Type, "test")
+	}
+	if gotEvent.Message == "" {
+		t.Error("event message should not be empty")
+	}
+}
+
+func TestNew_CustomMethod(t *testing.T) {
+	n := New(Config{URL: "http://example.com", Method: http.MethodPut})
+	if n.cfg.Method != http.MethodPut {
+		t.Errorf("Method = %q, want PUT", n.cfg.Method)
+	}
+}
+
+func TestNew_ClientNotNil(t *testing.T) {
+	n := New(Config{URL: "http://example.com"})
+	if n.client == nil {
+		t.Fatal("client should not be nil")
+	}
+}
+
+func TestNotify_MultipleHeaders(t *testing.T) {
+	var gotHeaders http.Header
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeaders = r.Header
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	n := &Notifier{
+		cfg: Config{
+			URL:    srv.URL,
+			Method: http.MethodPost,
+			Headers: map[string]string{
+				"Authorization": "Bearer abc",
+				"X-Custom":      "value",
+			},
+		},
+		client: srv.Client(),
+	}
+
+	if err := n.Notify(context.Background(), plugin.NotificationEvent{Type: "test"}); err != nil {
+		t.Fatal(err)
+	}
+	if gotHeaders.Get("Authorization") != "Bearer abc" {
+		t.Errorf("Authorization = %q, want 'Bearer abc'", gotHeaders.Get("Authorization"))
+	}
+	if gotHeaders.Get("X-Custom") != "value" {
+		t.Errorf("X-Custom = %q, want 'value'", gotHeaders.Get("X-Custom"))
+	}
+}
