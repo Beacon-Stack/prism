@@ -10,18 +10,19 @@ import (
 // Each subtest verifies Source and Resolution parsed by our Parse() function.
 //
 // Mapping from Radarr's (QualitySource, Modifier) to Luminarr Source:
-//   BLURAY                → plugin.SourceBluRay
-//   BLURAY + REMUX        → plugin.SourceRemux
-//   BLURAY + BRDISK       → plugin.SourceBRDisk
-//   TV                    → plugin.SourceHDTV
-//   TV + RAWHD            → plugin.SourceRawHD
-//   WEBDL                 → plugin.SourceWEBDL
-//   WEBRIP                → plugin.SourceWEBRip
-//   DVD                   → plugin.SourceDVD
-//   DVD + REMUX (DVDR)    → plugin.SourceDVDR
-//   CAM                   → plugin.SourceCAM
-//   TELESYNC              → plugin.SourceTelesync
-//   UNKNOWN               → plugin.SourceUnknown
+//
+//	BLURAY                → plugin.SourceBluRay
+//	BLURAY + REMUX        → plugin.SourceRemux
+//	BLURAY + BRDISK       → plugin.SourceBRDisk
+//	TV                    → plugin.SourceHDTV
+//	TV + RAWHD            → plugin.SourceRawHD
+//	WEBDL                 → plugin.SourceWEBDL
+//	WEBRIP                → plugin.SourceWEBRip
+//	DVD                   → plugin.SourceDVD
+//	DVD + REMUX (DVDR)    → plugin.SourceDVDR
+//	CAM                   → plugin.SourceCAM
+//	TELESYNC              → plugin.SourceTelesync
+//	UNKNOWN               → plugin.SourceUnknown
 func TestRadarr_QualityParser(t *testing.T) {
 	t.Parallel()
 
