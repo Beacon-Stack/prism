@@ -1,0 +1,17 @@
+{
+  "trash_id": "flac",
+  "trash_scores": {"default": 300},
+  "name": "FLAC",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "FLAC",
+      "implementation": "AudioCodecSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)flac"
+      }
+    }
+  ]
+}

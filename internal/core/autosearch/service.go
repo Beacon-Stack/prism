@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/luminarr/luminarr/internal/core/blocklist"
+	"github.com/luminarr/luminarr/internal/core/customformat"
 	"github.com/luminarr/luminarr/internal/core/downloader"
 	"github.com/luminarr/luminarr/internal/core/edition"
 	"github.com/luminarr/luminarr/internal/core/indexer"
@@ -78,6 +79,7 @@ type Service struct {
 	downloaderSvc *downloader.Service
 	blocklistSvc  *blocklist.Service
 	qualitySvc    *quality.Service
+	cfSvc         *customformat.Service
 	tagSvc        *tag.Service
 	bus           *events.Bus
 	logger        *slog.Logger
@@ -90,6 +92,7 @@ func NewService(
 	downloaderSvc *downloader.Service,
 	blocklistSvc *blocklist.Service,
 	qualitySvc *quality.Service,
+	cfSvc *customformat.Service,
 	tagSvc *tag.Service,
 	bus *events.Bus,
 	logger *slog.Logger,
@@ -100,6 +103,7 @@ func NewService(
 		downloaderSvc: downloaderSvc,
 		blocklistSvc:  blocklistSvc,
 		qualitySvc:    qualitySvc,
+		cfSvc:         cfSvc,
 		tagSvc:        tagSvc,
 		bus:           bus,
 		logger:        logger,
@@ -166,6 +170,20 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 		return nil, fmt.Errorf("loading quality profile: %w", err)
 	}
 
+	// 4b. Load custom formats and profile CF scores (non-fatal if unavailable).
+	var allCFs []customformat.CustomFormat
+	var profileCFScores map[string]int
+	if s.cfSvc != nil {
+		if cfs, cfErr := s.cfSvc.List(ctx); cfErr == nil {
+			allCFs = cfs
+		} else {
+			s.logger.Warn("auto-search: failed to load custom formats", "error", cfErr)
+		}
+		if scores, scErr := s.cfSvc.ListScores(ctx, prof.ID); scErr == nil {
+			profileCFScores = scores
+		}
+	}
+
 	// 5. Determine current file quality and edition on disk (nil = no file).
 	var currentQuality *plugin.Quality
 	var currentEdition string
@@ -185,6 +203,20 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 			} else if blocked {
 				continue
 			}
+		}
+
+		// Evaluate custom format score for this release.
+		var cfScore int
+		var matchedCFIDs []string
+		if len(allCFs) > 0 {
+			cfRel := buildCFReleaseInfo(r.Release)
+			matchedCFIDs = customformat.MatchRelease(allCFs, cfRel)
+			cfScore = customformat.ScoreRelease(matchedCFIDs, profileCFScores)
+		}
+
+		// Skip releases below the profile's minimum custom format score.
+		if prof.MinCustomFormatScore != 0 && cfScore < prof.MinCustomFormatScore {
+			continue
 		}
 
 		// Skip releases the quality profile doesn't want — unless this is an
@@ -239,6 +271,11 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 				Got:     r.Edition,
 				Want:    mov.PreferredEdition,
 			})
+		}
+		// Include custom format scores in the breakdown.
+		if cfScore != 0 || len(matchedCFIDs) > 0 {
+			breakdown.CustomFormatScore = cfScore
+			breakdown.MatchedFormats = matchedCFNames(allCFs, matchedCFIDs)
 		}
 		breakdownJSON, _ := json.Marshal(breakdown)
 
@@ -416,6 +453,49 @@ func bestFileEdition(files []movie.FileInfo) string {
 // isUniqueViolation reports whether err is a SQLite UNIQUE constraint violation.
 func isUniqueViolation(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
+}
+
+// buildCFReleaseInfo constructs a customformat.ReleaseInfo from a plugin.Release
+// for custom format evaluation.
+func buildCFReleaseInfo(r plugin.Release) customformat.ReleaseInfo {
+	ri := customformat.ReleaseInfo{
+		Title:         r.Title,
+		Edition:       r.Edition,
+		Source:        string(r.Quality.Source),
+		Resolution:    string(r.Quality.Resolution),
+		ReleaseGroup:  r.ReleaseGroup,
+		AudioCodec:    string(r.Quality.AudioCodec),
+		AudioChannels: string(r.Quality.AudioChannels),
+		SizeBytes:     r.Size,
+	}
+	// Set modifier for remux/brdisk/rawhd sources.
+	switch r.Quality.Source {
+	case plugin.SourceRemux, plugin.SourceBRDisk, plugin.SourceRawHD:
+		ri.Modifier = string(r.Quality.Source)
+	}
+	// Map indexer flags to strings.
+	for _, f := range r.IndexerFlags {
+		ri.IndexerFlags = append(ri.IndexerFlags, string(f))
+	}
+	return ri
+}
+
+// matchedCFNames returns the display names of the matched custom format IDs.
+func matchedCFNames(allCFs []customformat.CustomFormat, matchedIDs []string) []string {
+	if len(matchedIDs) == 0 {
+		return nil
+	}
+	lookup := make(map[string]string, len(allCFs))
+	for _, cf := range allCFs {
+		lookup[cf.ID] = cf.Name
+	}
+	names := make([]string, 0, len(matchedIDs))
+	for _, id := range matchedIDs {
+		if name, ok := lookup[id]; ok {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 // allowedEntityIDs returns the indexer and download client IDs that are allowed

@@ -90,6 +90,34 @@ type GrabHistory struct {
 	ReleaseEdition    *string `json:"releaseEdition"`
 }
 
+type ImportExclusion struct {
+	ID        string `json:"id"`
+	TmdbID    int64  `json:"tmdbId"`
+	Title     string `json:"title"`
+	Year      int64  `json:"year"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type ImportListConfig struct {
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Kind             string `json:"kind"`
+	Enabled          int64  `json:"enabled"`
+	Settings         string `json:"settings"`
+	SearchOnAdd      int64  `json:"searchOnAdd"`
+	Monitor          int64  `json:"monitor"`
+	MinAvailability  string `json:"minAvailability"`
+	QualityProfileID string `json:"qualityProfileId"`
+	LibraryID        string `json:"libraryId"`
+	CreatedAt        string `json:"createdAt"`
+	UpdatedAt        string `json:"updatedAt"`
+}
+
+type ImportListTag struct {
+	ImportListID string `json:"importListId"`
+	TagID        string `json:"tagId"`
+}
+
 type IndexerConfig struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`

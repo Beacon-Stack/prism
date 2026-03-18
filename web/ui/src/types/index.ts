@@ -51,6 +51,7 @@ export interface PluginList {
   indexers: string[];
   downloaders: string[];
   notifications: string[];
+  import_lists: string[];
 }
 
 // ── Movies ─────────────────────────────────────────────────────────────────
@@ -131,6 +132,7 @@ export interface Release {
   quality_score: number;
   score_breakdown?: ScoreBreakdown;
   edition?: string;
+  release_group?: string;
 }
 
 export interface GrabHistory {
@@ -291,6 +293,8 @@ export interface Quality {
   source: string;
   codec: string;
   hdr: string;
+  audio_codec?: string;
+  audio_channels?: string;
   name: string;
 }
 
@@ -601,4 +605,83 @@ export interface PlexSyncImportResult {
   skipped: number;
   failed: number;
   errors: string[];
+}
+
+// ── Import Lists ───────────────────────────────────────────────────────────
+
+export interface ImportListConfig {
+  id: string;
+  name: string;
+  kind: string;
+  enabled: boolean;
+  settings: Record<string, unknown>;
+  search_on_add: boolean;
+  monitor: boolean;
+  min_availability: string;
+  quality_profile_id: string;
+  library_id: string;
+  tag_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImportListRequest {
+  name: string;
+  kind: string;
+  enabled: boolean;
+  settings: Record<string, unknown>;
+  search_on_add: boolean;
+  monitor: boolean;
+  min_availability: string;
+  quality_profile_id: string;
+  library_id: string;
+  tag_ids?: string[];
+}
+
+export interface ImportExclusion {
+  id: string;
+  tmdb_id: number;
+  title: string;
+  year: number;
+  created_at: string;
+}
+
+export interface ImportExclusionRequest {
+  tmdb_id: number;
+  title: string;
+  year: number;
+}
+
+export interface ImportListSyncResult {
+  lists_processed: number;
+  movies_added: number;
+  movies_skipped: number;
+  errors: string[];
+}
+
+// ── Custom Format Presets ──────────────────────────────────────────────────
+
+export interface CustomFormatSpecification {
+  name: string;
+  implementation: string;
+  negate: boolean;
+  required: boolean;
+  fields: Record<string, string>;
+}
+
+export interface CustomFormat {
+  id: string;
+  name: string;
+  include_when_renaming: boolean;
+  specifications: CustomFormatSpecification[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomFormatPreset {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  default_score: number;
 }

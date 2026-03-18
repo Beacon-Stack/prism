@@ -42,8 +42,15 @@ export async function apiFetch<T>(
     throw new APIError(res.status, title, detail);
   }
 
-  // 202 Accepted or 204 No Content — no body
-  if (res.status === 202 || res.status === 204) return undefined as T;
+  // 204 No Content — never has a body
+  if (res.status === 204) return undefined as T;
+
+  // 202 Accepted — may or may not have a body
+  if (res.status === 202) {
+    const text = await res.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
+  }
 
   return res.json() as Promise<T>;
 }

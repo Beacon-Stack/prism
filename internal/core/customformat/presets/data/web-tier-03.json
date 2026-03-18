@@ -1,0 +1,35 @@
+{
+  "trash_id": "web-tier-03",
+  "trash_scores": {"default": 1600},
+  "name": "WEB Tier 03",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "WEB Tier 03 Groups",
+      "implementation": "ReleaseGroupSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)^(AKKU|BLUTONiUM|BTW|Cakes4free|FLAVOR|KATT|MiU|PECKAN|Ping|SCENTIST|VERMIN)$"
+      }
+    },
+    {
+      "name": "WEBDL",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": false,
+      "fields": {
+        "value": "webdl"
+      }
+    },
+    {
+      "name": "WEBRip",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": false,
+      "fields": {
+        "value": "webrip"
+      }
+    }
+  ]
+}

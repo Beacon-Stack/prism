@@ -18,6 +18,16 @@ All `gh` commands MUST target `luminarr/luminarr`:
 gh <command> --repo luminarr/luminarr
 ```
 
+## Branching
+
+**Always work on a feature branch** — never commit directly to `main`. Create a branch before starting new work:
+
+```sh
+git checkout -b feat/my-feature
+```
+
+Merge to `main` via PR or fast-forward after work is complete and tests pass.
+
 ## Code Quality
 
 - Run `make check` before every push (golangci-lint + tsc --noEmit).

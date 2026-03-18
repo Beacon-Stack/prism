@@ -8,6 +8,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"github.com/luminarr/luminarr/internal/core/customformat"
+	"github.com/luminarr/luminarr/internal/core/customformat/presets"
 )
 
 // --- request / response types ------------------------------------------------
@@ -48,6 +49,10 @@ type cfGetInput struct {
 
 type cfExportInput struct {
 	IDs string `query:"ids" doc:"Comma-separated list of custom format IDs. If empty, exports all."`
+}
+
+type cfPresetImportInput struct {
+	ID string `path:"id"`
 }
 
 type cfImportInput struct {
@@ -227,7 +232,42 @@ func RegisterCustomFormatRoutes(api huma.API, svc *customformat.Service) {
 			{Implementation: "size", Label: "Size", Fields: []string{"min", "max"}},
 			{Implementation: "release_group", Label: "Release Group", Fields: []string{"value"}},
 			{Implementation: "year", Label: "Year", Fields: []string{"min", "max"}},
+			{Implementation: "audio_codec", Label: "Audio Codec", Fields: []string{"value"}},
+			{Implementation: "audio_channels", Label: "Audio Channels", Fields: []string{"value"}},
 		}
 		return &struct{ Body []conditionType }{Body: schema}, nil
+	})
+
+	// GET /api/v1/custom-formats/presets
+	huma.Register(api, huma.Operation{
+		OperationID: "list-custom-format-presets",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/custom-formats/presets",
+		Summary:     "List available built-in custom format presets",
+		Tags:        []string{"Custom Formats"},
+	}, func(_ context.Context, _ *struct{}) (*struct{ Body []presets.Preset }, error) {
+		return &struct{ Body []presets.Preset }{Body: svc.ListPresets()}, nil
+	})
+
+	// POST /api/v1/custom-formats/presets/{id}
+	huma.Register(api, huma.Operation{
+		OperationID:   "import-custom-format-preset",
+		Method:        http.MethodPost,
+		Path:          "/api/v1/custom-formats/presets/{id}",
+		Summary:       "Import a built-in preset custom format",
+		Tags:          []string{"Custom Formats"},
+		DefaultStatus: http.StatusCreated,
+	}, func(ctx context.Context, input *cfPresetImportInput) (*struct{ Body cfBody }, error) {
+		cf, err := svc.ImportPreset(ctx, input.ID)
+		if err != nil {
+			if strings.Contains(err.Error(), "unknown preset") {
+				return nil, huma.NewError(http.StatusNotFound, err.Error())
+			}
+			if strings.Contains(err.Error(), "already exists") {
+				return nil, huma.NewError(http.StatusConflict, err.Error())
+			}
+			return nil, huma.NewError(http.StatusInternalServerError, err.Error())
+		}
+		return &struct{ Body cfBody }{Body: cfToBody(cf)}, nil
 	})
 }

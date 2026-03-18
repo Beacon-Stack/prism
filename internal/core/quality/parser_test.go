@@ -7,6 +7,163 @@ import (
 	"github.com/luminarr/luminarr/pkg/plugin"
 )
 
+func TestParseReleaseGroup(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		// ── Standard scene releases ──────────────────────────────────────────
+		{
+			name:  "standard bluray release",
+			input: "The.Dark.Knight.2008.1080p.BluRay.x264-FraMeSToR",
+			want:  "FraMeSToR",
+		},
+		{
+			name:  "standard webdl release",
+			input: "Movie.2024.1080p.WEB-DL.DD5.1.H.264-NTb",
+			want:  "NTb",
+		},
+		{
+			name:  "DTS-HD MA with group",
+			input: "Movie.2024.1080p.BluRay.DTS-HD.MA.x264-DON",
+			want:  "DON",
+		},
+		{
+			name:  "DTS-X with group",
+			input: "Movie.2024.2160p.BluRay.REMUX.DTS-X.x265-GRP",
+			want:  "GRP",
+		},
+		{
+			name:  "RAW-HD with group",
+			input: "Concert.2022.RAW-HD-FraMeSToR",
+			want:  "FraMeSToR",
+		},
+		{
+			name:  "BR-DISK with group",
+			input: "Movie.2023.BR-DISK-GROUP",
+			want:  "GROUP",
+		},
+		{
+			name:  "DVD-R with group",
+			input: "Classic.Movie.2000.DVD-R-GROUP",
+			want:  "GROUP",
+		},
+		{
+			name:  "Blu-Ray with group",
+			input: "Movie.2024.1080p.Blu-Ray.x264-YIFY",
+			want:  "YIFY",
+		},
+		{
+			name:  "WEB-Rip with group",
+			input: "Loki.S02E01.2023.720p.WEB-Rip.x265-BTN",
+			want:  "BTN",
+		},
+		{
+			name:  "spaces as separators",
+			input: "The Revenant 2015 1080p BluRay x265-GROUP",
+			want:  "GROUP",
+		},
+
+		// ── No group present ────────────────────────────────────────────────
+		{
+			name:  "no hyphen at all",
+			input: "Movie.2024.1080p.BluRay.x264",
+			want:  "",
+		},
+		{
+			name:  "RAW-HD only (no group)",
+			input: "Concert.2022.RAW-HD",
+			want:  "",
+		},
+		{
+			name:  "WEB-DL only (no group)",
+			input: "Movie.2024.1080p.WEB-DL.x264",
+			want:  "",
+		},
+		{
+			name:  "DTS-HD only (no group)",
+			input: "Movie.2024.1080p.BluRay.DTS-HD",
+			want:  "",
+		},
+		{
+			name:  "DTS-X only (no group)",
+			input: "Movie.2024.2160p.BluRay.DTS-X",
+			want:  "",
+		},
+		{
+			name:  "Blu-Ray only (no group)",
+			input: "Movie.2024.1080p.Blu-Ray",
+			want:  "",
+		},
+
+		// ── Bracket-enclosed groups ──────────────────────────────────────────
+		{
+			name:  "square bracket group",
+			input: "Movie.2024.1080p.BluRay.x264.[D-Z0N3]",
+			want:  "D-Z0N3",
+		},
+		{
+			name:  "paren bracket group",
+			input: "Movie.2024.1080p.BluRay.x264.(GROUP)",
+			want:  "GROUP",
+		},
+		{
+			name:  "bracket group with internal hyphen",
+			input: "Movie.2024.1080p.[BHD-Studio]",
+			want:  "BHD-Studio",
+		},
+
+		// ── File extensions stripped ─────────────────────────────────────────
+		{
+			name:  "mkv extension stripped",
+			input: "The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv",
+			want:  "GROUP",
+		},
+		{
+			name:  "mp4 extension stripped",
+			input: "Movie.2024.720p.WEB-DL.x264-NTb.mp4",
+			want:  "NTb",
+		},
+
+		// ── Real-world group names ──────────────────────────────────────────
+		{
+			name:  "SPARKS group",
+			input: "Pulp.Fiction.1994.1080p.BluRay-SPARKS",
+			want:  "SPARKS",
+		},
+		{
+			name:  "FGT group with remux",
+			input: "Mad.Max.Fury.Road.2015.2160p.BluRay.REMUX.HEVC-FGT",
+			want:  "FGT",
+		},
+		{
+			name:  "YIFY group",
+			input: "Interstellar.2014.1080p.Blu-Ray.x265-YIFY",
+			want:  "YIFY",
+		},
+		{
+			name:  "BHDStudio group",
+			input: "Dune.Part.Two.2024.2160p.BluRay.x265.HDR10-BHDStudio",
+			want:  "BHDStudio",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := quality.ParseReleaseGroup(tc.input)
+			if got != tc.want {
+				t.Errorf("ParseReleaseGroup(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+
 func TestParse(t *testing.T) {
 	t.Parallel()
 
@@ -689,6 +846,223 @@ func TestParse(t *testing.T) {
 			}
 			if tc.wantName != "" && got.Name != tc.wantName {
 				t.Errorf("Name: got %q, want %q", got.Name, tc.wantName)
+			}
+		})
+	}
+}
+
+func TestParseAudio(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		input        string
+		wantAudio    plugin.AudioCodec
+		wantChannels plugin.AudioChannels
+	}{
+		// ── TrueHD ──────────────────────────────────────────────────────────
+		{
+			name:         "TrueHD Atmos",
+			input:        "Movie.2024.1080p.BluRay.TrueHD.Atmos.x265-GRP",
+			wantAudio:    plugin.AudioCodecTrueHDAtmos,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "TrueHD Atmos 7.1",
+			input:        "Movie.2024.2160p.BluRay.REMUX.HEVC.TrueHD.7.1.Atmos-GRP",
+			wantAudio:    plugin.AudioCodecTrueHDAtmos,
+			wantChannels: plugin.AudioChannels71,
+		},
+		{
+			name:         "TrueHD bare",
+			input:        "Movie.2024.1080p.BluRay.TrueHD.5.1.x264-GRP",
+			wantAudio:    plugin.AudioCodecTrueHD,
+			wantChannels: plugin.AudioChannels51,
+		},
+
+		// ── DTS variants ────────────────────────────────────────────────────
+		{
+			name:         "DTS-X",
+			input:        "Movie.2024.2160p.BluRay.DTS-X.x265-GRP",
+			wantAudio:    plugin.AudioCodecDTSX,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "DTS-HD MA 7.1",
+			input:        "Movie.2024.1080p.BluRay.DTS-HD.MA.7.1.x264-DON",
+			wantAudio:    plugin.AudioCodecDTSHDMA,
+			wantChannels: plugin.AudioChannels71,
+		},
+		{
+			name:         "DTS-HD MA dot-separated",
+			input:        "Movie.2024.1080p.BluRay.DTS-HD.MA.x264-GRP",
+			wantAudio:    plugin.AudioCodecDTSHDMA,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "DTS-HD bare",
+			input:        "Movie.2024.1080p.BluRay.DTS-HD.5.1.x264-GRP",
+			wantAudio:    plugin.AudioCodecDTSHD,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "DTS bare",
+			input:        "Movie.2024.1080p.BluRay.DTS.x264-GRP",
+			wantAudio:    plugin.AudioCodecDTS,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "DTS 5.1",
+			input:        "Movie.2024.1080p.BluRay.DTS.5.1.x264-GRP",
+			wantAudio:    plugin.AudioCodecDTS,
+			wantChannels: plugin.AudioChannels51,
+		},
+
+		// ── DD+ / EAC3 ──────────────────────────────────────────────────────
+		{
+			name:         "DDP5.1 Atmos",
+			input:        "Movie.2024.1080p.WEB-DL.DDP5.1.Atmos.H.265-GRP",
+			wantAudio:    plugin.AudioCodecEAC3Atmos,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "DDP5.1 no Atmos",
+			input:        "Movie.2024.1080p.WEB-DL.DDP5.1.H.264-GRP",
+			wantAudio:    plugin.AudioCodecEAC3,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "EAC3 keyword",
+			input:        "Movie.2024.1080p.WEB-DL.EAC3.x264-GRP",
+			wantAudio:    plugin.AudioCodecEAC3,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "DD+ keyword",
+			input:        "Movie.2024.720p.WEB-DL.DD+.5.1.x264-GRP",
+			wantAudio:    plugin.AudioCodecEAC3,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "bare Atmos implies EAC3 Atmos",
+			input:        "Movie.2024.1080p.WEB-DL.Atmos.H.265-GRP",
+			wantAudio:    plugin.AudioCodecEAC3Atmos,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+
+		// ── DD / AC3 ────────────────────────────────────────────────────────
+		{
+			name:         "DD5.1",
+			input:        "Movie.2024.1080p.WEB-DL.DD5.1.H.264-GRP",
+			wantAudio:    plugin.AudioCodecAC3,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "AC3",
+			input:        "Movie.2024.1080p.BluRay.AC3.x264-GRP",
+			wantAudio:    plugin.AudioCodecAC3,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+
+		// ── Other codecs ────────────────────────────────────────────────────
+		{
+			name:         "AAC 2.0",
+			input:        "Movie.2024.1080p.WEB-DL.AAC2.0.x264-GRP",
+			wantAudio:    plugin.AudioCodecAAC,
+			wantChannels: plugin.AudioChannels20,
+		},
+		{
+			name:         "FLAC",
+			input:        "Movie.2024.1080p.BluRay.FLAC.x264-GRP",
+			wantAudio:    plugin.AudioCodecFLAC,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "FLAC 5.1",
+			input:        "Movie.2024.1080p.BluRay.FLAC.5.1.x265-GRP",
+			wantAudio:    plugin.AudioCodecFLAC,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "PCM",
+			input:        "Movie.2024.1080p.BluRay.PCM.x264-GRP",
+			wantAudio:    plugin.AudioCodecPCM,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "LPCM",
+			input:        "Movie.2024.1080p.BluRay.LPCM.2.0.x264-GRP",
+			wantAudio:    plugin.AudioCodecPCM,
+			wantChannels: plugin.AudioChannels20,
+		},
+		{
+			name:         "MP3",
+			input:        "Movie.2024.DVDRip.MP3.XviD-GRP",
+			wantAudio:    plugin.AudioCodecMP3,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+		{
+			name:         "Opus",
+			input:        "Movie.2024.1080p.WEB-DL.Opus.5.1.AV1-GRP",
+			wantAudio:    plugin.AudioCodecOpus,
+			wantChannels: plugin.AudioChannels51,
+		},
+
+		// ── Channel variants ────────────────────────────────────────────────
+		{
+			name:         "7.1 channels",
+			input:        "Movie.2024.2160p.BluRay.REMUX.TrueHD.7.1.HEVC-GRP",
+			wantAudio:    plugin.AudioCodecTrueHD,
+			wantChannels: plugin.AudioChannels71,
+		},
+		{
+			name:         "8CH variant",
+			input:        "Movie.2024.1080p.BluRay.DTS.8CH.x264-GRP",
+			wantAudio:    plugin.AudioCodecDTS,
+			wantChannels: plugin.AudioChannels71,
+		},
+		{
+			name:         "6CH variant",
+			input:        "Movie.2024.1080p.BluRay.AAC.6CH.x264-GRP",
+			wantAudio:    plugin.AudioCodecAAC,
+			wantChannels: plugin.AudioChannels51,
+		},
+		{
+			name:         "stereo variant",
+			input:        "Movie.2024.720p.WEB-DL.AAC.Stereo.x264-GRP",
+			wantAudio:    plugin.AudioCodecAAC,
+			wantChannels: plugin.AudioChannels20,
+		},
+		{
+			name:         "mono variant",
+			input:        "Old.Movie.1950.DVDRip.AC3.Mono.XviD-GRP",
+			wantAudio:    plugin.AudioCodecAC3,
+			wantChannels: plugin.AudioChannels10,
+		},
+
+		// ── No audio info ───────────────────────────────────────────────────
+		{
+			name:         "no audio tokens",
+			input:        "Movie.2024.1080p.BluRay.x264-GRP",
+			wantAudio:    plugin.AudioCodecUnknown,
+			wantChannels: plugin.AudioChannelsUnknown,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := quality.Parse(tc.input)
+			if err != nil {
+				t.Fatalf("Parse(%q) returned unexpected error: %v", tc.input, err)
+			}
+
+			if got.AudioCodec != tc.wantAudio {
+				t.Errorf("AudioCodec: got %q, want %q", got.AudioCodec, tc.wantAudio)
+			}
+			if got.AudioChannels != tc.wantChannels {
+				t.Errorf("AudioChannels: got %q, want %q", got.AudioChannels, tc.wantChannels)
 			}
 		})
 	}

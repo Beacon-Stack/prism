@@ -14,8 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/luminarr/luminarr/internal/core/dbutil"
-	"github.com/luminarr/luminarr/internal/core/edition"
-	"github.com/luminarr/luminarr/internal/core/quality"
+	"github.com/luminarr/luminarr/internal/parser"
 	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
 	"github.com/luminarr/luminarr/internal/events"
 	"github.com/luminarr/luminarr/internal/ratelimit"
@@ -305,17 +304,16 @@ func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedI
 			if r.Indexer == "" {
 				r.Indexer = res.indexerName
 			}
-			// Parse quality from title if not set.
+			// Unified parse: quality, edition, release group in one call.
+			parsed := parser.Parse(r.Title)
 			if r.Quality.Source == "" || r.Quality.Source == plugin.SourceUnknown {
-				if q, err := quality.Parse(r.Title); err == nil {
-					r.Quality = q
-				}
+				r.Quality = parsed.Quality()
 			}
-			// Parse edition from title if not already set.
-			if r.Edition == "" {
-				if ed := edition.Parse(r.Title); ed != nil {
-					r.Edition = ed.Name
-				}
+			if r.Edition == "" && parsed.Edition != "" {
+				r.Edition = parsed.Edition
+			}
+			if r.ReleaseGroup == "" {
+				r.ReleaseGroup = parsed.ReleaseGroup
 			}
 			allResults = append(allResults, SearchResult{
 				Release:      r,
@@ -407,15 +405,15 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 			if r.Indexer == "" {
 				r.Indexer = res.indexerName
 			}
+			parsed := parser.Parse(r.Title)
 			if r.Quality.Source == "" || r.Quality.Source == plugin.SourceUnknown {
-				if q, err := quality.Parse(r.Title); err == nil {
-					r.Quality = q
-				}
+				r.Quality = parsed.Quality()
 			}
-			if r.Edition == "" {
-				if ed := edition.Parse(r.Title); ed != nil {
-					r.Edition = ed.Name
-				}
+			if r.Edition == "" && parsed.Edition != "" {
+				r.Edition = parsed.Edition
+			}
+			if r.ReleaseGroup == "" {
+				r.ReleaseGroup = parsed.ReleaseGroup
 			}
 			allResults = append(allResults, SearchResult{
 				Release:      r,

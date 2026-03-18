@@ -11,6 +11,7 @@ import (
 
 type Querier interface {
 	AddDownloadClientTag(ctx context.Context, arg AddDownloadClientTagParams) error
+	AddImportListTag(ctx context.Context, arg AddImportListTagParams) error
 	AddIndexerTag(ctx context.Context, arg AddIndexerTagParams) error
 	AddMovieTag(ctx context.Context, arg AddMovieTagParams) error
 	AddNotificationTag(ctx context.Context, arg AddNotificationTagParams) error
@@ -18,6 +19,8 @@ type Querier interface {
 	CountBlocklist(ctx context.Context) (int64, error)
 	CountDownloadClientsForTag(ctx context.Context, tagID string) (int64, error)
 	CountEditionMismatches(ctx context.Context) (int64, error)
+	// Import list tag operations.
+	CountImportListsForTag(ctx context.Context, tagID string) (int64, error)
 	CountIndexersForTag(ctx context.Context, tagID string) (int64, error)
 	CountMonitoredMoviesWithoutFile(ctx context.Context) (int64, error)
 	CountMovies(ctx context.Context) (int64, error)
@@ -31,6 +34,10 @@ type Querier interface {
 	CreateCustomFormat(ctx context.Context, arg CreateCustomFormatParams) (CustomFormat, error)
 	CreateDownloadClientConfig(ctx context.Context, arg CreateDownloadClientConfigParams) (DownloadClientConfig, error)
 	CreateGrabHistory(ctx context.Context, arg CreateGrabHistoryParams) (GrabHistory, error)
+	// Import exclusions
+	CreateImportExclusion(ctx context.Context, arg CreateImportExclusionParams) (ImportExclusion, error)
+	// Import list configs
+	CreateImportListConfig(ctx context.Context, arg CreateImportListConfigParams) (ImportListConfig, error)
 	CreateIndexerConfig(ctx context.Context, arg CreateIndexerConfigParams) (IndexerConfig, error)
 	CreateLibrary(ctx context.Context, arg CreateLibraryParams) (Library, error)
 	CreateMediaServerConfig(ctx context.Context, arg CreateMediaServerConfigParams) (MediaServerConfig, error)
@@ -45,6 +52,8 @@ type Querier interface {
 	DeleteCustomFormat(ctx context.Context, id string) error
 	DeleteCustomFormatScores(ctx context.Context, qualityProfileID string) error
 	DeleteDownloadClientConfig(ctx context.Context, id string) error
+	DeleteImportExclusion(ctx context.Context, id string) error
+	DeleteImportListConfig(ctx context.Context, id string) error
 	DeleteIndexerConfig(ctx context.Context, id string) error
 	DeleteLibrary(ctx context.Context, id string) error
 	DeleteLibraryFileCandidate(ctx context.Context, arg DeleteLibraryFileCandidateParams) error
@@ -64,6 +73,8 @@ type Querier interface {
 	GetGrabByClientItemID(ctx context.Context, arg GetGrabByClientItemIDParams) (GrabHistory, error)
 	GetGrabByID(ctx context.Context, id string) (GrabHistory, error)
 	GetGrabStats(ctx context.Context) (GetGrabStatsRow, error)
+	GetImportExclusionByTMDBID(ctx context.Context, tmdbID int64) (ImportExclusion, error)
+	GetImportListConfig(ctx context.Context, id string) (ImportListConfig, error)
 	GetIndexerConfig(ctx context.Context, id string) (IndexerConfig, error)
 	GetLibrary(ctx context.Context, id string) (Library, error)
 	GetMediaManagement(ctx context.Context) (MediaManagement, error)
@@ -92,14 +103,19 @@ type Querier interface {
 	ListDownloadClientConfigs(ctx context.Context) ([]DownloadClientConfig, error)
 	ListDownloadClientTagIDs(ctx context.Context, downloadClientID string) ([]string, error)
 	ListEnabledDownloadClients(ctx context.Context) ([]DownloadClientConfig, error)
+	ListEnabledImportLists(ctx context.Context) ([]ImportListConfig, error)
 	ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, error)
 	ListEnabledMediaServers(ctx context.Context) ([]MediaServerConfig, error)
 	ListEnabledNotifications(ctx context.Context) ([]NotificationConfig, error)
+	ListExcludedTMDBIDs(ctx context.Context) ([]int64, error)
 	ListGrabHistory(ctx context.Context, limit int64) ([]GrabHistory, error)
 	ListGrabHistoryByMovie(ctx context.Context, movieID string) ([]GrabHistory, error)
 	ListGrabHistoryByProtocol(ctx context.Context, arg ListGrabHistoryByProtocolParams) ([]GrabHistory, error)
 	ListGrabHistoryByStatus(ctx context.Context, arg ListGrabHistoryByStatusParams) ([]GrabHistory, error)
 	ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg ListGrabHistoryByStatusAndProtocolParams) ([]GrabHistory, error)
+	ListImportExclusions(ctx context.Context) ([]ImportExclusion, error)
+	ListImportListConfigs(ctx context.Context) ([]ImportListConfig, error)
+	ListImportListTagIDs(ctx context.Context, importListID string) ([]string, error)
 	ListIndexerConfigs(ctx context.Context) ([]IndexerConfig, error)
 	ListIndexerTagIDs(ctx context.Context, indexerID string) ([]string, error)
 	ListLibraries(ctx context.Context) ([]Library, error)
@@ -134,6 +150,7 @@ type Querier interface {
 	SetCustomFormatScore(ctx context.Context, arg SetCustomFormatScoreParams) error
 	// Download client tag operations.
 	SetDownloadClientTags(ctx context.Context, downloadClientID string) error
+	SetImportListTags(ctx context.Context, importListID string) error
 	// Indexer tag operations.
 	SetIndexerTags(ctx context.Context, indexerID string) error
 	SetLibraryFileCandidateMatch(ctx context.Context, arg SetLibraryFileCandidateMatchParams) error
@@ -148,6 +165,7 @@ type Querier interface {
 	UpdateDownloadHandling(ctx context.Context, arg UpdateDownloadHandlingParams) (DownloadHandling, error)
 	UpdateGrabDownloadClient(ctx context.Context, arg UpdateGrabDownloadClientParams) error
 	UpdateGrabStatus(ctx context.Context, arg UpdateGrabStatusParams) error
+	UpdateImportListConfig(ctx context.Context, arg UpdateImportListConfigParams) (ImportListConfig, error)
 	UpdateIndexerConfig(ctx context.Context, arg UpdateIndexerConfigParams) (IndexerConfig, error)
 	UpdateLibrary(ctx context.Context, arg UpdateLibraryParams) (Library, error)
 	UpdateMediaManagement(ctx context.Context, arg UpdateMediaManagementParams) (MediaManagement, error)

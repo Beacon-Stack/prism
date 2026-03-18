@@ -1,0 +1,17 @@
+{
+  "trash_id": "truehd-atmos",
+  "trash_scores": {"default": 500},
+  "name": "TrueHD Atmos",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "TrueHD Atmos",
+      "implementation": "AudioCodecSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)truehd_atmos"
+      }
+    }
+  ]
+}

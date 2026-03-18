@@ -18,6 +18,7 @@ FROM golang:1.25-alpine AS builder
 ARG VERSION=dev
 ARG BUILD_TIME=unknown
 ARG TMDB_API_KEY
+ARG TRAKT_CLIENT_ID
 
 WORKDIR /app
 
@@ -35,6 +36,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
       -ldflags "-X github.com/luminarr/luminarr/internal/version.Version=${VERSION} \
                 -X github.com/luminarr/luminarr/internal/version.BuildTime=${BUILD_TIME} \
                 -X github.com/luminarr/luminarr/internal/config.DefaultTMDBKey=${TMDB_API_KEY} \
+                -X github.com/luminarr/luminarr/internal/config.DefaultTraktClientID=${TRAKT_CLIENT_ID} \
                 -s -w" \
       -o /luminarr ./cmd/luminarr
 

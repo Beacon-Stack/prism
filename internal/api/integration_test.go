@@ -427,9 +427,10 @@ func TestIntegration_Libraries_CRUD(t *testing.T) {
 	mustDecode(t, qpRec, &qp)
 	profileID, _ := qp["id"].(string)
 
+	libDir := t.TempDir()
 	rec := do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
 		"name":                       "Movies",
-		"root_path":                  "/movies",
+		"root_path":                  libDir,
 		"default_quality_profile_id": profileID,
 		"min_free_space_gb":          10,
 		"tags":                       []string{},
@@ -487,9 +488,10 @@ func TestIntegration_Movies_DegradedMode(t *testing.T) {
 	mustDecode(t, rec, &profile)
 	profileID, _ := profile["id"].(string)
 
+	libDir := t.TempDir()
 	rec = do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
 		"name":                       "Movies",
-		"root_path":                  "/movies",
+		"root_path":                  libDir,
 		"default_quality_profile_id": profileID,
 	})
 	if rec.Code != http.StatusCreated {
@@ -1437,9 +1439,10 @@ func TestIntegration_MovieLifecycle(t *testing.T) {
 	profileID, _ := profile["id"].(string)
 
 	// 2. Create library.
+	libDir := t.TempDir()
 	rec = do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
 		"name":                       "Lifecycle Movies",
-		"root_path":                  "/lifecycle-movies",
+		"root_path":                  libDir,
 		"default_quality_profile_id": profileID,
 	})
 	if rec.Code != http.StatusCreated {
@@ -1676,9 +1679,10 @@ func TestIntegration_V3_RootFolders_WithLibrary(t *testing.T) {
 	qpID, _ := qp["id"].(string)
 
 	// Create a library via v1.
+	libDir := t.TempDir()
 	rec = do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
 		"name":                       "Movies",
-		"root_path":                  "/tmp/test-movies",
+		"root_path":                  libDir,
 		"default_quality_profile_id": qpID,
 	})
 	if rec.Code != http.StatusCreated {
@@ -1695,8 +1699,8 @@ func TestIntegration_V3_RootFolders_WithLibrary(t *testing.T) {
 	if len(folders) != 1 {
 		t.Fatalf("expected 1 root folder, got %d", len(folders))
 	}
-	if folders[0]["path"] != "/tmp/test-movies" {
-		t.Errorf("path = %v, want /tmp/test-movies", folders[0]["path"])
+	if folders[0]["path"] != libDir {
+		t.Errorf("path = %v, want %s", folders[0]["path"], libDir)
 	}
 }
 
@@ -1729,8 +1733,9 @@ func TestIntegration_V3_Movies_ListAndGet(t *testing.T) {
 	mustDecode(t, rec, &qp)
 	qpID, _ := qp["id"].(string)
 
+	libDir := t.TempDir()
 	rec = do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
-		"name": "Movies", "root_path": "/tmp/movies", "default_quality_profile_id": qpID,
+		"name": "Movies", "root_path": libDir, "default_quality_profile_id": qpID,
 	})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create library = %d; body: %s", rec.Code, rec.Body)
@@ -1791,8 +1796,8 @@ func TestIntegration_V3_Movies_ListAndGet(t *testing.T) {
 		t.Errorf("id = %v, want >= 1", m["id"])
 	}
 	// rootFolderPath should match the library.
-	if m["rootFolderPath"] != "/tmp/movies" {
-		t.Errorf("rootFolderPath = %v, want /tmp/movies", m["rootFolderPath"])
+	if m["rootFolderPath"] != libDir {
+		t.Errorf("rootFolderPath = %v, want %s", m["rootFolderPath"], libDir)
 	}
 	// Tags should be an empty array, not null.
 	if m["tags"] == nil {
@@ -1833,8 +1838,9 @@ func TestIntegration_V3_Movies_DeleteByRowID(t *testing.T) {
 	mustDecode(t, rec, &qp)
 	qpID, _ := qp["id"].(string)
 
+	libDir := t.TempDir()
 	rec = do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
-		"name": "Movies", "root_path": "/tmp/movies", "default_quality_profile_id": qpID,
+		"name": "Movies", "root_path": libDir, "default_quality_profile_id": qpID,
 	})
 	var lib map[string]any
 	mustDecode(t, rec, &lib)
@@ -2155,8 +2161,8 @@ func TestIntegration_CustomFormats_Schema(t *testing.T) {
 	}
 	var schema []map[string]any
 	mustDecode(t, rec, &schema)
-	if len(schema) != 10 {
-		t.Errorf("schema length = %d, want 10", len(schema))
+	if len(schema) != 12 {
+		t.Errorf("schema length = %d, want 12", len(schema))
 	}
 }
 

@@ -10,7 +10,8 @@ BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS   := -ldflags "\
   -X $(MODULE)/internal/version.Version=$(VERSION) \
   -X $(MODULE)/internal/version.BuildTime=$(BUILD_TIME) \
-  -X $(MODULE)/internal/config.DefaultTMDBKey=$(LUMINARR_TMDB_API_KEY)"
+  -X $(MODULE)/internal/config.DefaultTMDBKey=$(LUMINARR_TMDB_API_KEY) \
+  -X $(MODULE)/internal/config.DefaultTraktClientID=$(LUMINARR_TRAKT_CLIENT_ID)"
 
 IMAGE ?= ghcr.io/luminarr/luminarr
 

@@ -1,0 +1,17 @@
+{
+  "trash_id": "bad-dual-groups",
+  "trash_scores": {"default": -10000},
+  "name": "Bad Dual Groups",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "Bad Dual Groups",
+      "implementation": "ReleaseGroupSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)^(AFG|AniHLS|BiTOR|bonkai77|CEBEX|DUAL|Dubbed|GALAXY|Kappa|Langbansen|Leffe|MeGusta|mSD|Pakan|PSA|RARBG|Rifftrax|SPARKS|SPDVD|SSN|YTS|YIFY)$"
+      }
+    }
+  ]
+}

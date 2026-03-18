@@ -1,0 +1,35 @@
+{
+  "trash_id": "web-tier-02",
+  "trash_scores": {"default": 1650},
+  "name": "WEB Tier 02",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "WEB Tier 02 Groups",
+      "implementation": "ReleaseGroupSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)^(DRACULA|EDITH|JIMMY|KOGi|NAISU|NPMS|PiGNUS|SLiGNOME|SMURF|SPiRiT|TEPES|TOMMY|WELP)$"
+      }
+    },
+    {
+      "name": "WEBDL",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": false,
+      "fields": {
+        "value": "webdl"
+      }
+    },
+    {
+      "name": "WEBRip",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": false,
+      "fields": {
+        "value": "webrip"
+      }
+    }
+  ]
+}

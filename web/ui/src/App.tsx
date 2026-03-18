@@ -15,6 +15,8 @@ import IndexerList from "@/pages/settings/indexers/IndexerList";
 import DownloadClientList from "@/pages/settings/download-clients/DownloadClientList";
 import NotificationList from "@/pages/settings/notifications/NotificationList";
 import MediaServerList from "@/pages/settings/media-servers/MediaServerList";
+import ImportListList from "@/pages/settings/import-lists/ImportListList";
+import ImportExclusions from "@/pages/settings/import-lists/ImportExclusions";
 import ImportPage from "@/pages/settings/import/ImportPage";
 import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import MediaManagementPage from "@/pages/settings/media-management/MediaManagementPage";
@@ -27,6 +29,7 @@ import StatsPage from "@/pages/stats/StatsPage";
 import CollectionsPage from "@/pages/collections/CollectionsPage";
 import CollectionDetail from "@/pages/collections/CollectionDetail";
 import LibrarySyncPage from "@/pages/library-sync/LibrarySyncPage";
+import CustomFormatsPage from "@/pages/settings/custom-formats/CustomFormatsPage";
 
 function RouteEB({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -64,10 +67,13 @@ export default function App() {
                 <Route path="libraries" element={<RouteEB><LibraryList /></RouteEB>} />
                 <Route path="quality-profiles" element={<RouteEB><QualityProfileList /></RouteEB>} />
                 <Route path="quality-definitions" element={<RouteEB><QualityDefinitionsPage /></RouteEB>} />
+                <Route path="custom-formats" element={<RouteEB><CustomFormatsPage /></RouteEB>} />
                 <Route path="indexers" element={<RouteEB><IndexerList /></RouteEB>} />
                 <Route path="download-clients" element={<RouteEB><DownloadClientList /></RouteEB>} />
                 <Route path="notifications" element={<RouteEB><NotificationList /></RouteEB>} />
                 <Route path="media-servers" element={<RouteEB><MediaServerList /></RouteEB>} />
+                <Route path="import-lists" element={<RouteEB><ImportListList /></RouteEB>} />
+                <Route path="import-exclusions" element={<RouteEB><ImportExclusions /></RouteEB>} />
                 <Route path="blocklist" element={<RouteEB><BlocklistPage /></RouteEB>} />
                 <Route path="media-management" element={<RouteEB><MediaManagementPage /></RouteEB>} />
                 <Route path="media-scanning" element={<RouteEB><MediaScanningPage /></RouteEB>} />

@@ -26,6 +26,9 @@ import {
   X,
   ScanLine,
   Paintbrush,
+  ListPlus,
+  ShieldOff,
+  Layers,
 } from "lucide-react";
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
@@ -55,10 +58,13 @@ const settingsNav: NavItem[] = [
   { to: "/settings/media-scanning",    icon: ScanLine,         label: "Media Scanning" },
   { to: "/settings/quality-profiles",   icon: SlidersHorizontal, label: "Quality Profiles" },
   { to: "/settings/quality-definitions", icon: Gauge,           label: "Quality Definitions" },
+  { to: "/settings/custom-formats",    icon: Layers,          label: "Custom Formats" },
   { to: "/settings/indexers",          icon: Search,           label: "Indexers" },
   { to: "/settings/download-clients",  icon: Settings2,        label: "Download Clients" },
   { to: "/settings/notifications",     icon: Bell,             label: "Notifications" },
   { to: "/settings/media-servers",    icon: MonitorPlay,      label: "Media Servers" },
+  { to: "/settings/import-lists",    icon: ListPlus,         label: "Import Lists" },
+  { to: "/settings/import-exclusions", icon: ShieldOff,      label: "Import Exclusions" },
   { to: "/settings/blocklist",         icon: Ban,              label: "Blocklist" },
   { to: "/settings/import",            icon: ArrowDownToLine,  label: "Import" },
   { to: "/settings/system",            icon: Server,           label: "System" },

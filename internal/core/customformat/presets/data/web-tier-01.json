@@ -1,0 +1,35 @@
+{
+  "trash_id": "web-tier-01",
+  "trash_scores": {"default": 1700},
+  "name": "WEB Tier 01",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "WEB Tier 01 Groups",
+      "implementation": "ReleaseGroupSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)^(ABBIE|AJP69|APEX|CasStudio|CMRG|CRFW|CRUD|FLUX|GNOME|HONE|KiNGS|MZABI|NOSiViD|NTb|playWEB|RTFM|SiC|SUPLEX|XEBEC)$"
+      }
+    },
+    {
+      "name": "WEBDL",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": false,
+      "fields": {
+        "value": "webdl"
+      }
+    },
+    {
+      "name": "WEBRip",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": false,
+      "fields": {
+        "value": "webrip"
+      }
+    }
+  ]
+}

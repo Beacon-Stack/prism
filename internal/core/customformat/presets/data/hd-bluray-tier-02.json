@@ -1,0 +1,35 @@
+{
+  "trash_id": "hd-bluray-tier-02",
+  "trash_scores": {"default": 1750},
+  "name": "HD Bluray Tier 02",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "HD Bluray Tier 02 Groups",
+      "implementation": "ReleaseGroupSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)^(CRiSC|decibeL|E\\.N\\.D|EA|FTW-HD|HiDt|HiP|iFT|KRaLiMaRKo|LEGi0N|LolHD|NiP|OFT|SA89|SiGMA|SPHD|trollhd|W4NK3R)$"
+      }
+    },
+    {
+      "name": "HD Bluray",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "bluray"
+      }
+    },
+    {
+      "name": "Not Remux",
+      "implementation": "QualityModifierSpecification",
+      "negate": true,
+      "required": true,
+      "fields": {
+        "value": "remux"
+      }
+    }
+  ]
+}

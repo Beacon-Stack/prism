@@ -8,16 +8,18 @@ import (
 
 // ReleaseInfo is the input to the matcher — extracted from release title + indexer metadata.
 type ReleaseInfo struct {
-	Title        string
-	Edition      string
-	Languages    []string
-	IndexerFlags []string
-	Source       string
-	Resolution   string
-	Modifier     string // "remux", "brdisk", "rawhd", etc.
-	SizeBytes    int64
-	ReleaseGroup string
-	Year         int
+	Title         string
+	Edition       string
+	Languages     []string
+	IndexerFlags  []string
+	Source        string
+	Resolution    string
+	Modifier      string // "remux", "brdisk", "rawhd", etc.
+	SizeBytes     int64
+	ReleaseGroup  string
+	Year          int
+	AudioCodec    string
+	AudioChannels string
 }
 
 // MatchRelease evaluates all custom formats against a release.
@@ -124,6 +126,10 @@ func evalCondition(spec Specification, rel ReleaseInfo) bool {
 		return matchRegex(spec.Fields["value"], rel.ReleaseGroup)
 	case ImplYear:
 		return matchYear(spec.Fields["min"], spec.Fields["max"], rel.Year)
+	case ImplAudioCodec:
+		return matchRegex(spec.Fields["value"], rel.AudioCodec)
+	case ImplAudioChannels:
+		return strings.EqualFold(spec.Fields["value"], rel.AudioChannels)
 	default:
 		return false
 	}

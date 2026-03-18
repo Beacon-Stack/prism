@@ -17,6 +17,8 @@ func TestTrashToLuminarrMapping(t *testing.T) {
 		"SizeSpecification":            ImplSize,
 		"ReleaseGroupSpecification":    ImplReleaseGroup,
 		"YearSpecification":            ImplYear,
+		"AudioCodecSpecification":      ImplAudioCodec,
+		"AudioChannelsSpecification":   ImplAudioChannels,
 	}
 
 	for trash, want := range expected {

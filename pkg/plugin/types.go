@@ -70,14 +70,48 @@ const (
 	HDRHDR10Plus   HDRFormat = "hdr10plus"
 )
 
+// AudioCodec is the audio codec of a release.
+type AudioCodec string
+
+const (
+	AudioCodecUnknown    AudioCodec = ""
+	AudioCodecTrueHD     AudioCodec = "truehd"
+	AudioCodecTrueHDAtmos AudioCodec = "truehd_atmos"
+	AudioCodecDTSX       AudioCodec = "dts_x"
+	AudioCodecDTSHDMA    AudioCodec = "dts_hd_ma"
+	AudioCodecDTSHD      AudioCodec = "dts_hd"
+	AudioCodecDTS        AudioCodec = "dts"
+	AudioCodecEAC3Atmos  AudioCodec = "eac3_atmos"
+	AudioCodecEAC3       AudioCodec = "eac3"
+	AudioCodecAC3        AudioCodec = "ac3"
+	AudioCodecAAC        AudioCodec = "aac"
+	AudioCodecFLAC       AudioCodec = "flac"
+	AudioCodecPCM        AudioCodec = "pcm"
+	AudioCodecMP3        AudioCodec = "mp3"
+	AudioCodecOpus       AudioCodec = "opus"
+)
+
+// AudioChannels is the channel layout of a release.
+type AudioChannels string
+
+const (
+	AudioChannelsUnknown AudioChannels = ""
+	AudioChannels71      AudioChannels = "7.1"
+	AudioChannels51      AudioChannels = "5.1"
+	AudioChannels20      AudioChannels = "2.0"
+	AudioChannels10      AudioChannels = "1.0"
+)
+
 // Quality describes the technical characteristics of a release.
 // It is a value type — embedded in releases, files, and profiles.
 type Quality struct {
-	Resolution Resolution `json:"resolution"`
-	Source     Source     `json:"source"`
-	Codec      Codec      `json:"codec"`
-	HDR        HDRFormat  `json:"hdr"`
-	// Name is the human-readable label derived from the other fields,
+	Resolution    Resolution    `json:"resolution"`
+	Source        Source        `json:"source"`
+	Codec         Codec         `json:"codec"`
+	HDR           HDRFormat     `json:"hdr"`
+	AudioCodec    AudioCodec    `json:"audio_codec,omitempty"`
+	AudioChannels AudioChannels `json:"audio_channels,omitempty"`
+	// Name is the human-readable label derived from the video fields,
 	// e.g. "Bluray-1080p x265" or "WEBDL-2160p HDR10".
 	Name string `json:"name"`
 }
@@ -185,5 +219,6 @@ type Release struct {
 	AgeDays      float64
 	Quality      Quality
 	Edition      string // canonical edition name parsed from title; empty = untagged
+	ReleaseGroup string // scene group name parsed from title; empty = unknown
 	IndexerFlags []IndexerFlag
 }

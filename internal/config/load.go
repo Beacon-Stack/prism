@@ -119,6 +119,11 @@ func Load(cfgFile string) (*Config, error) {
 		cfg.TMDBKeyIsDefault = true
 	}
 
+	// Apply build-time default Trakt client ID if no key was configured.
+	if cfg.Trakt.ClientID.IsEmpty() && DefaultTraktClientID != "" {
+		cfg.Trakt.ClientID = Secret(DefaultTraktClientID)
+	}
+
 	cfg.ConfigFile = configFileUsed
 
 	return &cfg, nil

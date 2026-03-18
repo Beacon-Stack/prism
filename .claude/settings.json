@@ -2,6 +2,8 @@
   "permissions": {
     "allow": [
       "Read",
+      "Write",
+      "Edit",
       "Glob",
       "Grep",
       "Bash(git *)",
@@ -13,7 +15,11 @@
       "Bash(cd *)",
       "Bash(ls *)",
       "Bash(sort *)",
-      "WebSearch"
+      "Bash(goimports *)",
+      "Bash(sqlc *)",
+      "Bash(mkdir *)",
+      "WebSearch",
+      "WebFetch"
     ]
   }
 }

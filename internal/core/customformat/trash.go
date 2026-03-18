@@ -35,6 +35,8 @@ var trashToLuminarr = map[string]string{
 	"SizeSpecification":            ImplSize,
 	"ReleaseGroupSpecification":    ImplReleaseGroup,
 	"YearSpecification":            ImplYear,
+	"AudioCodecSpecification":      ImplAudioCodec,
+	"AudioChannelsSpecification":   ImplAudioChannels,
 }
 
 // Luminarr → TRaSH implementation name mapping (reverse).

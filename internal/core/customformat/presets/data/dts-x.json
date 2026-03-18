@@ -1,0 +1,17 @@
+{
+  "trash_id": "dts-x",
+  "trash_scores": {"default": 450},
+  "name": "DTS:X",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "DTS:X",
+      "implementation": "AudioCodecSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)dts_x"
+      }
+    }
+  ]
+}

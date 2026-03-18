@@ -581,30 +581,14 @@ function APIKeySection() {
 // ── Section 6: Backup & Restore ───────────────────────────────────────────────
 
 function BackupSection() {
-  const [downloading, setDownloading] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
 
-  async function handleDownload() {
-    setDownloading(true);
-    try {
-      const res = await fetch("/api/v1/system/backup");
-      if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const date = new Date().toISOString().split("T")[0];
-      a.href = url;
-      a.download = `luminarr-backup-${date}.db`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setDownloading(false);
-    }
+  function handleDownload() {
+    // Navigate directly to the backup endpoint — the server sets
+    // Content-Disposition: attachment so the browser downloads the file
+    // without needing a blob: URL (which CSP can block).
+    window.location.href = "/api/v1/system/backup";
   }
 
   async function handleRestore(file: File) {
@@ -658,23 +642,17 @@ function BackupSection() {
             </span>
           </div>
           <button
-            onClick={() => { void handleDownload(); }}
-            disabled={downloading}
-            style={{
-              ...btnStyle,
-              color: downloading ? "var(--color-text-muted)" : "var(--color-text-secondary)",
-              cursor: downloading ? "not-allowed" : "pointer",
-            }}
+            onClick={handleDownload}
+            style={btnStyle}
             onMouseEnter={(e) => {
-              if (!downloading)
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "var(--color-bg-subtle)";
+              (e.currentTarget as HTMLButtonElement).style.background =
+                "var(--color-bg-subtle)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = "var(--color-bg-elevated)";
             }}
           >
-            {downloading ? "Preparing…" : "Download Backup"}
+            Download Backup
           </button>
         </div>
 

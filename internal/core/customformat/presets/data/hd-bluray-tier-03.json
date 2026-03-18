@@ -1,0 +1,35 @@
+{
+  "trash_id": "hd-bluray-tier-03",
+  "trash_scores": {"default": 1700},
+  "name": "HD Bluray Tier 03",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "HD Bluray Tier 03 Groups",
+      "implementation": "ReleaseGroupSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)^(BeyondHD|BI0|Chotab|CiNEPHiLES|CREAM|EDPH|Geek|HDMaNiAcS|HQMUX|iKA|iNK|LAMA|nLiBRA|RightSiZE|RUSTED|TOMMY|ViSUM)$"
+      }
+    },
+    {
+      "name": "HD Bluray",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "bluray"
+      }
+    },
+    {
+      "name": "Not Remux",
+      "implementation": "QualityModifierSpecification",
+      "negate": true,
+      "required": true,
+      "fields": {
+        "value": "remux"
+      }
+    }
+  ]
+}

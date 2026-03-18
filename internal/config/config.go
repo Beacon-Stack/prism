@@ -8,6 +8,7 @@ type Config struct {
 	Database  DatabaseConfig  `mapstructure:"database"`
 	Log       LogConfig       `mapstructure:"log"`
 	TMDB      TMDBConfig      `mapstructure:"tmdb"`
+	Trakt     TraktConfig     `mapstructure:"trakt"`
 	AI        AIConfig        `mapstructure:"ai"`
 	Auth      AuthConfig      `mapstructure:"auth"`
 	MediaInfo MediaInfoConfig `mapstructure:"mediainfo"`
@@ -73,6 +74,16 @@ type AuthConfig struct {
 	APIKey Secret `mapstructure:"api_key"`
 }
 
+// TraktConfig holds the Trakt API credentials. The ClientID is the app-level
+// API key (trakt-api-key header). Public endpoints only need this.
+type TraktConfig struct {
+	ClientID Secret `mapstructure:"client_id"`
+}
+
 // DefaultTMDBKey is set at build time via ldflags. Users can override
 // via config file or LUMINARR_TMDB_API_KEY env var.
 var DefaultTMDBKey string
+
+// DefaultTraktClientID is set at build time via ldflags. Users can override
+// via config file or LUMINARR_TRAKT_CLIENT_ID env var.
+var DefaultTraktClientID string

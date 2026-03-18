@@ -15,6 +15,26 @@ import (
 // All regexps are compiled once at package init — never inside Parse.
 // The (?i) flag makes every pattern case-insensitive.
 
+// ── Release group extraction ────────────────────────────────────────────────
+
+// reFileExt matches common video file extensions at the end of a string.
+var reFileExt = regexp.MustCompile(`(?i)\.(mkv|mp4|avi|m4v|ts|wmv|mov|flv|webm)$`)
+
+// reBracketGroup matches a bracket-enclosed group at the end of a string.
+var reBracketGroup = regexp.MustCompile(`[\[\(]([A-Za-z0-9][A-Za-z0-9._-]*[A-Za-z0-9])[\]\)]\s*$`)
+
+// knownCompoundSuffixes are strings that appear after a hyphen in multi-part
+// quality tokens. They must not be mistaken for release group names.
+var knownCompoundSuffixes = map[string]bool{
+	"dl":   true, // WEB-DL
+	"rip":  true, // WEB-Rip
+	"hd":   true, // RAW-HD, DTS-HD
+	"x":    true, // DTS-X
+	"disk": true, // BR-DISK
+	"r":    true, // DVD-R
+	"ray":  true, // Blu-Ray
+}
+
 var (
 	// ── Resolution ───────────────────────────────────────────────────────────
 	// 4K / UHD / 2160p must be matched before 1080p to avoid partial hits.
@@ -59,6 +79,38 @@ var (
 	reAV1  = regexp.MustCompile(`(?i)\bav1\b`)
 	// XviD and DivX both map to CodecXVID.
 	reXVID = regexp.MustCompile(`(?i)xvid|divx`)
+
+	// ── Audio codec ─────────────────────────────────────────────────────────
+	// Order matters: most specific first to avoid partial matches.
+	// TrueHD Atmos before TrueHD, DTS-HD MA before DTS-HD before DTS, etc.
+	// TrueHD Atmos: adjacent ("TrueHD.Atmos") or separated by channels ("TrueHD.7.1.Atmos").
+	reTrueHDAtmos = regexp.MustCompile(`(?i)truehd[\s._-]?atmos|truehd\b.*\batmos`)
+	reTrueHD      = regexp.MustCompile(`(?i)\btruehd\b`)
+	reDTSX        = regexp.MustCompile(`(?i)\bdts[\s._-]?x\b`)
+	reDTSHDMA     = regexp.MustCompile(`(?i)\bdts[\s._-]?hd[\s._-]?(?:ma|master[\s._-]?audio)\b`)
+	reDTSHD       = regexp.MustCompile(`(?i)\bdts[\s._-]?hd\b`)
+	reDTS         = regexp.MustCompile(`(?i)\bdts\b`)
+	reAtmos       = regexp.MustCompile(`(?i)\batmos\b`)
+	// EAC3 / DD+: match DDP (with or without trailing digits like DDP5.1),
+	// DD+, DDPlus, EAC3, E-AC-3. Checked before AC3 in parseAudioCodec.
+	reEAC3 = regexp.MustCompile(`(?i)(?:\bddp|\bdd\+|\bddplus\b|\beac[\s._-]?3\b|\be[\s._-]ac[\s._-]?3\b)`)
+	// AC3 / DD: match DD followed by digit (DD5.1) or standalone DD, AC3.
+	// Safe because EAC3 (DDP) is checked first in parseAudioCodec.
+	reAC3  = regexp.MustCompile(`(?i)(?:\bdd\d|\bdd\b|\bac[\s._-]?3\b)`)
+	reAAC  = regexp.MustCompile(`(?i)\baac`)
+	reFLAC = regexp.MustCompile(`(?i)\bflac\b`)
+	rePCM  = regexp.MustCompile(`(?i)\bl?pcm\b`)
+	reMP3  = regexp.MustCompile(`(?i)\bmp3\b`)
+	reOpus = regexp.MustCompile(`(?i)\bopus\b`)
+
+	// ── Audio channels ──────────────────────────────────────────────────────
+	// Use [^\d] instead of \b for the leading anchor to handle combined tokens
+	// like DD5.1 (normalized to "DD5 1") where 5 follows a letter, not a
+	// word boundary. [^\d] avoids false positives on years like 2015.
+	reCh71 = regexp.MustCompile(`(?i)(?:(?:[^\d]|^)7[\s.]1(?:\b|$)|\b8ch\b)`)
+	reCh51 = regexp.MustCompile(`(?i)(?:(?:[^\d]|^)5[\s.]1(?:\b|$)|\b6ch\b)`)
+	reCh20 = regexp.MustCompile(`(?i)(?:(?:[^\d]|^)2[\s.]0(?:\b|$)|\bstereo\b|\b2ch\b)`)
+	reCh10 = regexp.MustCompile(`(?i)(?:(?:[^\d]|^)1[\s.]0(?:\b|$)|\bmono\b|\b1ch\b)`)
 )
 
 // Parse extracts quality metadata from a scene release title.
@@ -82,14 +134,20 @@ func Parse(title string) (plugin.Quality, error) {
 	// ── Codec ────────────────────────────────────────────────────────────────
 	codec := parseCodec(norm)
 
+	// ── Audio ────────────────────────────────────────────────────────────────
+	audioCodec := parseAudioCodec(norm)
+	audioChannels := parseAudioChannels(norm)
+
 	name := buildName(res, src, codec, hdr)
 
 	return plugin.Quality{
-		Resolution: res,
-		Source:     src,
-		Codec:      codec,
-		HDR:        hdr,
-		Name:       name,
+		Resolution:    res,
+		Source:        src,
+		Codec:         codec,
+		HDR:           hdr,
+		AudioCodec:    audioCodec,
+		AudioChannels: audioChannels,
+		Name:          name,
 	}, nil
 }
 
@@ -190,6 +248,64 @@ func parseCodec(norm string) plugin.Codec {
 		return plugin.CodecXVID
 	default:
 		return plugin.CodecUnknown
+	}
+}
+
+// parseAudioCodec identifies the audio codec from the normalized title.
+// Order matters: more specific patterns are checked first.
+func parseAudioCodec(norm string) plugin.AudioCodec {
+	switch {
+	case reTrueHDAtmos.MatchString(norm):
+		return plugin.AudioCodecTrueHDAtmos
+	case reTrueHD.MatchString(norm):
+		return plugin.AudioCodecTrueHD
+	case reDTSX.MatchString(norm):
+		return plugin.AudioCodecDTSX
+	case reDTSHDMA.MatchString(norm):
+		return plugin.AudioCodecDTSHDMA
+	case reDTSHD.MatchString(norm):
+		return plugin.AudioCodecDTSHD
+	case reDTS.MatchString(norm):
+		return plugin.AudioCodecDTS
+	// Check EAC3 before bare Atmos — "DDP5.1 Atmos" should match EAC3 Atmos.
+	case reEAC3.MatchString(norm):
+		if reAtmos.MatchString(norm) {
+			return plugin.AudioCodecEAC3Atmos
+		}
+		return plugin.AudioCodecEAC3
+	case reAtmos.MatchString(norm):
+		// Bare Atmos without an explicit base codec implies EAC3 Atmos (DD+ Atmos).
+		return plugin.AudioCodecEAC3Atmos
+	case reAC3.MatchString(norm):
+		return plugin.AudioCodecAC3
+	case reAAC.MatchString(norm):
+		return plugin.AudioCodecAAC
+	case reFLAC.MatchString(norm):
+		return plugin.AudioCodecFLAC
+	case rePCM.MatchString(norm):
+		return plugin.AudioCodecPCM
+	case reMP3.MatchString(norm):
+		return plugin.AudioCodecMP3
+	case reOpus.MatchString(norm):
+		return plugin.AudioCodecOpus
+	default:
+		return plugin.AudioCodecUnknown
+	}
+}
+
+// parseAudioChannels identifies the channel layout from the normalized title.
+func parseAudioChannels(norm string) plugin.AudioChannels {
+	switch {
+	case reCh71.MatchString(norm):
+		return plugin.AudioChannels71
+	case reCh51.MatchString(norm):
+		return plugin.AudioChannels51
+	case reCh20.MatchString(norm):
+		return plugin.AudioChannels20
+	case reCh10.MatchString(norm):
+		return plugin.AudioChannels10
+	default:
+		return plugin.AudioChannelsUnknown
 	}
 }
 
@@ -329,4 +445,57 @@ func hdrLabel(hdr plugin.HDRFormat) string {
 	default:
 		return ""
 	}
+}
+
+// ParseReleaseGroup extracts the release group name from a scene release title.
+// Scene convention places the group after the last hyphen: "Title.Quality-GROUP".
+// Returns an empty string if no valid group is found.
+func ParseReleaseGroup(title string) string {
+	// Strip file extension.
+	s := reFileExt.ReplaceAllString(title, "")
+
+	// Check for bracket-enclosed group at end: [GROUP] or (GROUP).
+	if m := reBracketGroup.FindStringSubmatch(s); len(m) > 1 {
+		return m[1]
+	}
+
+	// Walk backwards through hyphens, skipping compound quality-token suffixes.
+	for {
+		idx := strings.LastIndex(s, "-")
+		if idx < 0 {
+			return ""
+		}
+
+		candidate := strings.TrimRight(s[idx+1:], " .")
+		s = s[:idx]
+
+		if candidate == "" {
+			continue
+		}
+
+		// Skip known compound suffixes (DL from WEB-DL, HD from DTS-HD, etc.).
+		if knownCompoundSuffixes[strings.ToLower(candidate)] {
+			continue
+		}
+
+		// Group names are alphanumeric — reject candidates with dots, spaces, etc.
+		if !isAlphanumeric(candidate) {
+			continue
+		}
+
+		return candidate
+	}
+}
+
+// isAlphanumeric reports whether s is non-empty and contains only ASCII letters and digits.
+func isAlphanumeric(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, r := range s {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')) {
+			return false
+		}
+	}
+	return true
 }

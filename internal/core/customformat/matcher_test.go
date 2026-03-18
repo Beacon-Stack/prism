@@ -268,6 +268,46 @@ func TestMatchRelease(t *testing.T) {
 			want:    nil,
 		},
 		{
+			name: "audio codec regex match",
+			formats: []CustomFormat{
+				{ID: "cf1", Name: "TrueHD Atmos", Specifications: []Specification{
+					{Name: "codec", Implementation: ImplAudioCodec, Fields: map[string]string{"value": `(?i)truehd_atmos`}},
+				}},
+			},
+			release: ReleaseInfo{AudioCodec: "truehd_atmos"},
+			want:    []string{"cf1"},
+		},
+		{
+			name: "audio codec no match",
+			formats: []CustomFormat{
+				{ID: "cf1", Name: "TrueHD Atmos", Specifications: []Specification{
+					{Name: "codec", Implementation: ImplAudioCodec, Fields: map[string]string{"value": `(?i)truehd_atmos`}},
+				}},
+			},
+			release: ReleaseInfo{AudioCodec: "dts"},
+			want:    nil,
+		},
+		{
+			name: "audio channels match",
+			formats: []CustomFormat{
+				{ID: "cf1", Name: "7.1 Surround", Specifications: []Specification{
+					{Name: "ch", Implementation: ImplAudioChannels, Fields: map[string]string{"value": "7.1"}},
+				}},
+			},
+			release: ReleaseInfo{AudioChannels: "7.1"},
+			want:    []string{"cf1"},
+		},
+		{
+			name: "audio channels no match",
+			formats: []CustomFormat{
+				{ID: "cf1", Name: "7.1 Surround", Specifications: []Specification{
+					{Name: "ch", Implementation: ImplAudioChannels, Fields: map[string]string{"value": "7.1"}},
+				}},
+			},
+			release: ReleaseInfo{AudioChannels: "5.1"},
+			want:    nil,
+		},
+		{
 			name: "cross-group required + optional",
 			formats: []CustomFormat{
 				{ID: "cf1", Name: "Complex", Specifications: []Specification{

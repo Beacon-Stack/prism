@@ -101,6 +101,7 @@ jobs:
       - name: Build binary
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
         run: |
           VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
           BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -108,6 +109,7 @@ jobs:
             -ldflags "-X github.com/luminarr/luminarr/internal/version.Version=${VERSION} \
                       -X github.com/luminarr/luminarr/internal/version.BuildTime=${BUILD_TIME} \
                       -X github.com/luminarr/luminarr/internal/config.DefaultTMDBKey=${TMDB_API_KEY} \
+                      -X github.com/luminarr/luminarr/internal/config.DefaultTraktClientID=${TRAKT_CLIENT_ID} \
                       -s -w" \
             -o bin/luminarr ./cmd/luminarr
 
@@ -165,6 +167,7 @@ jobs:
             VERSION=${{ github.sha }}
             BUILD_TIME=${{ github.event.head_commit.timestamp }}
             TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
+            TRAKT_CLIENT_ID=${{ secrets.TRAKT_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
@@ -182,6 +185,7 @@ jobs:
             VERSION=${{ github.sha }}
             BUILD_TIME=${{ github.event.head_commit.timestamp }}
             TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
+            TRAKT_CLIENT_ID=${{ secrets.TRAKT_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64

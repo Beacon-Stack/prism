@@ -73,3 +73,17 @@ INSERT OR IGNORE INTO notification_tags (notification_id, tag_id) VALUES (?, ?);
 
 -- name: ListNotificationTagIDs :many
 SELECT tag_id FROM notification_tags WHERE notification_id = ?;
+
+-- Import list tag operations.
+
+-- name: CountImportListsForTag :one
+SELECT COUNT(*) FROM import_list_tags WHERE tag_id = ?;
+
+-- name: SetImportListTags :exec
+DELETE FROM import_list_tags WHERE import_list_id = ?;
+
+-- name: AddImportListTag :exec
+INSERT OR IGNORE INTO import_list_tags (import_list_id, tag_id) VALUES (?, ?);
+
+-- name: ListImportListTagIDs :many
+SELECT tag_id FROM import_list_tags WHERE import_list_id = ?;

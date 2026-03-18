@@ -641,6 +641,17 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("deleting movie %q: %w", id, err)
 	}
 
+	// Auto-exclude from import lists so the movie isn't re-added on next sync.
+	if existing.TmdbID != 0 {
+		_, _ = s.q.CreateImportExclusion(ctx, dbsqlite.CreateImportExclusionParams{
+			ID:        uuid.New().String(),
+			TmdbID:    existing.TmdbID,
+			Title:     existing.Title,
+			Year:      existing.Year,
+			CreatedAt: time.Now().UTC().Format(time.RFC3339),
+		})
+	}
+
 	s.bus.Publish(ctx, events.Event{
 		Type:    events.TypeMovieDeleted,
 		MovieID: id,

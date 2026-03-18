@@ -26,8 +26,9 @@ var stopTokens = []string{
 	"x264", "x265", "h264", "h265", "hevc", "avc", "xvid", "divx",
 	"10bit", "10-bit", "hdr", "hdr10", "dolbyvision", "dv",
 	// audio codec
-	"dts", "dts-hd", "dtshd", "truehd", "atmos", "ddplus", "dd", "ac3",
-	"aac", "mp3", "flac", "eac3",
+	"dts", "dts-hd", "dtshd", "dts-x", "dtsx", "truehd", "atmos",
+	"ddplus", "ddp", "dd", "ac3", "aac", "mp3", "flac", "eac3",
+	"lpcm", "pcm", "opus",
 	// channels
 	"7.1", "5.1", "2.0",
 	// misc release flags

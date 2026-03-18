@@ -22,7 +22,7 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		// unsafe-inline is needed for the React SPA's inline scripts/styles
 		// until a nonce-based CSP can be implemented.
 		h.Set("Content-Security-Policy",
-			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org; font-src 'self'")
+			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org; font-src 'self'; connect-src 'self' blob:; worker-src 'self' blob:")
 		next.ServeHTTP(w, r)
 	})
 }

@@ -1,0 +1,17 @@
+{
+  "trash_id": "hdr10plus-boost",
+  "trash_scores": {"default": 500},
+  "name": "HDR10+ Boost",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "HDR10+",
+      "implementation": "ReleaseTitleSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)hdr10\\+|hdr10plus"
+      }
+    }
+  ]
+}

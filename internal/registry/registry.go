@@ -22,6 +22,9 @@ type NotifierFactory func(settings json.RawMessage) (plugin.Notifier, error)
 // MediaServerFactory constructs a MediaServer from a JSON settings blob.
 type MediaServerFactory func(settings json.RawMessage) (plugin.MediaServer, error)
 
+// ImportListFactory constructs an ImportList from a JSON settings blob.
+type ImportListFactory func(settings json.RawMessage) (plugin.ImportList, error)
+
 // SanitizerFunc redacts sensitive fields from a plugin settings blob so it is
 // safe to include in API responses and logs. It must never return nil.
 // Plugins register one via RegisterIndexerSanitizer / RegisterDownloaderSanitizer /
@@ -46,6 +49,8 @@ type Registry struct {
 	notifierSanitizers    map[string]SanitizerFunc
 	mediaServers          map[string]MediaServerFactory
 	mediaServerSanitizers map[string]SanitizerFunc
+	importLists           map[string]ImportListFactory
+	importListSanitizers  map[string]SanitizerFunc
 }
 
 // New returns an empty, ready-to-use Registry.
@@ -59,6 +64,8 @@ func New() *Registry {
 		notifierSanitizers:    make(map[string]SanitizerFunc),
 		mediaServers:          make(map[string]MediaServerFactory),
 		mediaServerSanitizers: make(map[string]SanitizerFunc),
+		importLists:           make(map[string]ImportListFactory),
+		importListSanitizers:  make(map[string]SanitizerFunc),
 	}
 }
 
@@ -277,6 +284,60 @@ func (r *Registry) MediaServerKinds() []string {
 	defer r.mu.RUnlock()
 	kinds := make([]string, 0, len(r.mediaServers))
 	for k := range r.mediaServers {
+		kinds = append(kinds, k)
+	}
+	return kinds
+}
+
+// RegisterImportList adds a factory for the given import list kind string.
+// Panics if kind is already registered (caught at startup, not runtime).
+func (r *Registry) RegisterImportList(kind string, factory ImportListFactory) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, exists := r.importLists[kind]; exists {
+		panic(fmt.Sprintf("registry: import list kind %q already registered", kind))
+	}
+	r.importLists[kind] = factory
+}
+
+// RegisterImportListSanitizer registers a settings sanitizer for the given
+// import list kind.
+func (r *Registry) RegisterImportListSanitizer(kind string, fn SanitizerFunc) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.importListSanitizers[kind] = fn
+}
+
+// SanitizeImportListSettings returns a redacted copy of the settings blob safe
+// for API responses and logs. Falls back to "{}" if no sanitizer is registered.
+func (r *Registry) SanitizeImportListSettings(kind string, settings json.RawMessage) json.RawMessage {
+	r.mu.RLock()
+	fn, ok := r.importListSanitizers[kind]
+	r.mu.RUnlock()
+	if !ok {
+		return emptySanitizer(settings)
+	}
+	return fn(settings)
+}
+
+// NewImportList constructs an ImportList from the given kind and JSON settings.
+// Returns an error if the kind is unknown or settings are invalid.
+func (r *Registry) NewImportList(kind string, settings json.RawMessage) (plugin.ImportList, error) {
+	r.mu.RLock()
+	factory, ok := r.importLists[kind]
+	r.mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("unknown import list kind %q", kind)
+	}
+	return factory(settings)
+}
+
+// ImportListKinds returns the list of registered import list kind strings.
+func (r *Registry) ImportListKinds() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	kinds := make([]string, 0, len(r.importLists))
+	for k := range r.importLists {
 		kinds = append(kinds, k)
 	}
 	return kinds

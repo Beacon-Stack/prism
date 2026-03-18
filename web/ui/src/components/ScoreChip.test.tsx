@@ -50,7 +50,7 @@ describe("ScoreChip", () => {
 
   it("uses warning color for score 50-79", () => {
     render(<ScoreChip breakdown={midBreakdown} />);
-    const chip = screen.getByText("55/100");
+    const chip = screen.getByText("55/80");
     // happy-dom doesn't preserve var() with fallback in style.color,
     // so check the style attribute string instead
     const style = chip.getAttribute("style") ?? "";
@@ -59,7 +59,7 @@ describe("ScoreChip", () => {
 
   it("uses danger color for score < 50", () => {
     render(<ScoreChip breakdown={lowBreakdown} />);
-    const chip = screen.getByText("30/100");
+    const chip = screen.getByText("30/80");
     expect(chip.style.color).toBe("var(--color-danger)");
   });
 

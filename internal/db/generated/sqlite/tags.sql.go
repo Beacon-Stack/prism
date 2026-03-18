@@ -23,6 +23,20 @@ func (q *Queries) AddDownloadClientTag(ctx context.Context, arg AddDownloadClien
 	return err
 }
 
+const addImportListTag = `-- name: AddImportListTag :exec
+INSERT OR IGNORE INTO import_list_tags (import_list_id, tag_id) VALUES (?, ?)
+`
+
+type AddImportListTagParams struct {
+	ImportListID string `json:"importListId"`
+	TagID        string `json:"tagId"`
+}
+
+func (q *Queries) AddImportListTag(ctx context.Context, arg AddImportListTagParams) error {
+	_, err := q.db.ExecContext(ctx, addImportListTag, arg.ImportListID, arg.TagID)
+	return err
+}
+
 const addIndexerTag = `-- name: AddIndexerTag :exec
 INSERT OR IGNORE INTO indexer_tags (indexer_id, tag_id) VALUES (?, ?)
 `
@@ -71,6 +85,19 @@ SELECT COUNT(*) FROM download_client_tags WHERE tag_id = ?
 
 func (q *Queries) CountDownloadClientsForTag(ctx context.Context, tagID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countDownloadClientsForTag, tagID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countImportListsForTag = `-- name: CountImportListsForTag :one
+
+SELECT COUNT(*) FROM import_list_tags WHERE tag_id = ?
+`
+
+// Import list tag operations.
+func (q *Queries) CountImportListsForTag(ctx context.Context, tagID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countImportListsForTag, tagID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -164,6 +191,33 @@ SELECT tag_id FROM download_client_tags WHERE download_client_id = ?
 
 func (q *Queries) ListDownloadClientTagIDs(ctx context.Context, downloadClientID string) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, listDownloadClientTagIDs, downloadClientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var tag_id string
+		if err := rows.Scan(&tag_id); err != nil {
+			return nil, err
+		}
+		items = append(items, tag_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listImportListTagIDs = `-- name: ListImportListTagIDs :many
+SELECT tag_id FROM import_list_tags WHERE import_list_id = ?
+`
+
+func (q *Queries) ListImportListTagIDs(ctx context.Context, importListID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listImportListTagIDs, importListID)
 	if err != nil {
 		return nil, err
 	}
@@ -301,6 +355,15 @@ DELETE FROM download_client_tags WHERE download_client_id = ?
 // Download client tag operations.
 func (q *Queries) SetDownloadClientTags(ctx context.Context, downloadClientID string) error {
 	_, err := q.db.ExecContext(ctx, setDownloadClientTags, downloadClientID)
+	return err
+}
+
+const setImportListTags = `-- name: SetImportListTags :exec
+DELETE FROM import_list_tags WHERE import_list_id = ?
+`
+
+func (q *Queries) SetImportListTags(ctx context.Context, importListID string) error {
+	_, err := q.db.ExecContext(ctx, setImportListTags, importListID)
 	return err
 }
 

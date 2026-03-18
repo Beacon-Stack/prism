@@ -289,6 +289,139 @@ func (c *Client) GetFranchise(ctx context.Context, collectionID int) (*Franchise
 	}, nil
 }
 
+// GetPopularMovies fetches the TMDB popular movies list.
+// page starts at 1. Returns up to 20 results per page.
+func (c *Client) GetPopularMovies(ctx context.Context, page int) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	return c.fetchMovieList(ctx, "/movie/popular", params)
+}
+
+// GetUpcomingMovies fetches upcoming movies from TMDB.
+// page starts at 1. Returns up to 20 results per page.
+func (c *Client) GetUpcomingMovies(ctx context.Context, page int) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	return c.fetchMovieList(ctx, "/movie/upcoming", params)
+}
+
+// GetNowPlayingMovies fetches movies currently in theaters from TMDB.
+// page starts at 1. Returns up to 20 results per page.
+func (c *Client) GetNowPlayingMovies(ctx context.Context, page int) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	return c.fetchMovieList(ctx, "/movie/now_playing", params)
+}
+
+// GetTopRatedMovies fetches the all-time highest rated movies from TMDB.
+// page starts at 1. Returns up to 20 results per page.
+func (c *Client) GetTopRatedMovies(ctx context.Context, page int) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	return c.fetchMovieList(ctx, "/movie/top_rated", params)
+}
+
+// GetTrendingMovies fetches trending movies from TMDB.
+// window must be "day" or "week". page starts at 1.
+func (c *Client) GetTrendingMovies(ctx context.Context, window string, page int) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	path := "/trending/movie/" + window
+	return c.fetchMovieList(ctx, path, params)
+}
+
+// GetList fetches a user-created TMDB list by its numeric or string ID.
+func (c *Client) GetList(ctx context.Context, listID string, page int) ([]SearchResult, error) {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+
+	var envelope struct {
+		Items []struct {
+			ID          int    `json:"id"`
+			Title       string `json:"title"`
+			ReleaseDate string `json:"release_date"`
+			PosterPath  string `json:"poster_path"`
+		} `json:"items"`
+	}
+
+	path := "/list/" + listID
+	if err := c.get(ctx, path, params, &envelope); err != nil {
+		return nil, fmt.Errorf("tmdb get list %s: %w", listID, err)
+	}
+
+	results := make([]SearchResult, 0, len(envelope.Items))
+	for _, r := range envelope.Items {
+		results = append(results, SearchResult{
+			ID:         r.ID,
+			Title:      r.Title,
+			Year:       parseYear(r.ReleaseDate),
+			PosterPath: r.PosterPath,
+		})
+	}
+	return results, nil
+}
+
+// FindByIMDbID looks up a movie by its IMDb ID using the /find endpoint.
+// Returns the TMDB ID and title, or 0/"" if not found.
+func (c *Client) FindByIMDbID(ctx context.Context, imdbID string) (int, string, error) {
+	params := url.Values{}
+	params.Set("external_source", "imdb_id")
+
+	var envelope struct {
+		MovieResults []struct {
+			ID    int    `json:"id"`
+			Title string `json:"title"`
+		} `json:"movie_results"`
+	}
+
+	path := "/find/" + imdbID
+	if err := c.get(ctx, path, params, &envelope); err != nil {
+		return 0, "", fmt.Errorf("tmdb find by imdb %s: %w", imdbID, err)
+	}
+
+	if len(envelope.MovieResults) == 0 {
+		return 0, "", nil
+	}
+	return envelope.MovieResults[0].ID, envelope.MovieResults[0].Title, nil
+}
+
+// fetchMovieList is a shared helper for endpoints that return a paginated list
+// of movies using the standard {results: [...]} envelope (popular, upcoming, etc.).
+func (c *Client) fetchMovieList(ctx context.Context, path string, params url.Values) ([]SearchResult, error) {
+	var envelope struct {
+		Results []struct {
+			ID            int     `json:"id"`
+			Title         string  `json:"title"`
+			OriginalTitle string  `json:"original_title"`
+			Overview      string  `json:"overview"`
+			ReleaseDate   string  `json:"release_date"`
+			PosterPath    string  `json:"poster_path"`
+			BackdropPath  string  `json:"backdrop_path"`
+			Popularity    float64 `json:"popularity"`
+		} `json:"results"`
+	}
+
+	if err := c.get(ctx, path, params, &envelope); err != nil {
+		return nil, fmt.Errorf("tmdb %s: %w", path, err)
+	}
+
+	results := make([]SearchResult, 0, len(envelope.Results))
+	for _, r := range envelope.Results {
+		results = append(results, SearchResult{
+			ID:            r.ID,
+			Title:         r.Title,
+			OriginalTitle: r.OriginalTitle,
+			Overview:      r.Overview,
+			ReleaseDate:   r.ReleaseDate,
+			Year:          parseYear(r.ReleaseDate),
+			PosterPath:    r.PosterPath,
+			BackdropPath:  r.BackdropPath,
+			Popularity:    r.Popularity,
+		})
+	}
+	return results, nil
+}
+
 // get performs a GET against the TMDB API, decodes the JSON body into dst,
 // and returns a structured error on non-200 responses.
 func (c *Client) get(ctx context.Context, path string, params url.Values, dst any) error {

@@ -1,0 +1,26 @@
+{
+  "trash_id": "dv-webdl",
+  "trash_scores": {"default": 500},
+  "name": "DV (WEBDL)",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "Dolby Vision",
+      "implementation": "ReleaseTitleSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)\\bdv\\b|dovi|dolby\\.?\\s?vision"
+      }
+    },
+    {
+      "name": "WEBDL",
+      "implementation": "SourceSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "webdl"
+      }
+    }
+  ]
+}

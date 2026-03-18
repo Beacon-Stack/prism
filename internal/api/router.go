@@ -24,6 +24,7 @@ import (
 	"github.com/luminarr/luminarr/internal/core/downloader"
 	"github.com/luminarr/luminarr/internal/core/downloadhandling"
 	"github.com/luminarr/luminarr/internal/core/health"
+	"github.com/luminarr/luminarr/internal/core/importlist"
 	"github.com/luminarr/luminarr/internal/core/indexer"
 	"github.com/luminarr/luminarr/internal/core/library"
 	"github.com/luminarr/luminarr/internal/core/mediainfo"
@@ -76,6 +77,8 @@ type RouterConfig struct {
 	PlexSyncService          *plexsync.Service
 	TagService               *tag.Service
 	CustomFormatService      *customformat.Service
+	AutoSearchService        *autosearch.Service
+	ImportListService        *importlist.Service
 	LogBuffer                *logging.RingBuffer
 	WSHub                    *ws.Hub
 	Bus                      *events.Bus
@@ -198,11 +201,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	if cfg.IndexerService != nil {
 		v1.RegisterIndexerRoutes(humaAPI, cfg.IndexerService, cfg.TagService)
 
-		var autoSvc *autosearch.Service
-		if cfg.MovieService != nil && cfg.DownloaderService != nil && cfg.QualityService != nil {
+		autoSvc := cfg.AutoSearchService
+		if autoSvc == nil && cfg.MovieService != nil && cfg.DownloaderService != nil && cfg.QualityService != nil {
 			autoSvc = autosearch.NewService(
 				cfg.IndexerService, cfg.MovieService, cfg.DownloaderService,
-				cfg.BlocklistService, cfg.QualityService, cfg.TagService, cfg.Bus, cfg.Logger,
+				cfg.BlocklistService, cfg.QualityService, cfg.CustomFormatService, cfg.TagService, cfg.Bus, cfg.Logger,
 			)
 		}
 		v1.RegisterReleaseRoutes(humaAPI, cfg.IndexerService, cfg.MovieService, cfg.DownloaderService, cfg.BlocklistService, cfg.QualityService, autoSvc, cfg.Logger)
@@ -267,6 +270,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	if cfg.CustomFormatService != nil {
 		v1.RegisterCustomFormatRoutes(humaAPI, cfg.CustomFormatService)
 	}
+
+	if cfg.ImportListService != nil {
+		v1.RegisterImportListRoutes(humaAPI, cfg.ImportListService, cfg.TagService)
+	}
+
+	v1.RegisterPlexAuthRoutes(humaAPI)
 
 	if cfg.LibraryService != nil && cfg.MovieService != nil && cfg.Bus != nil && cfg.Scheduler != nil {
 		v1.RegisterHookRoutes(humaAPI, cfg.LibraryService, cfg.MovieService, cfg.Bus, cfg.Scheduler)

@@ -15,6 +15,7 @@ import (
 	"github.com/luminarr/luminarr/internal/api"
 	"github.com/luminarr/luminarr/internal/api/ws"
 	"github.com/luminarr/luminarr/internal/config"
+	"github.com/luminarr/luminarr/internal/core/autosearch"
 	"github.com/luminarr/luminarr/internal/core/blocklist"
 	"github.com/luminarr/luminarr/internal/core/collection"
 	"github.com/luminarr/luminarr/internal/core/customformat"
@@ -22,6 +23,7 @@ import (
 	"github.com/luminarr/luminarr/internal/core/downloadhandling"
 	"github.com/luminarr/luminarr/internal/core/health"
 	"github.com/luminarr/luminarr/internal/core/importer"
+	"github.com/luminarr/luminarr/internal/core/importlist"
 	"github.com/luminarr/luminarr/internal/core/indexer"
 	"github.com/luminarr/luminarr/internal/core/library"
 	"github.com/luminarr/luminarr/internal/core/mediainfo"
@@ -47,6 +49,7 @@ import (
 	"github.com/luminarr/luminarr/internal/registry"
 	"github.com/luminarr/luminarr/internal/scheduler"
 	"github.com/luminarr/luminarr/internal/scheduler/jobs"
+	"github.com/luminarr/luminarr/internal/trakt"
 	"github.com/luminarr/luminarr/internal/version"
 
 	// Import pgx stdlib for database/sql compatibility (Postgres support).
@@ -73,6 +76,25 @@ import (
 	_ "github.com/luminarr/luminarr/plugins/notifications/slack"
 	_ "github.com/luminarr/luminarr/plugins/notifications/telegram"
 	_ "github.com/luminarr/luminarr/plugins/notifications/webhook"
+
+	// Import list plugins
+	_ "github.com/luminarr/luminarr/plugins/importlists/custom_list"
+	_ "github.com/luminarr/luminarr/plugins/importlists/mdblist"
+	_ "github.com/luminarr/luminarr/plugins/importlists/plex_watchlist"
+	_ "github.com/luminarr/luminarr/plugins/importlists/stevenlu"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_collection"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_list"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_now_playing"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_person"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_popular"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_top_rated"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_trending"
+	_ "github.com/luminarr/luminarr/plugins/importlists/tmdb_upcoming"
+	_ "github.com/luminarr/luminarr/plugins/importlists/trakt_anticipated"
+	_ "github.com/luminarr/luminarr/plugins/importlists/trakt_box_office"
+	_ "github.com/luminarr/luminarr/plugins/importlists/trakt_list"
+	_ "github.com/luminarr/luminarr/plugins/importlists/trakt_popular"
+	_ "github.com/luminarr/luminarr/plugins/importlists/trakt_trending"
 )
 
 func main() {
@@ -187,6 +209,9 @@ func run() error {
 	}
 	for _, kind := range registry.Default.MediaServerKinds() {
 		logger.Info("registered media server plugin", "plugin", kind)
+	}
+	for _, kind := range registry.Default.ImportListKinds() {
+		logger.Info("registered import list plugin", "plugin", kind)
 	}
 
 	// ── Feature warnings ──────────────────────────────────────────────────────
@@ -312,6 +337,24 @@ func run() error {
 		collectionSvc = collection.NewService(queries, rawTMDB, movieSvc, logger)
 	}
 
+	// ── AutoSearch service (used by release routes and import lists) ──────
+	var autoSvc *autosearch.Service
+	if indexerSvc != nil && movieSvc != nil && downloaderSvc != nil && qualitySvc != nil {
+		autoSvc = autosearch.NewService(
+			indexerSvc, movieSvc, downloaderSvc,
+			blocklistSvc, qualitySvc, cfSvc, tagSvc, bus, logger,
+		)
+	}
+
+	// ── Trakt client (optional — only created if a client ID is configured) ──
+	var traktClient *trakt.Client
+	if !cfg.Trakt.ClientID.IsEmpty() {
+		traktClient = trakt.New(cfg.Trakt.ClientID.Value(), logger)
+	}
+
+	// ── Import list service ──────────────────────────────────────────────────
+	importListSvc := importlist.NewService(queries, registry.Default, movieSvc, autoSvc, rawTMDB, traktClient, logger)
+
 	// ── Scheduler ─────────────────────────────────────────────────────────────
 	// Load queue poll interval from download handling settings. Default to 60s
 	// on error so the scheduler always starts.
@@ -327,6 +370,7 @@ func run() error {
 	sched.Add(jobs.RSSSync(indexerSvc, downloaderSvc, qualitySvc, queries, logger))
 	sched.Add(jobs.RefreshMetadata(movieSvc, queries, logger))
 	sched.Add(jobs.StatsSnapshot(statsSvc, logger))
+	sched.Add(jobs.ImportListSync(importListSvc, logger))
 
 	// ── HTTP router ───────────────────────────────────────────────────────────
 	startTime := time.Now()
@@ -361,6 +405,8 @@ func run() error {
 		PlexSyncService:          plexSyncSvc,
 		TagService:               tagSvc,
 		CustomFormatService:      cfSvc,
+		AutoSearchService:        autoSvc,
+		ImportListService:        importListSvc,
 		LogBuffer:                logBuffer,
 		WSHub:                    wsHub,
 		Bus:                      bus,

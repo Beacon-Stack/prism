@@ -22,6 +22,7 @@ type Tag struct {
 	IndexerCount        int64 `json:"indexer_count"`
 	DownloadClientCount int64 `json:"download_client_count"`
 	NotificationCount   int64 `json:"notification_count"`
+	ImportListCount     int64 `json:"import_list_count"`
 }
 
 // Service manages tags and their entity associations.
@@ -49,10 +50,13 @@ func (s *Service) List(ctx context.Context) ([]Tag, error) {
 		dc, _ := s.q.CountDownloadClientsForTag(ctx, r.ID)
 		nc, _ := s.q.CountNotificationsForTag(ctx, r.ID)
 
+		ilc, _ := s.q.CountImportListsForTag(ctx, r.ID)
+
 		tags[i].MovieCount = mc
 		tags[i].IndexerCount = ic
 		tags[i].DownloadClientCount = dc
 		tags[i].NotificationCount = nc
+		tags[i].ImportListCount = ilc
 	}
 	return tags, nil
 }
@@ -194,6 +198,31 @@ func (s *Service) NotificationTagIDs(ctx context.Context, notifID string) ([]str
 	ids, err := s.q.ListNotificationTagIDs(ctx, notifID)
 	if err != nil {
 		return nil, fmt.Errorf("listing notification tags: %w", err)
+	}
+	if ids == nil {
+		return []string{}, nil
+	}
+	return ids, nil
+}
+
+// SetImportListTags replaces all tags for an import list.
+func (s *Service) SetImportListTags(ctx context.Context, importListID string, tagIDs []string) error {
+	if err := s.q.SetImportListTags(ctx, importListID); err != nil {
+		return fmt.Errorf("clearing import list tags: %w", err)
+	}
+	for _, tid := range tagIDs {
+		if err := s.q.AddImportListTag(ctx, dbsqlite.AddImportListTagParams{ImportListID: importListID, TagID: tid}); err != nil {
+			return fmt.Errorf("adding import list tag %q: %w", tid, err)
+		}
+	}
+	return nil
+}
+
+// ImportListTagIDs returns the tag IDs for an import list.
+func (s *Service) ImportListTagIDs(ctx context.Context, importListID string) ([]string, error) {
+	ids, err := s.q.ListImportListTagIDs(ctx, importListID)
+	if err != nil {
+		return nil, fmt.Errorf("listing import list tags: %w", err)
 	}
 	if ids == nil {
 		return []string{}, nil

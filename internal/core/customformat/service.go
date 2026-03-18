@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/luminarr/luminarr/internal/core/customformat/presets"
 	"github.com/luminarr/luminarr/internal/core/dbutil"
 	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
 )
@@ -48,6 +49,8 @@ const (
 	ImplSize            = "size"
 	ImplReleaseGroup    = "release_group"
 	ImplYear            = "year"
+	ImplAudioCodec      = "audio_codec"
+	ImplAudioChannels   = "audio_channels"
 )
 
 // CreateRequest holds fields needed to create a custom format.
@@ -184,6 +187,28 @@ func (s *Service) SetScores(ctx context.Context, profileID string, scores map[st
 		}
 	}
 	return nil
+}
+
+// ListPresets returns all available built-in preset custom formats.
+func (s *Service) ListPresets() []presets.Preset {
+	return presets.List()
+}
+
+// ImportPreset imports a built-in preset by its stable ID using the existing
+// TRaSH import pathway.
+func (s *Service) ImportPreset(ctx context.Context, presetID string) (CustomFormat, error) {
+	p, ok := presets.Get(presetID)
+	if !ok {
+		return CustomFormat{}, fmt.Errorf("unknown preset: %q", presetID)
+	}
+	created, err := s.Import(ctx, p.Data)
+	if err != nil {
+		return CustomFormat{}, fmt.Errorf("importing preset %q: %w", presetID, err)
+	}
+	if len(created) == 0 {
+		return CustomFormat{}, fmt.Errorf("preset %q produced no custom format", presetID)
+	}
+	return created[0], nil
 }
 
 // fromRow converts a DB row to a domain CustomFormat.

@@ -1,0 +1,17 @@
+{
+  "trash_id": "dts-hd-ma",
+  "trash_scores": {"default": 400},
+  "name": "DTS-HD MA",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "DTS-HD MA",
+      "implementation": "AudioCodecSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)dts_hd_ma"
+      }
+    }
+  ]
+}

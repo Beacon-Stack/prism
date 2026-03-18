@@ -1,0 +1,17 @@
+{
+  "trash_id": "ddplus-atmos",
+  "trash_scores": {"default": 300},
+  "name": "DD+ Atmos",
+  "includeCustomFormatWhenRenaming": false,
+  "specifications": [
+    {
+      "name": "DD+ Atmos",
+      "implementation": "AudioCodecSpecification",
+      "negate": false,
+      "required": true,
+      "fields": {
+        "value": "(?i)eac3_atmos"
+      }
+    }
+  ]
+}
