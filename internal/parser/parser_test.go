@@ -232,12 +232,12 @@ func TestParse_ReleaseGroup(t *testing.T) {
 func TestParse_Markers(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name      string
-		input     string
-		isProper  bool
-		isRepack  bool
-		isHybrid  bool
-		revision  int
+		name     string
+		input    string
+		isProper bool
+		isRepack bool
+		isHybrid bool
+		revision int
 	}{
 		{"PROPER", "Movie.2024.1080p.BluRay.x264.PROPER-GRP", true, false, false, 2},
 		{"REPACK", "Movie.2024.1080p.WEB-DL.x265.REPACK-GRP", false, true, false, 2},

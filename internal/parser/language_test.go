@@ -5,9 +5,9 @@ import "testing"
 func TestParseLanguages_Detection(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name string
+		name  string
 		input string
-		want []Language
+		want  []Language
 	}{
 		{"French", "Movie.2020.French.1080p.BluRay", []Language{LangFrench}},
 		{"MULTI", "Movie.2020.MULTI.1080p.BluRay", []Language{LangMulti}},

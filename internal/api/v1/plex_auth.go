@@ -28,8 +28,8 @@ func RegisterPlexAuthRoutes(api huma.API) {
 		Path:        "/api/v1/plex/pin",
 		Summary:     "Create a Plex auth pin",
 		Tags:        []string{"Plex"},
-	}, func(_ context.Context, _ *struct{}) (*struct{ Body PlexPinResponse }, error) {
-		pin, err := createPlexPin()
+	}, func(ctx context.Context, _ *struct{}) (*struct{ Body PlexPinResponse }, error) {
+		pin, err := createPlexPin(ctx)
 		if err != nil {
 			return nil, huma.Error422UnprocessableEntity("failed to create Plex pin", err)
 		}
@@ -42,10 +42,10 @@ func RegisterPlexAuthRoutes(api huma.API) {
 		Path:        "/api/v1/plex/pin/{id}",
 		Summary:     "Check if a Plex pin has been claimed",
 		Tags:        []string{"Plex"},
-	}, func(_ context.Context, input *struct {
+	}, func(ctx context.Context, input *struct {
 		ID int64 `path:"id"`
 	}) (*struct{ Body PlexPinStatus }, error) {
-		status, err := checkPlexPin(input.ID)
+		status, err := checkPlexPin(ctx, input.ID)
 		if err != nil {
 			return nil, huma.Error422UnprocessableEntity("failed to check Plex pin", err)
 		}
@@ -73,9 +73,9 @@ func plexHTTPClient() *http.Client {
 	}
 }
 
-func createPlexPin() (PlexPinResponse, error) {
+func createPlexPin(ctx context.Context) (PlexPinResponse, error) {
 	body := strings.NewReader("strong=true")
-	req, err := http.NewRequest(http.MethodPost, plexPinURL, body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, plexPinURL, body)
 	if err != nil {
 		return PlexPinResponse{}, err
 	}
@@ -115,9 +115,9 @@ func createPlexPin() (PlexPinResponse, error) {
 	}, nil
 }
 
-func checkPlexPin(pinID int64) (PlexPinStatus, error) {
+func checkPlexPin(ctx context.Context, pinID int64) (PlexPinStatus, error) {
 	url := fmt.Sprintf("%s/%d", plexPinURL, pinID)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return PlexPinStatus{}, err
 	}

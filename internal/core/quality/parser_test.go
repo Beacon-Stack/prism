@@ -163,7 +163,6 @@ func TestParseReleaseGroup(t *testing.T) {
 	}
 }
 
-
 func TestParse(t *testing.T) {
 	t.Parallel()
 

@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/luminarr/luminarr/internal/core/dbutil"
-	"github.com/luminarr/luminarr/internal/parser"
 	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
 	"github.com/luminarr/luminarr/internal/events"
+	"github.com/luminarr/luminarr/internal/parser"
 	"github.com/luminarr/luminarr/internal/ratelimit"
 	"github.com/luminarr/luminarr/internal/registry"
 	"github.com/luminarr/luminarr/pkg/plugin"

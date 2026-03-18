@@ -469,7 +469,7 @@ func buildCFReleaseInfo(r plugin.Release) customformat.ReleaseInfo {
 		SizeBytes:     r.Size,
 	}
 	// Set modifier for remux/brdisk/rawhd sources.
-	switch r.Quality.Source {
+	switch r.Quality.Source { //nolint:exhaustive // only modifier sources need handling
 	case plugin.SourceRemux, plugin.SourceBRDisk, plugin.SourceRawHD:
 		ri.Modifier = string(r.Quality.Source)
 	}

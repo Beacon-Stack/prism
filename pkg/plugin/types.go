@@ -74,21 +74,21 @@ const (
 type AudioCodec string
 
 const (
-	AudioCodecUnknown    AudioCodec = ""
-	AudioCodecTrueHD     AudioCodec = "truehd"
+	AudioCodecUnknown     AudioCodec = ""
+	AudioCodecTrueHD      AudioCodec = "truehd"
 	AudioCodecTrueHDAtmos AudioCodec = "truehd_atmos"
-	AudioCodecDTSX       AudioCodec = "dts_x"
-	AudioCodecDTSHDMA    AudioCodec = "dts_hd_ma"
-	AudioCodecDTSHD      AudioCodec = "dts_hd"
-	AudioCodecDTS        AudioCodec = "dts"
-	AudioCodecEAC3Atmos  AudioCodec = "eac3_atmos"
-	AudioCodecEAC3       AudioCodec = "eac3"
-	AudioCodecAC3        AudioCodec = "ac3"
-	AudioCodecAAC        AudioCodec = "aac"
-	AudioCodecFLAC       AudioCodec = "flac"
-	AudioCodecPCM        AudioCodec = "pcm"
-	AudioCodecMP3        AudioCodec = "mp3"
-	AudioCodecOpus       AudioCodec = "opus"
+	AudioCodecDTSX        AudioCodec = "dts_x"
+	AudioCodecDTSHDMA     AudioCodec = "dts_hd_ma"
+	AudioCodecDTSHD       AudioCodec = "dts_hd"
+	AudioCodecDTS         AudioCodec = "dts"
+	AudioCodecEAC3Atmos   AudioCodec = "eac3_atmos"
+	AudioCodecEAC3        AudioCodec = "eac3"
+	AudioCodecAC3         AudioCodec = "ac3"
+	AudioCodecAAC         AudioCodec = "aac"
+	AudioCodecFLAC        AudioCodec = "flac"
+	AudioCodecPCM         AudioCodec = "pcm"
+	AudioCodecMP3         AudioCodec = "mp3"
+	AudioCodecOpus        AudioCodec = "opus"
 )
 
 // AudioChannels is the channel layout of a release.
