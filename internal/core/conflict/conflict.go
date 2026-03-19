@@ -16,11 +16,11 @@ const (
 
 // Conflict describes a single dimension regression.
 type Conflict struct {
-	Dimension string `json:"dimension"`  // "audio_codec", "audio_channels", "hdr", "edition", "resolution", "codec"
-	Severity  string `json:"severity"`   // "warning" or "caution"
-	Current   string `json:"current"`    // human-readable current value
-	Candidate string `json:"candidate"`  // human-readable candidate value
-	Summary   string `json:"summary"`    // "Audio downgrade: TrueHD Atmos → AC3 5.1"
+	Dimension string `json:"dimension"` // "audio_codec", "audio_channels", "hdr", "edition", "resolution", "codec"
+	Severity  string `json:"severity"`  // "warning" or "caution"
+	Current   string `json:"current"`   // human-readable current value
+	Candidate string `json:"candidate"` // human-readable candidate value
+	Summary   string `json:"summary"`   // "Audio downgrade: TrueHD Atmos → AC3 5.1"
 }
 
 // Compare checks each quality dimension for regressions. If the candidate

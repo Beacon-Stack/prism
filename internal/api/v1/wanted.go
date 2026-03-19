@@ -86,8 +86,8 @@ func RegisterWantedRoutes(api huma.API, svc *movie.Service) {
 		MovieIDs    []string `json:"movie_ids"`
 	}
 	type upgradeRecsBody struct {
-		Total int                `json:"total"`
-		Tiers []upgradeTierBody  `json:"tiers"`
+		Total int               `json:"total"`
+		Tiers []upgradeTierBody `json:"tiers"`
 	}
 
 	huma.Register(api, huma.Operation{

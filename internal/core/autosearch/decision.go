@@ -19,13 +19,13 @@ const (
 
 // ReleaseDecision records the outcome for one candidate release during search.
 type ReleaseDecision struct {
-	Title          string             `json:"title"`
-	GUID           string             `json:"guid"`
-	Outcome        string             `json:"outcome"` // "grabbed", "skipped"
-	Reason         SkipReason         `json:"reason"`
-	Explanation    string             `json:"explanation"`
-	QualityScore   int                `json:"quality_score"`
-	CFScore        int                `json:"cf_score"`
-	MatchedFormats []string           `json:"matched_formats,omitempty"`
+	Title          string                 `json:"title"`
+	GUID           string                 `json:"guid"`
+	Outcome        string                 `json:"outcome"` // "grabbed", "skipped"
+	Reason         SkipReason             `json:"reason"`
+	Explanation    string                 `json:"explanation"`
+	QualityScore   int                    `json:"quality_score"`
+	CFScore        int                    `json:"cf_score"`
+	MatchedFormats []string               `json:"matched_formats,omitempty"`
 	Breakdown      *plugin.ScoreBreakdown `json:"breakdown,omitempty"`
 }
