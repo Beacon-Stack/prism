@@ -381,8 +381,9 @@ function QualityMiniChart({
             dataKey="count"
             fill="var(--color-accent)"
             radius={[0, 4, 4, 0]}
-            onClick={onBarClick ? (entry: { label?: string }) => {
-              if (entry?.label) onBarClick(entry.label);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onClick={onBarClick ? (entry: any) => {
+              if (entry?.label) onBarClick(String(entry.label));
             } : undefined}
           >
             {data.map((_, i) => (
