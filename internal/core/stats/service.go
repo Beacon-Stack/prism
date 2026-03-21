@@ -185,11 +185,21 @@ func (s *Service) MovieIDsByQualityTier(ctx context.Context, resolution, source 
 		if err := json.Unmarshal([]byte(row.QualityJson), &q); err != nil {
 			continue
 		}
+		// Apply the same normalization as QualityDistribution so that
+		// tier labels from the frontend match.
+		res := string(q.Resolution)
+		if res == "" {
+			res = "unknown"
+		}
+		src := string(q.Source)
+		if src == "" {
+			src = "unknown"
+		}
 		sc := q.Score()
 		if prev, ok := best[row.MovieID]; !ok || sc > prev.score {
 			best[row.MovieID] = movieQuality{
-				resolution: string(q.Resolution),
-				source:     string(q.Source),
+				resolution: res,
+				source:     src,
 				score:      sc,
 			}
 		}
