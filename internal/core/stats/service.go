@@ -114,7 +114,7 @@ func (s *Service) Collection(ctx context.Context) (CollectionStats, error) {
 // QualityDistribution returns movie file counts grouped by quality dimensions.
 // Quality JSON is decoded in Go to avoid SQLite JSON function limitations.
 func (s *Service) QualityDistribution(ctx context.Context) ([]QualityBucket, error) {
-	rows, err := s.q.ListMovieFileQualities(ctx)
+	rows, err := s.q.ListMovieFileQualitiesWithIDs(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("listing file qualities: %w", err)
 	}
@@ -125,12 +125,14 @@ func (s *Service) QualityDistribution(ctx context.Context) ([]QualityBucket, err
 		Codec      string
 		HDR        string
 	}
-	counts := make(map[key]int64, len(rows))
+	// Count unique movies per quality bucket, not files.
+	// A movie with multiple files at the same quality is counted once.
+	movieSets := make(map[key]map[string]bool)
 
-	for _, raw := range rows {
+	for _, row := range rows {
 		var q plugin.Quality
-		if err := json.Unmarshal([]byte(raw), &q); err != nil {
-			continue // malformed row — skip silently
+		if err := json.Unmarshal([]byte(row.QualityJson), &q); err != nil {
+			continue
 		}
 		res := string(q.Resolution)
 		if res == "" {
@@ -148,17 +150,21 @@ func (s *Service) QualityDistribution(ctx context.Context) ([]QualityBucket, err
 		if hdr == "" {
 			hdr = "none"
 		}
-		counts[key{res, src, codec, hdr}]++
+		k := key{res, src, codec, hdr}
+		if movieSets[k] == nil {
+			movieSets[k] = make(map[string]bool)
+		}
+		movieSets[k][row.MovieID] = true
 	}
 
-	buckets := make([]QualityBucket, 0, len(counts))
-	for k, count := range counts {
+	buckets := make([]QualityBucket, 0, len(movieSets))
+	for k, movies := range movieSets {
 		buckets = append(buckets, QualityBucket{
 			Resolution: k.Resolution,
 			Source:     k.Source,
 			Codec:      k.Codec,
 			HDR:        k.HDR,
-			Count:      count,
+			Count:      int64(len(movies)),
 		})
 	}
 	return buckets, nil
