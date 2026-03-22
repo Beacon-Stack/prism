@@ -26,7 +26,7 @@ const (
 
 // RequiresConfirmation returns true for state-modifying actions.
 func (a ActionType) RequiresConfirmation() bool {
-	switch a {
+	switch a { //nolint:exhaustive // only state-modifying actions need confirmation
 	case ActionAutoSearch, ActionRunTask:
 		return true
 	}

@@ -20,12 +20,12 @@ import (
 
 // Service orchestrates AI command processing.
 type Service struct {
-	movieSvc    *movie.Service
-	statsSvc    *stats.Service
-	autoSvc     *autosearch.Service
-	librarySvc  *library.Service
-	qualitySvc  *quality.Service
-	logger      *slog.Logger
+	movieSvc     *movie.Service
+	statsSvc     *stats.Service
+	autoSvc      *autosearch.Service
+	librarySvc   *library.Service
+	qualitySvc   *quality.Service
+	logger       *slog.Logger
 	pendingStore *PendingStore
 
 	// mu guards client and rate-limit state.
@@ -139,11 +139,12 @@ func (s *Service) ProcessCommand(ctx context.Context, text string) (*CommandResp
 
 	// For state-modifying actions, resolve the movie and store for confirmation.
 	if result.Action.RequiresConfirmation() {
-		result, err = s.prepareConfirmation(ctx, result)
-		if err != nil {
-			return &CommandResponse{
+		var prepErr error
+		result, prepErr = s.prepareConfirmation(ctx, result)
+		if prepErr != nil {
+			return &CommandResponse{ //nolint:nilerr // graceful degradation — show error as fallback message
 				Action:      ActionFallback,
-				Explanation: err.Error(),
+				Explanation: prepErr.Error(),
 			}, nil
 		}
 	}
@@ -154,7 +155,7 @@ func (s *Service) ProcessCommand(ctx context.Context, text string) (*CommandResp
 // prepareConfirmation resolves references (e.g. movie title → ID) and stores
 // the action for later confirmation.
 func (s *Service) prepareConfirmation(ctx context.Context, resp *CommandResponse) (*CommandResponse, error) {
-	switch resp.Action {
+	switch resp.Action { //nolint:exhaustive // only state-modifying actions reach here
 	case ActionAutoSearch:
 		return s.prepareAutoSearch(ctx, resp)
 	case ActionRunTask:
