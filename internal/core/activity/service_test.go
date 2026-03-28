@@ -292,14 +292,24 @@ func TestConcurrentWrites(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	time.Sleep(200 * time.Millisecond) // wait for async handlers
 
-	result, err := svc.List(ctx, nil, nil, 100)
-	if err != nil {
-		t.Fatalf("List: %v", err)
-	}
-	if len(result.Activities) != 50 {
-		t.Fatalf("expected 50 activities, got %d", len(result.Activities))
+	// Event handlers run in goroutines. Poll until all have completed
+	// rather than using a fixed sleep (avoids flakiness under -race).
+	deadline := time.After(5 * time.Second)
+	for {
+		result, err := svc.List(ctx, nil, nil, 100)
+		if err != nil {
+			t.Fatalf("List: %v", err)
+		}
+		if len(result.Activities) == 50 {
+			return // success
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("timed out: expected 50 activities, got %d", len(result.Activities))
+		case <-time.After(50 * time.Millisecond):
+			// retry
+		}
 	}
 }
 
