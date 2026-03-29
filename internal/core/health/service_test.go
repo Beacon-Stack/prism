@@ -121,7 +121,6 @@ func TestOverallStatus_Aggregation(t *testing.T) {
 	}
 }
 
-
 func TestCheck_NoLibrariesNoClientsNoIndexers(t *testing.T) {
 	q := testutil.NewTestDB(t)
 	logger := slog.Default()
