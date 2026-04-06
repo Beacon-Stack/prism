@@ -1,4 +1,4 @@
-const DOCS_BASE = "https://luminarr.video/docs";
+const DOCS_BASE = "https://prism.video/docs";
 
 export const DOCS_URLS = {
   // Settings pages

@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestBuildMessage(t *testing.T) {
-	msg := buildMessage("noreply@luminarr.dev", []string{"user@example.com"}, "Test Subject", "Hello body")
+	msg := buildMessage("noreply@prism.dev", []string{"user@example.com"}, "Test Subject", "Hello body")
 	s := string(msg)
 
-	if !strings.Contains(s, "From: noreply@luminarr.dev\r\n") {
+	if !strings.Contains(s, "From: noreply@prism.dev\r\n") {
 		t.Error("missing or wrong From header")
 	}
 	if !strings.Contains(s, "To: user@example.com\r\n") {

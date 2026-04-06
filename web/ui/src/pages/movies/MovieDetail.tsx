@@ -395,7 +395,7 @@ function RenameModal({
 
 // ── MediaInfo helpers ─────────────────────────────────────────────────────────
 
-// Normalise ffprobe codec names to Luminarr's Quality.codec values.
+// Normalise ffprobe codec names to Prism's Quality.codec values.
 function normCodec(ffprobeCodec: string): string {
   const map: Record<string, string> = {
     x265: "x265", hevc: "x265", h265: "x265",
@@ -1021,7 +1021,7 @@ function DeleteConfirmBar({ movieId, onCancel }: { movieId: string; onCancel: ()
       }}
     >
       <span style={{ fontSize: 13, color: "var(--color-text-primary)", flex: 1 }}>
-        Remove this movie from Luminarr? (Files on disk are not deleted.)
+        Remove this movie from Prism? (Files on disk are not deleted.)
       </span>
       <button
         onClick={() => del.mutate(movieId, { onSuccess: () => navigate("/") })}
@@ -1250,8 +1250,8 @@ export default function MovieDetail() {
         </div>
       </div>
 
-      {/* Main layout */}
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+      {/* Main layout — poster centered against content */}
+      <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
         {/* Poster */}
         <div style={{ flexShrink: 0, width: 180 }}>
           <Poster
@@ -1510,115 +1510,6 @@ export default function MovieDetail() {
                 </div>
               )}
 
-              {/* Director / Writer */}
-              {credits && credits.crew.length > 0 && (
-                <div data-testid="crew-row" style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
-                  {credits.crew
-                    .filter((c) => c.job === "Director")
-                    .map((c, i) => (
-                      <span key={c.id}>
-                        {i > 0 && ", "}
-                        Directed by <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{c.name}</span>
-                      </span>
-                    ))}
-                  {credits.crew.some((c) => c.job === "Director") &&
-                    credits.crew.some((c) => c.job === "Screenplay" || c.job === "Writer") &&
-                    <span> &middot; </span>}
-                  {credits.crew
-                    .filter((c) => c.job === "Screenplay" || c.job === "Writer")
-                    .slice(0, 2)
-                    .map((c, i) => (
-                      <span key={c.id}>
-                        {i > 0 && ", "}
-                        {i === 0 && "Written by "}
-                        <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{c.name}</span>
-                      </span>
-                    ))}
-                </div>
-              )}
-
-              {/* Cast strip */}
-              {credits && credits.cast.length > 0 && (
-                <div data-testid="cast-strip">
-                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-muted)", marginBottom: 8 }}>
-                    Cast
-                  </div>
-                  <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
-                    {credits.cast.map((c) => (
-                      <div key={c.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 72, maxWidth: 72 }}>
-                        {c.profile_path ? (
-                          <img
-                            src={`https://image.tmdb.org/t/p/w185${c.profile_path}`}
-                            alt={c.name}
-                            style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover" }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: 48,
-                              height: 48,
-                              borderRadius: "50%",
-                              background: "var(--color-bg-subtle)",
-                              border: "1px solid var(--color-border-subtle)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 14,
-                              fontWeight: 600,
-                              color: "var(--color-text-muted)",
-                            }}
-                          >
-                            {c.name.charAt(0)}
-                          </div>
-                        )}
-                        <span style={{ fontSize: 10, fontWeight: 500, color: "var(--color-text-primary)", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>
-                          {c.name}
-                        </span>
-                        <span style={{ fontSize: 9, color: "var(--color-text-muted)", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>
-                          {c.character}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Similar movies */}
-              {credits && credits.recommendations.length > 0 && (
-                <div data-testid="similar-movies">
-                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-muted)", marginBottom: 8 }}>
-                    You might also like
-                  </div>
-                  <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
-                    {credits.recommendations.map((r) => (
-                      <Link
-                        key={r.tmdb_id}
-                        to={r.in_library && r.movie_id ? `/movies/${r.movie_id}` : `/`}
-                        style={{ textDecoration: "none", minWidth: 100, maxWidth: 100 }}
-                      >
-                        <Poster
-                          src={r.poster_path ? `https://image.tmdb.org/t/p/w185${r.poster_path}` : undefined}
-                          title={r.title}
-                          year={r.year}
-                        />
-                        <div style={{ marginTop: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-primary)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {r.title}
-                          </span>
-                          <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
-                            {r.year > 0 && r.year}
-                          </span>
-                          {r.in_library && (
-                            <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, background: "color-mix(in srgb, var(--color-success) 15%, transparent)", color: "var(--color-success)", fontWeight: 600, marginLeft: 4 }}>
-                              In Library
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1627,6 +1518,137 @@ export default function MovieDetail() {
           {tab === "history" && <HistoryTab movieId={movie.id} />}
         </div>
       </div>
+
+      {/* Credits & recommendations — full width below the two-column layout */}
+      {tab === "overview" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 24 }}>
+          {/* Director / Writer */}
+          {credits && credits.crew.length > 0 && (
+            <div data-testid="crew-row" style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+              {credits.crew
+                .filter((c) => c.job === "Director")
+                .map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 && ", "}
+                    Directed by <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{c.name}</span>
+                  </span>
+                ))}
+              {credits.crew.some((c) => c.job === "Director") &&
+                credits.crew.some((c) => c.job === "Screenplay" || c.job === "Writer") &&
+                <span> &middot; </span>}
+              {credits.crew
+                .filter((c) => c.job === "Screenplay" || c.job === "Writer")
+                .slice(0, 2)
+                .map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 && ", "}
+                    {i === 0 && "Written by "}
+                    <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{c.name}</span>
+                  </span>
+                ))}
+            </div>
+          )}
+
+          {/* Cast strip */}
+          {credits && credits.cast.length > 0 && (
+            <div data-testid="cast-strip">
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-muted)", marginBottom: 8 }}>
+                Cast
+              </div>
+              <div
+                style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}
+                onWheel={(e) => {
+                  if (e.deltaY !== 0) {
+                    e.currentTarget.scrollLeft += e.deltaY;
+                    e.preventDefault();
+                  }
+                }}
+              >
+                {credits.cast.map((c) => (
+                  <div key={c.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 72, maxWidth: 72 }}>
+                    {c.profile_path ? (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w185${c.profile_path}`}
+                        alt={c.name}
+                        style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: "50%",
+                          background: "var(--color-bg-subtle)",
+                          border: "1px solid var(--color-border-subtle)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        {c.name.charAt(0)}
+                      </div>
+                    )}
+                    <span style={{ fontSize: 10, fontWeight: 500, color: "var(--color-text-primary)", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>
+                      {c.name}
+                    </span>
+                    <span style={{ fontSize: 9, color: "var(--color-text-muted)", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>
+                      {c.character}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Similar movies */}
+          {credits && credits.recommendations.length > 0 && (
+            <div data-testid="similar-movies">
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-text-muted)", marginBottom: 8 }}>
+                You might also like
+              </div>
+              <div
+                style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}
+                onWheel={(e) => {
+                  if (e.deltaY !== 0) {
+                    e.currentTarget.scrollLeft += e.deltaY;
+                    e.preventDefault();
+                  }
+                }}
+              >
+                {credits.recommendations.map((r) => (
+                  <Link
+                    key={r.tmdb_id}
+                    to={r.in_library && r.movie_id ? `/movies/${r.movie_id}` : `/`}
+                    style={{ textDecoration: "none", minWidth: 100, maxWidth: 100 }}
+                  >
+                    <Poster
+                      src={r.poster_path ? `https://image.tmdb.org/t/p/w185${r.poster_path}` : undefined}
+                      title={r.title}
+                      year={r.year}
+                    />
+                    <div style={{ marginTop: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text-primary)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.title}
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
+                        {r.year > 0 && r.year}
+                      </span>
+                      {r.in_library && (
+                        <span style={{ fontSize: 9, padding: "1px 5px", borderRadius: 3, background: "color-mix(in srgb, var(--color-success) 15%, transparent)", color: "var(--color-success)", fontWeight: 600, marginLeft: 4 }}>
+                          In Library
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );

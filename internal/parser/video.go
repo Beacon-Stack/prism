@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // All regexps are compiled once at package init — never inside parse functions.

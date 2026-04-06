@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
 )
 
 // TMDBClient is a configurable mock of movie.MetadataProvider.

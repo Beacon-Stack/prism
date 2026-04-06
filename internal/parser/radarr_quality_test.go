@@ -3,13 +3,13 @@ package parser
 import (
 	"testing"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // TestRadarr_QualityParser ports test cases from Radarr's QualityParserFixture.cs.
 // Each subtest verifies Source and Resolution parsed by our Parse() function.
 //
-// Mapping from Radarr's (QualitySource, Modifier) to Luminarr Source:
+// Mapping from Radarr's (QualitySource, Modifier) to Prism Source:
 //
 //	BLURAY                → plugin.SourceBluRay
 //	BLURAY + REMUX        → plugin.SourceRemux

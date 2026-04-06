@@ -3,7 +3,7 @@ package quality
 import (
 	"strings"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // Profile defines a quality policy for a monitored movie.

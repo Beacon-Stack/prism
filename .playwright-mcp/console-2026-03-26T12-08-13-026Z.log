@@ -1,0 +1,16 @@
+[       7ms] [ERROR] Loading the stylesheet 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' violates the following Content Security Policy directive: "style-src 'self' 'unsafe-inline'". Note that 'style-src-elem' was not explicitly set, so 'style-src' is used as a fallback. The action has been blocked. @ http://localhost:8282/:14
+[      66ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[    1214ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[    3329ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[    7580ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[   16411ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[   33323ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[   65644ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[   95645ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  125646ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  155647ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  185649ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  215651ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  245653ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  275662ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10
+[  305671ms] [ERROR] WebSocket connection to 'ws://localhost:8282/api/v1/ws' failed: HTTP Authentication failed; no valid credentials available @ http://localhost:8282/assets/index-N3E_O2wX.js:10

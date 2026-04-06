@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/dbutil"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/registry"
+	"github.com/beacon-media/prism/internal/core/dbutil"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/registry"
 )
 
 // ErrNotFound is returned when a media server config does not exist.

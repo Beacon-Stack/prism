@@ -1,4 +1,4 @@
-// Package quality implements quality parsing and profile comparison for Luminarr.
+// Package quality implements quality parsing and profile comparison for Prism.
 // It translates raw scene release titles (e.g. "Movie.2021.2160p.BluRay.REMUX.HEVC.DoVi-GRP")
 // into structured plugin.Quality values and provides Profile logic for deciding
 // which releases to grab or upgrade.
@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // All regexps are compiled once at package init — never inside Parse.
@@ -310,7 +310,7 @@ func parseAudioChannels(norm string) plugin.AudioChannels {
 }
 
 // buildName produces a human-readable label in the style used throughout
-// Luminarr's UI and logs.
+// Prism's UI and logs.
 //
 // Format examples:
 //

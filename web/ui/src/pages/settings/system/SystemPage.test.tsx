@@ -61,7 +61,7 @@ describe("StatusSection", () => {
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/Luminarr 0\.0\.0-test/)).toBeInTheDocument()
+      expect(screen.getByText(/Prism 0\.0\.0-test/)).toBeInTheDocument()
     );
 
     expect(screen.getByText("go1.23.0")).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("StatusSection", () => {
           update_available: true,
           current_version: "0.0.0-test",
           latest_version: "1.0.0",
-          release_url: "https://github.com/luminarr/luminarr/releases/tag/v1.0.0",
+          release_url: "https://github.com/prism/prism/releases/tag/v1.0.0",
           release_notes: "## What's New\n- First release",
           published_at: "2025-06-01T00:00:00Z",
         })

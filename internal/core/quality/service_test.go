@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/testutil"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // newService is a thin helper that wires up a Service backed by a fresh in-memory DB.

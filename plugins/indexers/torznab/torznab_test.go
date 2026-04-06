@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // capsXML is a minimal but realistic Torznab capabilities response.

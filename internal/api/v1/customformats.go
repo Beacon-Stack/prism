@@ -7,8 +7,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/customformat"
-	"github.com/luminarr/luminarr/internal/core/customformat/presets"
+	"github.com/beacon-media/prism/internal/core/customformat"
+	"github.com/beacon-media/prism/internal/core/customformat/presets"
 )
 
 // --- request / response types ------------------------------------------------

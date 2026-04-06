@@ -15,7 +15,7 @@ import (
 const (
 	defaultBaseURL = "https://api.themoviedb.org/3"
 	httpTimeout    = 30 * time.Second
-	userAgent      = "Luminarr/0.1.0"
+	userAgent      = "Prism/0.1.0"
 	redactedAPIKey = "***"
 )
 

@@ -1,4 +1,4 @@
-// Package plex implements a Luminarr media server plugin for Plex.
+// Package plex implements a Prism media server plugin for Plex.
 // On import_complete it triggers a library section refresh so the
 // new movie appears immediately.
 package plex
@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/config"
+	"github.com/beacon-media/prism/internal/config"
 )
 
 func TestWriteConfigKey_ExplicitPath(t *testing.T) {

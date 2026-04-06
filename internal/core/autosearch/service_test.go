@@ -9,18 +9,18 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/autosearch"
-	"github.com/luminarr/luminarr/internal/core/blocklist"
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/ratelimit"
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/testutil"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/autosearch"
+	"github.com/beacon-media/prism/internal/core/blocklist"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/quality"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/ratelimit"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // ── mock indexer ─────────────────────────────────────────────────────────────

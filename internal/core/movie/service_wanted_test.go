@@ -6,10 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/testutil"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func newWantedTestService(t *testing.T) *movie.Service {

@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/importlist"
-	"github.com/luminarr/luminarr/internal/scheduler"
+	"github.com/beacon-media/prism/internal/core/importlist"
+	"github.com/beacon-media/prism/internal/scheduler"
 )
 
 // ImportListSync returns a Job that syncs all enabled import lists every 6 hours.

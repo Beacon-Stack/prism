@@ -1,11 +1,11 @@
-// Package mock provides hand-written mock implementations of Luminarr's plugin
+// Package mock provides hand-written mock implementations of Prism's plugin
 // interfaces for use in unit and integration tests.
 package mock
 
 import (
 	"context"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // Indexer is a configurable mock of plugin.Indexer.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/version"
+	"github.com/beacon-media/prism/internal/version"
 )
 
 func registerSystemRoutes(api huma.API) {
@@ -19,8 +19,8 @@ func registerSystemRoutes(api huma.API) {
 		Tags:        []string{"RadarrCompat"},
 	}, func(_ context.Context, _ *struct{}) (*struct{ Body RadarrSystemStatus }, error) {
 		return &struct{ Body RadarrSystemStatus }{Body: RadarrSystemStatus{
-			AppName:        "Luminarr",
-			InstanceName:   "Luminarr",
+			AppName:        "Prism",
+			InstanceName:   "Prism",
 			Version:        version.Version,
 			Branch:         "main",
 			Authentication: "apiKey",

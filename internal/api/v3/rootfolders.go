@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/library"
 )
 
 func registerRootFolderRoutes(api huma.API, db *sql.DB, svc *library.Service) {

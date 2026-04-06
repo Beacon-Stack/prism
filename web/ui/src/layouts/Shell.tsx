@@ -225,7 +225,7 @@ function Sidebar({
                 flex: 1,
               }}
             >
-              Luminarr
+              Prism
             </span>
           )}
         </Link>
@@ -308,7 +308,7 @@ function Sidebar({
         }}
       >
         <a
-          href="https://luminarr.video/docs"
+          href="https://prism.video/docs"
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -495,7 +495,7 @@ export function Shell() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                Luminarr
+                Prism
               </span>
             </Link>
           </div>

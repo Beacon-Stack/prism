@@ -121,10 +121,10 @@ function StatsStrip() {
 
 // ── Update Modal ──────────────────────────────────────────────────────────────
 
-const DOCKER_IMAGE = "ghcr.io/luminarr/luminarr";
+const DOCKER_IMAGE = "ghcr.io/prism/prism";
 
 const composeCmd = `docker compose pull\ndocker compose up -d`;
-const dockerPullCmd = `docker pull ${DOCKER_IMAGE}:latest\ndocker stop luminarr\ndocker rm luminarr\ndocker run -d --name luminarr \\\n  -p 8282:8282 \\\n  -v luminarr-config:/config \\\n  ${DOCKER_IMAGE}:latest`;
+const dockerPullCmd = `docker pull ${DOCKER_IMAGE}:latest\ndocker stop prism\ndocker rm prism\ndocker run -d --name prism \\\n  -p 8282:8282 \\\n  -v prism-config:/config \\\n  ${DOCKER_IMAGE}:latest`;
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);

@@ -8,8 +8,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/scheduler"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/scheduler"
 )
 
 func registerCommandRoutes(api huma.API, db *sql.DB, movieSvc *movie.Service, sched *scheduler.Scheduler) {
@@ -33,7 +33,7 @@ func registerCommandRoutes(api huma.API, db *sql.DB, movieSvc *movie.Service, sc
 
 		switch input.Body.Name {
 		case "MoviesSearch":
-			// Trigger search for specified movies. In Luminarr this is handled
+			// Trigger search for specified movies. In Prism this is handled
 			// by the RSS sync / automatic search — just acknowledge.
 			// Future: actually trigger indexer search for specific movies.
 		case "RefreshMovie":

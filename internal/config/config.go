@@ -2,16 +2,17 @@ package config
 
 // Config holds all application configuration.
 // Values are loaded from config.yaml and can be overridden by
-// LUMINARR_* environment variables (e.g. LUMINARR_SERVER_PORT=8080).
+// PRISM_* environment variables (e.g. PRISM_SERVER_PORT=8080).
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	Database  DatabaseConfig  `mapstructure:"database"`
-	Log       LogConfig       `mapstructure:"log"`
-	TMDB      TMDBConfig      `mapstructure:"tmdb"`
-	Trakt     TraktConfig     `mapstructure:"trakt"`
-	AI        AIConfig        `mapstructure:"ai"`
-	Auth      AuthConfig      `mapstructure:"auth"`
-	MediaInfo MediaInfoConfig `mapstructure:"mediainfo"`
+	Server      ServerConfig      `mapstructure:"server"`
+	Database    DatabaseConfig    `mapstructure:"database"`
+	Log         LogConfig         `mapstructure:"log"`
+	TMDB        TMDBConfig        `mapstructure:"tmdb"`
+	Trakt       TraktConfig       `mapstructure:"trakt"`
+	AI          AIConfig          `mapstructure:"ai"`
+	Auth        AuthConfig        `mapstructure:"auth"`
+	MediaInfo   MediaInfoConfig   `mapstructure:"mediainfo"`
+	Pulse PulseConfig `mapstructure:"pulse"`
 
 	// ConfigFile is the path of the config file that was loaded, if any.
 	// Empty when running on defaults/env vars only.
@@ -69,7 +70,7 @@ type AIConfig struct {
 	FilterModel string `mapstructure:"filter_model"`
 }
 
-// AuthConfig holds the Luminarr API key used to authenticate requests.
+// AuthConfig holds the Prism API key used to authenticate requests.
 type AuthConfig struct {
 	APIKey Secret `mapstructure:"api_key"`
 }
@@ -80,10 +81,20 @@ type TraktConfig struct {
 	ClientID Secret `mapstructure:"client_id"`
 }
 
+// PulseConfig holds optional Pulse integration settings.
+// When URL and APIKey are set, Prism will register itself with Pulse
+// on startup and auto-discover ecosystem services.
+type PulseConfig struct {
+	// URL is the base URL of the Pulse instance (e.g. "http://pulse:9696").
+	URL string `mapstructure:"url"`
+	// APIKey is the Pulse API key.
+	APIKey Secret `mapstructure:"api_key"`
+}
+
 // DefaultTMDBKey is set at build time via ldflags. Users can override
-// via config file or LUMINARR_TMDB_API_KEY env var.
+// via config file or PRISM_TMDB_API_KEY env var.
 var DefaultTMDBKey string
 
 // DefaultTraktClientID is set at build time via ldflags. Users can override
-// via config file or LUMINARR_TRAKT_CLIENT_ID env var.
+// via config file or PRISM_TRAKT_CLIENT_ID env var.
 var DefaultTraktClientID string

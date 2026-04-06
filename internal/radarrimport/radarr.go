@@ -1,5 +1,5 @@
 // Package radarrimport fetches data from a running Radarr instance and
-// creates matching records in Luminarr's database using the existing service
+// creates matching records in Prism's database using the existing service
 // layer. It is used only for the one-time migration wizard in the UI.
 package radarrimport
 
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/safedialer"
+	"github.com/beacon-media/prism/internal/safedialer"
 )
 
 // ── Radarr API types ──────────────────────────────────────────────────────────

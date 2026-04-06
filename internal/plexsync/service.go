@@ -1,6 +1,6 @@
-// Package plexsync provides bidirectional library comparison between Luminarr
+// Package plexsync provides bidirectional library comparison between Prism
 // and a configured Plex media server. It identifies movies that exist in one
-// system but not the other, and supports importing Plex-only movies into Luminarr.
+// system but not the other, and supports importing Plex-only movies into Prism.
 package plexsync
 
 import (
@@ -9,23 +9,23 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/luminarr/luminarr/internal/core/mediaserver"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	plexpkg "github.com/luminarr/luminarr/plugins/mediaservers/plex"
+	"github.com/beacon-media/prism/internal/core/mediaserver"
+	"github.com/beacon-media/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	plexpkg "github.com/beacon-media/prism/plugins/mediaservers/plex"
 )
 
 // ── Result types ─────────────────────────────────────────────────────────────
 
-// SyncMovie is a movie found only in Plex (not in Luminarr).
+// SyncMovie is a movie found only in Plex (not in Prism).
 type SyncMovie struct {
 	Title  string `json:"title"`
 	Year   int    `json:"year"`
 	TmdbID int    `json:"tmdb_id"`
 }
 
-// LuminarrMovie is a movie found only in Luminarr (not in Plex).
-type LuminarrMovie struct {
+// PrismMovie is a movie found only in Prism (not in Plex).
+type PrismMovie struct {
 	ID     string `json:"id"`
 	Title  string `json:"title"`
 	Year   int    `json:"year"`
@@ -33,11 +33,11 @@ type LuminarrMovie struct {
 	Status string `json:"status"`
 }
 
-// SyncPreview summarises the library diff between Plex and Luminarr.
+// SyncPreview summarises the library diff between Plex and Prism.
 type SyncPreview struct {
 	PlexTotal      int             `json:"plex_total"`
 	InPlexOnly     []SyncMovie     `json:"in_plex_only"`
-	InLuminarrOnly []LuminarrMovie `json:"in_luminarr_only"`
+	InPrismOnly []PrismMovie `json:"in_prism_only"`
 	AlreadySynced  int             `json:"already_synced"`
 	Unmatched      int             `json:"unmatched"`
 }
@@ -81,7 +81,7 @@ func (s *Service) Sections(ctx context.Context, mediaServerID string) ([]plexpkg
 	return srv.ListSections(ctx)
 }
 
-// Preview fetches movies from a Plex section and compares against Luminarr's library.
+// Preview fetches movies from a Plex section and compares against Prism's library.
 func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string) (*SyncPreview, error) {
 	srv, err := s.instantiatePlex(ctx, mediaServerID)
 	if err != nil {
@@ -93,14 +93,14 @@ func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string)
 		return nil, fmt.Errorf("listing plex movies: %w", err)
 	}
 
-	// Build set of Luminarr TMDB IDs.
+	// Build set of Prism TMDB IDs.
 	summaries, err := s.q.ListMovieSummaries(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("listing luminarr movies: %w", err)
+		return nil, fmt.Errorf("listing prism movies: %w", err)
 	}
-	luminarrByTmdb := make(map[int]dbsqlite.ListMovieSummariesRow, len(summaries))
+	prismByTmdb := make(map[int]dbsqlite.ListMovieSummariesRow, len(summaries))
 	for _, m := range summaries {
-		luminarrByTmdb[int(m.TmdbID)] = m
+		prismByTmdb[int(m.TmdbID)] = m
 	}
 
 	// Build set of Plex TMDB IDs.
@@ -118,7 +118,7 @@ func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string)
 	inPlexOnly := make([]SyncMovie, 0)
 	var alreadySynced int
 	for tmdbID, pm := range plexByTmdb {
-		if _, inLuminarr := luminarrByTmdb[tmdbID]; inLuminarr {
+		if _, inPrism := prismByTmdb[tmdbID]; inPrism {
 			alreadySynced++
 		} else {
 			inPlexOnly = append(inPlexOnly, SyncMovie{
@@ -129,10 +129,10 @@ func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string)
 		}
 	}
 
-	inLuminarrOnly := make([]LuminarrMovie, 0)
-	for tmdbID, lm := range luminarrByTmdb {
+	inPrismOnly := make([]PrismMovie, 0)
+	for tmdbID, lm := range prismByTmdb {
 		if _, inPlex := plexByTmdb[tmdbID]; !inPlex {
-			inLuminarrOnly = append(inLuminarrOnly, LuminarrMovie{
+			inPrismOnly = append(inPrismOnly, PrismMovie{
 				ID:     lm.ID,
 				Title:  lm.Title,
 				Year:   int(lm.Year),
@@ -145,13 +145,13 @@ func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string)
 	return &SyncPreview{
 		PlexTotal:      len(plexMovies),
 		InPlexOnly:     inPlexOnly,
-		InLuminarrOnly: inLuminarrOnly,
+		InPrismOnly: inPrismOnly,
 		AlreadySynced:  alreadySynced,
 		Unmatched:      unmatched,
 	}, nil
 }
 
-// Import adds selected Plex movies to Luminarr.
+// Import adds selected Plex movies to Prism.
 func (s *Service) Import(ctx context.Context, opts SyncImportOptions) (*SyncImportResult, error) {
 	result := &SyncImportResult{Errors: []string{}}
 	for _, tmdbID := range opts.TmdbIDs {

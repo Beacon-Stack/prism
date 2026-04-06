@@ -30,7 +30,7 @@ describe("useSystemStatus", () => {
     const { result } = renderHook(() => useSystemStatus(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data?.app_name).toBe("Luminarr");
+    expect(result.current.data?.app_name).toBe("Prism");
     expect(result.current.data?.version).toBe("0.0.0-test");
     expect(result.current.data?.go_version).toBe("go1.23.0");
   });

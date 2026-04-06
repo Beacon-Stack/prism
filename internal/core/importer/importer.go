@@ -17,16 +17,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/downloadhandling"
-	"github.com/luminarr/luminarr/internal/core/mediainfo"
-	"github.com/luminarr/luminarr/internal/core/mediamanagement"
-	"github.com/luminarr/luminarr/internal/core/pathutil"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/core/renamer"
-	"github.com/luminarr/luminarr/internal/db"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/downloadhandling"
+	"github.com/beacon-media/prism/internal/core/mediainfo"
+	"github.com/beacon-media/prism/internal/core/mediamanagement"
+	"github.com/beacon-media/prism/internal/core/pathutil"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/core/renamer"
+	"github.com/beacon-media/prism/internal/db"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // videoExtensions is the set of file extensions considered video files.

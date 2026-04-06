@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/stats"
-	"github.com/luminarr/luminarr/internal/scheduler"
+	"github.com/beacon-media/prism/internal/core/stats"
+	"github.com/beacon-media/prism/internal/scheduler"
 )
 
 // StatsSnapshot returns a Job that records a storage snapshot once per day

@@ -7,8 +7,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 type wantedInput struct {

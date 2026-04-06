@@ -11,14 +11,14 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/autosearch"
-	"github.com/luminarr/luminarr/internal/core/blocklist"
-	"github.com/luminarr/luminarr/internal/core/conflict"
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/autosearch"
+	"github.com/beacon-media/prism/internal/core/blocklist"
+	"github.com/beacon-media/prism/internal/core/conflict"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

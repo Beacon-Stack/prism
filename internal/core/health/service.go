@@ -1,4 +1,4 @@
-// Package health provides system health checks for Luminarr.
+// Package health provides system health checks for Prism.
 // Checks cover library path accessibility, download client connectivity,
 // and indexer reachability.
 package health
@@ -10,9 +10,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/library"
 )
 
 // Status represents the health state of a single check or the overall system.

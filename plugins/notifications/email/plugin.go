@@ -1,4 +1,4 @@
-// Package email implements a Luminarr notification plugin that sends events
+// Package email implements a Prism notification plugin that sends events
 // as plain-text emails via an SMTP server.
 package email
 
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {
@@ -75,7 +75,7 @@ func (n *Notifier) Name() string { return "Email" }
 
 // Notify sends the event as a plain-text email.
 func (n *Notifier) Notify(_ context.Context, event plugin.NotificationEvent) error {
-	subject := fmt.Sprintf("[Luminarr] %s", event.Type)
+	subject := fmt.Sprintf("[Prism] %s", event.Type)
 	body := fmt.Sprintf("Event: %s\nTime: %s\n\n%s",
 		event.Type,
 		event.Timestamp.UTC().Format(time.RFC1123),
@@ -96,7 +96,7 @@ func (n *Notifier) Test(ctx context.Context) error {
 	return n.Notify(ctx, plugin.NotificationEvent{
 		Type:      plugin.EventType("test"),
 		Timestamp: time.Now().UTC(),
-		Message:   "Luminarr email test — connection successful",
+		Message:   "Prism email test — connection successful",
 	})
 }
 

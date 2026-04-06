@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/luminarr/luminarr/pkg/plugin"
+import "github.com/beacon-media/prism/pkg/plugin"
 
 // ParseQuality is a convenience function that returns only the plugin.Quality
 // portion of a full parse. Drop-in replacement for quality.Parse().

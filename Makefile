@@ -1,9 +1,9 @@
 ## Luminarr Makefile
 
-MODULE  := github.com/luminarr/luminarr
-BINARY  := luminarr
+MODULE  := github.com/prism/prism
+BINARY  := prism
 BIN_DIR := ./bin
-CMD     := ./cmd/luminarr
+CMD     := ./cmd/prism
 
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -13,12 +13,12 @@ LDFLAGS   := -ldflags "\
   -X $(MODULE)/internal/config.DefaultTMDBKey=$(LUMINARR_TMDB_API_KEY) \
   -X $(MODULE)/internal/config.DefaultTraktClientID=$(LUMINARR_TRAKT_CLIENT_ID)"
 
-IMAGE ?= ghcr.io/luminarr/luminarr
+IMAGE ?= ghcr.io/prism/prism
 
 .PHONY: build run dev test test/unit test/integration test/cover test/race test/frontend \
         lint check install-hooks generate migrate clean docker docker/push help
 
-## build: Compile the binary into ./bin/luminarr
+## build: Compile the binary into ./bin/prism
 build:
 	@mkdir -p $(BIN_DIR)
 	go build $(LDFLAGS) -o $(BIN_DIR)/$(BINARY) $(CMD)
@@ -84,7 +84,7 @@ migrate:
 clean:
 	rm -rf $(BIN_DIR) tmp coverage.out coverage.html
 
-## docker: Build the Docker image locally (IMAGE=ghcr.io/luminarr/luminarr)
+## docker: Build the Docker image locally (IMAGE=ghcr.io/prism/prism)
 docker:
 	docker build \
 	  --build-arg VERSION=$(VERSION) \

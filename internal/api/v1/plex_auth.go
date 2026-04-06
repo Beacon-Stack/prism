@@ -11,13 +11,13 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/safedialer"
+	"github.com/beacon-media/prism/internal/safedialer"
 )
 
 const (
 	plexPinURL   = "https://plex.tv/api/v2/pins"
-	plexClientID = "luminarr"
-	plexProduct  = "Luminarr"
+	plexClientID = "prism"
+	plexProduct  = "Prism"
 )
 
 // RegisterPlexAuthRoutes registers the Plex pin-based auth endpoints.

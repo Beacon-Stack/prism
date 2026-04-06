@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/collection"
+	"github.com/beacon-media/prism/internal/core/collection"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

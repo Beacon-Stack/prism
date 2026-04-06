@@ -15,17 +15,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/blocklist"
-	"github.com/luminarr/luminarr/internal/core/conflict"
-	"github.com/luminarr/luminarr/internal/core/customformat"
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/edition"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/core/tag"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/blocklist"
+	"github.com/beacon-media/prism/internal/core/conflict"
+	"github.com/beacon-media/prism/internal/core/customformat"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/edition"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/core/tag"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // Result status constants.

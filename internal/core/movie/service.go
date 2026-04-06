@@ -1,4 +1,4 @@
-// Package movie manages movie records in the Luminarr library.
+// Package movie manages movie records in the Prism library.
 package movie
 
 import (
@@ -17,13 +17,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/edition"
-	"github.com/luminarr/luminarr/internal/core/renamer"
-	"github.com/luminarr/luminarr/internal/db"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/edition"
+	"github.com/beacon-media/prism/internal/core/renamer"
+	"github.com/beacon-media/prism/internal/db"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // Sentinel errors returned by Service methods.

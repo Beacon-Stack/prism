@@ -23,8 +23,8 @@ type trashSpec struct {
 	Fields         map[string]string `json:"fields"`
 }
 
-// TRaSH → Luminarr implementation name mapping.
-var trashToLuminarr = map[string]string{
+// TRaSH → Prism implementation name mapping.
+var trashToPrism = map[string]string{
 	"ReleaseTitleSpecification":    ImplReleaseTitle,
 	"EditionSpecification":         ImplEdition,
 	"LanguageSpecification":        ImplLanguage,
@@ -39,10 +39,10 @@ var trashToLuminarr = map[string]string{
 	"AudioChannelsSpecification":   ImplAudioChannels,
 }
 
-// Luminarr → TRaSH implementation name mapping (reverse).
-var luminarrToTrash = func() map[string]string {
-	m := make(map[string]string, len(trashToLuminarr))
-	for k, v := range trashToLuminarr {
+// Prism → TRaSH implementation name mapping (reverse).
+var prismToTrash = func() map[string]string {
+	m := make(map[string]string, len(trashToPrism))
+	for k, v := range trashToPrism {
 		m[v] = k
 	}
 	return m
@@ -72,7 +72,7 @@ func (s *Service) Import(ctx context.Context, data []byte) ([]CustomFormat, erro
 	for _, tf := range formats {
 		specs := make([]Specification, 0, len(tf.Specifications))
 		for _, ts := range tf.Specifications {
-			impl, ok := trashToLuminarr[ts.Implementation]
+			impl, ok := trashToPrism[ts.Implementation]
 			if !ok {
 				impl = ts.Implementation // pass through unknown types
 			}
@@ -125,7 +125,7 @@ func (s *Service) Export(ctx context.Context, ids []string) ([]byte, error) {
 	for i, cf := range formats {
 		specs := make([]trashSpec, len(cf.Specifications))
 		for j, s := range cf.Specifications {
-			impl, ok := luminarrToTrash[s.Implementation]
+			impl, ok := prismToTrash[s.Implementation]
 			if !ok {
 				impl = s.Implementation
 			}

@@ -1,4 +1,4 @@
-// Package torznab implements the Torznab indexer plugin for Luminarr.
+// Package torznab implements the Torznab indexer plugin for Prism.
 // Torznab is an RSS/Atom-style XML protocol used by Prowlarr and Jackett
 // to expose torrent indexers over a common API.
 package torznab
@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {

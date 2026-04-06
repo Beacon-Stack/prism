@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
-	"github.com/luminarr/luminarr/internal/testutil"
+	"github.com/beacon-media/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/testutil"
 )
 
 // ── Mock TMDB client ──────────────────────────────────────────────────────────

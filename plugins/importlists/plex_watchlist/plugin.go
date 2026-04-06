@@ -11,15 +11,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 const (
 	plexBaseURL  = "https://metadata.provider.plex.tv"
-	plexClientID = "luminarr"
-	plexProduct  = "Luminarr"
+	plexClientID = "prism"
+	plexProduct  = "Prism"
 	httpTimeout  = 30 * time.Second
 )
 

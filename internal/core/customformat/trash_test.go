@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestTrashToLuminarrMapping(t *testing.T) {
-	// Verify all TRaSH implementation names map to known Luminarr types.
+func TestTrashToPrismMapping(t *testing.T) {
+	// Verify all TRaSH implementation names map to known Prism types.
 	expected := map[string]string{
 		"ReleaseTitleSpecification":    ImplReleaseTitle,
 		"EditionSpecification":         ImplEdition,
@@ -22,31 +22,31 @@ func TestTrashToLuminarrMapping(t *testing.T) {
 	}
 
 	for trash, want := range expected {
-		got, ok := trashToLuminarr[trash]
+		got, ok := trashToPrism[trash]
 		if !ok {
-			t.Errorf("trashToLuminarr missing key %q", trash)
+			t.Errorf("trashToPrism missing key %q", trash)
 			continue
 		}
 		if got != want {
-			t.Errorf("trashToLuminarr[%q] = %q, want %q", trash, got, want)
+			t.Errorf("trashToPrism[%q] = %q, want %q", trash, got, want)
 		}
 	}
 
-	if len(trashToLuminarr) != len(expected) {
-		t.Errorf("trashToLuminarr has %d entries, expected %d", len(trashToLuminarr), len(expected))
+	if len(trashToPrism) != len(expected) {
+		t.Errorf("trashToPrism has %d entries, expected %d", len(trashToPrism), len(expected))
 	}
 }
 
-func TestLuminarrToTrashRoundTrip(t *testing.T) {
-	// Every Luminarr impl should map back to a TRaSH impl and vice versa.
-	for trash, luminarr := range trashToLuminarr {
-		roundTrip, ok := luminarrToTrash[luminarr]
+func TestPrismToTrashRoundTrip(t *testing.T) {
+	// Every Prism impl should map back to a TRaSH impl and vice versa.
+	for trash, prism := range trashToPrism {
+		roundTrip, ok := prismToTrash[prism]
 		if !ok {
-			t.Errorf("luminarrToTrash missing key %q (from TRaSH %q)", luminarr, trash)
+			t.Errorf("prismToTrash missing key %q (from TRaSH %q)", prism, trash)
 			continue
 		}
 		if roundTrip != trash {
-			t.Errorf("round trip failed: %q → %q → %q, want %q", trash, luminarr, roundTrip, trash)
+			t.Errorf("round trip failed: %q → %q → %q, want %q", trash, prism, roundTrip, trash)
 		}
 	}
 }

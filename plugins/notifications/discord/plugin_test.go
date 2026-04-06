@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestNotify_Success(t *testing.T) {
@@ -74,8 +74,8 @@ func TestNotify_ServerError(t *testing.T) {
 
 func TestNew_DefaultUsername(t *testing.T) {
 	n := New(Config{WebhookURL: "http://example.com"})
-	if n.cfg.Username != "Luminarr" {
-		t.Errorf("Username = %q, want Luminarr", n.cfg.Username)
+	if n.cfg.Username != "Prism" {
+		t.Errorf("Username = %q, want Prism", n.cfg.Username)
 	}
 }
 

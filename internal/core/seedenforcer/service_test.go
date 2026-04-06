@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/seedenforcer"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/testutil/mock"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/seedenforcer"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/testutil/mock"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // ── Mock providers ──────────────────────────────────────────────────────────

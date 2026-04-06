@@ -1,4 +1,4 @@
-// Package pushover implements a Luminarr notification plugin that sends events
+// Package pushover implements a Prism notification plugin that sends events
 // via the Pushover API.
 package pushover
 
@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {
@@ -77,7 +77,7 @@ func (n *Notifier) Notify(ctx context.Context, event plugin.NotificationEvent) e
 	payload := pushoverPayload{
 		Token:   n.cfg.APIToken,
 		User:    n.cfg.UserKey,
-		Title:   fmt.Sprintf("Luminarr — %s", event.Type),
+		Title:   fmt.Sprintf("Prism — %s", event.Type),
 		Message: event.Message,
 	}
 

@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/watchsync"
-	"github.com/luminarr/luminarr/internal/scheduler"
+	"github.com/beacon-media/prism/internal/core/watchsync"
+	"github.com/beacon-media/prism/internal/scheduler"
 )
 
 // WatchSync returns a Job that polls media servers for watch history

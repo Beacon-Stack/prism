@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
 )
 
 // MetadataProvider is the subset of the TMDB client needed by this package.

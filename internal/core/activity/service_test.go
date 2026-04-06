@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/activity"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/testutil"
+	"github.com/beacon-media/prism/internal/core/activity"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/testutil"
 )
 
 func newSvc(t *testing.T) (*activity.Service, *events.Bus) {

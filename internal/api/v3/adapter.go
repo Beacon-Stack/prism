@@ -3,7 +3,7 @@
 // External tools like Overseerr, Jellyseerr, Homepage, and others have a
 // built-in "Radarr" integration. This package exposes the subset of the Radarr
 // v3 API surface that those tools actually call, translating between Radarr's
-// response shapes and Luminarr's existing service layer.
+// response shapes and Prism's existing service layer.
 package v3
 
 import (
@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/library"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
 )
 
 // ── ROWID helpers ────────────────────────────────────────────────────────────

@@ -105,7 +105,7 @@ export const qualityDefinitionFixtures: QualityDefinition[] = [
 // ── System ─────────────────────────────────────────────────────────────────
 
 export const systemStatusFixture = {
-  app_name: "Luminarr",
+  app_name: "Prism",
   version: "0.0.0-test",
   build_time: "2025-01-01T00:00:00Z",
   go_version: "go1.23.0",

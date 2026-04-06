@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/radarrimport"
+	"github.com/beacon-media/prism/internal/radarrimport"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────
@@ -60,7 +60,7 @@ func RegisterImportRoutes(api huma.API, svc *radarrimport.Service) {
 		Method:      http.MethodPost,
 		Path:        "/api/v1/import/radarr/execute",
 		Summary:     "Execute Radarr import",
-		Description: "Imports selected categories from a Radarr instance into Luminarr.",
+		Description: "Imports selected categories from a Radarr instance into Prism.",
 		Tags:        []string{"Import"},
 	}, func(ctx context.Context, input *radarrExecuteInput) (*radarrExecuteOutput, error) {
 		result, err := svc.Execute(ctx, input.Body.URL, input.Body.APIKey, input.Body.Options)

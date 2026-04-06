@@ -591,7 +591,7 @@ export interface PlexSyncMovie {
   tmdb_id: number;
 }
 
-export interface LuminarrSyncMovie {
+export interface PrismSyncMovie {
   id: string;
   title: string;
   year: number;
@@ -602,7 +602,7 @@ export interface LuminarrSyncMovie {
 export interface PlexSyncPreviewResult {
   plex_total: number;
   in_plex_only: PlexSyncMovie[];
-  in_luminarr_only: LuminarrSyncMovie[];
+  in_prism_only: PrismSyncMovie[];
   already_synced: number;
   unmatched: number;
 }

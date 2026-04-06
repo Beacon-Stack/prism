@@ -1,4 +1,4 @@
-// Package telegram implements a Luminarr notification plugin that sends events
+// Package telegram implements a Prism notification plugin that sends events
 // to a Telegram chat via the Bot API.
 package telegram
 
@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {
@@ -73,7 +73,7 @@ type sendMessagePayload struct {
 
 // Notify sends the event as a Telegram message.
 func (n *Notifier) Notify(ctx context.Context, event plugin.NotificationEvent) error {
-	text := fmt.Sprintf("<b>[Luminarr] %s</b>\n%s", event.Type, event.Message)
+	text := fmt.Sprintf("<b>[Prism] %s</b>\n%s", event.Type, event.Message)
 
 	payload := sendMessagePayload{
 		ChatID:    n.cfg.ChatID,

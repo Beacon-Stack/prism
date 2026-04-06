@@ -14,7 +14,7 @@ import (
 // is atomic, so the target is never left in a partially-written state.
 func writeAtomic(path string, data []byte, perm os.FileMode) error {
 	dir := filepath.Dir(path)
-	tmp, err := os.CreateTemp(dir, ".luminarr-config-*.tmp")
+	tmp, err := os.CreateTemp(dir, ".prism-config-*.tmp")
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w", err)
 	}
@@ -43,7 +43,7 @@ func writeAtomic(path string, data []byte, perm os.FileMode) error {
 
 // WriteConfigKey writes a single dot-notation key (e.g. "tmdb.api_key") to the
 // given YAML config file, creating the file and parent directories if needed.
-// If configFile is empty, the default path (~/.config/luminarr/config.yaml, or
+// If configFile is empty, the default path (~/.config/prism/config.yaml, or
 // /config/config.yaml in Docker) is used.
 //
 // Existing keys in the file are preserved; only the target key is updated.
@@ -54,7 +54,7 @@ func WriteConfigKey(configFile, key, value string) (writePath string, err error)
 		if info, err := os.Stat("/config"); err == nil && info.IsDir() {
 			path = "/config/config.yaml"
 		} else if home, _ := os.UserHomeDir(); home != "" {
-			path = filepath.Join(home, ".config", "luminarr", "config.yaml")
+			path = filepath.Join(home, ".config", "prism", "config.yaml")
 		} else {
 			path = "/config/config.yaml"
 		}

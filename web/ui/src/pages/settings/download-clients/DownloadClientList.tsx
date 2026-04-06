@@ -26,6 +26,27 @@ import type {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+type DLSource = "configurarr" | "manual";
+
+function detectDLSource(settings: Record<string, unknown>): DLSource {
+  if (settings.configurarr === true) return "configurarr";
+  return "manual";
+}
+
+function DLSourceBadge({ settings }: { settings: Record<string, unknown> }) {
+  const source = detectDLSource(settings);
+  if (source === "manual") return null;
+  return (
+    <span style={{
+      display: "inline-block", padding: "2px 8px", borderRadius: 4,
+      fontSize: 10, fontWeight: 600, letterSpacing: "0.04em",
+      background: "color-mix(in srgb, #7c6af7 12%, transparent)", color: "#7c6af7",
+    }}>
+      Configurarr
+    </span>
+  );
+}
+
 function strSetting(settings: Record<string, unknown>, key: string): string {
   const v = settings[key];
   return typeof v === "string" ? v : "";
@@ -373,7 +394,7 @@ function DownloadClientModal({ editing, onClose }: ModalProps) {
                       onChange={(e) => set("qb_category", e.currentTarget.value)}
                       onFocus={focusBorder}
                       onBlur={blurBorder}
-                      placeholder="luminarr"
+                      placeholder="prism"
                     />
                   </div>
                   <div style={fieldStyle}>
@@ -427,7 +448,7 @@ function DownloadClientModal({ editing, onClose }: ModalProps) {
                       onChange={(e) => set("dl_label", e.currentTarget.value)}
                       onFocus={focusBorder}
                       onBlur={blurBorder}
-                      placeholder="luminarr"
+                      placeholder="prism"
                     />
                   </div>
                   <div style={fieldStyle}>
@@ -523,7 +544,7 @@ function DownloadClientModal({ editing, onClose }: ModalProps) {
                     onChange={(e) => set("sab_category", e.currentTarget.value)}
                     onFocus={focusBorder}
                     onBlur={blurBorder}
-                    placeholder="luminarr"
+                    placeholder="prism"
                   />
                 </div>
               </>
@@ -578,7 +599,7 @@ function DownloadClientModal({ editing, onClose }: ModalProps) {
                     onChange={(e) => set("nzbget_category", e.currentTarget.value)}
                     onFocus={focusBorder}
                     onBlur={blurBorder}
-                    placeholder="luminarr"
+                    placeholder="prism"
                   />
                 </div>
               </>
@@ -1355,7 +1376,10 @@ export default function DownloadClientList() {
                   }}
                 >
                   <td style={{ padding: "0 16px", height: 52, color: "var(--color-text-primary)", fontWeight: 500 }}>
-                    {cfg.name}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {cfg.name}
+                      <DLSourceBadge settings={cfg.settings} />
+                    </span>
                   </td>
                   <td style={{ padding: "0 16px", height: 52 }}>
                     <KindBadge kind={cfg.kind} />

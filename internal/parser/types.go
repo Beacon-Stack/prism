@@ -3,7 +3,7 @@
 // language, and marker information from a single Parse() call.
 package parser
 
-import "github.com/luminarr/luminarr/pkg/plugin"
+import "github.com/beacon-media/prism/pkg/plugin"
 
 // Language identifies a detected language tag.
 type Language string

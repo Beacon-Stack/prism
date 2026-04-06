@@ -1,4 +1,4 @@
-// Package emby implements a Luminarr media server plugin for Emby.
+// Package emby implements a Prism media server plugin for Emby.
 // On import_complete it triggers a full library refresh.
 package emby
 
@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {

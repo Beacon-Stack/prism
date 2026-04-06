@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestParseSource_AllVariants(t *testing.T) {

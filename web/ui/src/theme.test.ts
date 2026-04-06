@@ -25,28 +25,28 @@ describe("getStoredMode", () => {
   });
 
   it("reads dark from localStorage", () => {
-    localStorage.setItem("luminarr-theme-mode", "dark");
+    localStorage.setItem("prism-theme-mode", "dark");
     expect(getStoredMode()).toBe("dark");
   });
 
   it("reads light from localStorage", () => {
-    localStorage.setItem("luminarr-theme-mode", "light");
+    localStorage.setItem("prism-theme-mode", "light");
     expect(getStoredMode()).toBe("light");
   });
 
   it("reads system from localStorage", () => {
-    localStorage.setItem("luminarr-theme-mode", "system");
+    localStorage.setItem("prism-theme-mode", "system");
     expect(getStoredMode()).toBe("system");
   });
 
   it("defaults to dark for invalid values", () => {
-    localStorage.setItem("luminarr-theme-mode", "invalid");
+    localStorage.setItem("prism-theme-mode", "invalid");
     expect(getStoredMode()).toBe("dark");
   });
 });
 
 describe("getStoredPreset", () => {
-  it("defaults to luminarr for dark mode", () => {
+  it("defaults to prism for dark mode", () => {
     expect(getStoredPreset("dark")).toBe(DEFAULT_DARK_PRESET);
   });
 
@@ -55,12 +55,12 @@ describe("getStoredPreset", () => {
   });
 
   it("reads stored dark preset", () => {
-    localStorage.setItem("luminarr-theme-dark", "dracula");
+    localStorage.setItem("prism-theme-dark", "dracula");
     expect(getStoredPreset("dark")).toBe("dracula");
   });
 
   it("reads stored light preset", () => {
-    localStorage.setItem("luminarr-theme-light", "gruvbox-light");
+    localStorage.setItem("prism-theme-light", "gruvbox-light");
     expect(getStoredPreset("light")).toBe("gruvbox-light");
   });
 });
@@ -93,7 +93,7 @@ describe("resolveMode", () => {
 describe("setThemeMode", () => {
   it("persists mode to localStorage and applies theme", () => {
     setThemeMode("light");
-    expect(localStorage.getItem("luminarr-theme-mode")).toBe("light");
+    expect(localStorage.getItem("prism-theme-mode")).toBe("light");
     // Should have set CSS vars on documentElement
     const bgBase = document.documentElement.style.getPropertyValue("--color-bg-base");
     expect(bgBase).toBeTruthy();
@@ -103,19 +103,19 @@ describe("setThemeMode", () => {
 describe("setThemePreset", () => {
   it("persists preset for dark mode", () => {
     // First set mode to dark so the preset gets applied
-    localStorage.setItem("luminarr-theme-mode", "dark");
+    localStorage.setItem("prism-theme-mode", "dark");
     setThemePreset("dark", "nord");
-    expect(localStorage.getItem("luminarr-theme-dark")).toBe("nord");
+    expect(localStorage.getItem("prism-theme-dark")).toBe("nord");
   });
 
   it("persists preset for light mode", () => {
-    localStorage.setItem("luminarr-theme-mode", "light");
+    localStorage.setItem("prism-theme-mode", "light");
     setThemePreset("light", "gruvbox-light");
-    expect(localStorage.getItem("luminarr-theme-light")).toBe("gruvbox-light");
+    expect(localStorage.getItem("prism-theme-light")).toBe("gruvbox-light");
   });
 
   it("applies CSS vars when preset matches active mode", () => {
-    localStorage.setItem("luminarr-theme-mode", "dark");
+    localStorage.setItem("prism-theme-mode", "dark");
     setThemePreset("dark", "dracula");
     const bgBase = document.documentElement.style.getPropertyValue("--color-bg-base");
     expect(bgBase).toBe("#1e1f29");

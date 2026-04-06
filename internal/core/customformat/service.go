@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/customformat/presets"
-	"github.com/luminarr/luminarr/internal/core/dbutil"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/core/customformat/presets"
+	"github.com/beacon-media/prism/internal/core/dbutil"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
 )
 
 // CustomFormat is the domain representation of a custom format.

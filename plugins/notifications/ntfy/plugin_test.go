@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestNotify_Success(t *testing.T) {
@@ -17,8 +17,8 @@ func TestNotify_Success(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("method = %s, want POST", r.Method)
 		}
-		if r.URL.Path != "/luminarr" {
-			t.Errorf("path = %q, want /luminarr", r.URL.Path)
+		if r.URL.Path != "/prism" {
+			t.Errorf("path = %q, want /prism", r.URL.Path)
 		}
 		if title := r.Header.Get("Title"); title == "" {
 			t.Error("missing Title header")
@@ -38,7 +38,7 @@ func TestNotify_Success(t *testing.T) {
 	defer srv.Close()
 
 	n := &Notifier{
-		cfg:    Config{URL: srv.URL, Topic: "luminarr", Token: "my-token", Priority: 3},
+		cfg:    Config{URL: srv.URL, Topic: "prism", Token: "my-token", Priority: 3},
 		client: srv.Client(),
 	}
 
@@ -102,7 +102,7 @@ func TestTest_IncludesTagHeader(t *testing.T) {
 	defer srv.Close()
 
 	n := &Notifier{
-		cfg:    Config{URL: srv.URL, Topic: "luminarr", Priority: 3},
+		cfg:    Config{URL: srv.URL, Topic: "prism", Priority: 3},
 		client: srv.Client(),
 	}
 
@@ -135,7 +135,7 @@ func TestNew_TrimsTrailingSlash(t *testing.T) {
 }
 
 func TestSanitizer(t *testing.T) {
-	raw := json.RawMessage(`{"url":"https://ntfy.sh","topic":"luminarr","token":"secret"}`)
+	raw := json.RawMessage(`{"url":"https://ntfy.sh","topic":"prism","token":"secret"}`)
 	var m map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &m); err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestSanitizer(t *testing.T) {
 	if result["token"] != "***" {
 		t.Errorf("token = %q, want ***", result["token"])
 	}
-	if result["topic"] != "luminarr" {
+	if result["topic"] != "prism" {
 		t.Errorf("topic was modified: %q", result["topic"])
 	}
 }

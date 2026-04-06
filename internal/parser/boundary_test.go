@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestParse_EmptyInput(t *testing.T) {

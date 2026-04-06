@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
 )
 
 const testTimestamp = "2025-01-01T00:00:00Z"

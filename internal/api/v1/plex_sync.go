@@ -6,8 +6,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/plexsync"
-	plexpkg "github.com/luminarr/luminarr/plugins/mediaservers/plex"
+	"github.com/beacon-media/prism/internal/plexsync"
+	plexpkg "github.com/beacon-media/prism/plugins/mediaservers/plex"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────
@@ -79,7 +79,7 @@ func RegisterPlexSyncRoutes(api huma.API, svc *plexsync.Service) {
 		OperationID: "plex-sync-import",
 		Method:      http.MethodPost,
 		Path:        "/api/v1/media-servers/{id}/sync/import",
-		Summary:     "Import selected Plex movies into Luminarr",
+		Summary:     "Import selected Plex movies into Prism",
 		Tags:        []string{"Plex Sync"},
 	}, func(ctx context.Context, input *plexSyncImportInput) (*plexSyncImportOutput, error) {
 		result, err := svc.Import(ctx, input.Body)

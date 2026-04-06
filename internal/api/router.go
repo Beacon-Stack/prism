@@ -12,41 +12,41 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
-	"github.com/luminarr/luminarr/internal/api/middleware"
-	v1 "github.com/luminarr/luminarr/internal/api/v1"
-	v3 "github.com/luminarr/luminarr/internal/api/v3"
-	"github.com/luminarr/luminarr/internal/api/ws"
-	"github.com/luminarr/luminarr/internal/config"
-	"github.com/luminarr/luminarr/internal/core/activity"
-	"github.com/luminarr/luminarr/internal/core/aicommand"
-	"github.com/luminarr/luminarr/internal/core/autosearch"
-	"github.com/luminarr/luminarr/internal/core/blocklist"
-	"github.com/luminarr/luminarr/internal/core/collection"
-	"github.com/luminarr/luminarr/internal/core/customformat"
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/downloadhandling"
-	"github.com/luminarr/luminarr/internal/core/health"
-	"github.com/luminarr/luminarr/internal/core/importlist"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/library"
-	"github.com/luminarr/luminarr/internal/core/mediainfo"
-	"github.com/luminarr/luminarr/internal/core/mediamanagement"
-	"github.com/luminarr/luminarr/internal/core/mediaserver"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/notification"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/core/queue"
-	"github.com/luminarr/luminarr/internal/core/stats"
-	"github.com/luminarr/luminarr/internal/core/tag"
-	"github.com/luminarr/luminarr/internal/core/watchsync"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/logging"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
-	"github.com/luminarr/luminarr/internal/plexsync"
-	"github.com/luminarr/luminarr/internal/radarrimport"
-	"github.com/luminarr/luminarr/internal/scheduler"
-	"github.com/luminarr/luminarr/internal/version"
-	"github.com/luminarr/luminarr/web"
+	"github.com/beacon-media/prism/internal/api/middleware"
+	v1 "github.com/beacon-media/prism/internal/api/v1"
+	v3 "github.com/beacon-media/prism/internal/api/v3"
+	"github.com/beacon-media/prism/internal/api/ws"
+	"github.com/beacon-media/prism/internal/config"
+	"github.com/beacon-media/prism/internal/core/activity"
+	"github.com/beacon-media/prism/internal/core/aicommand"
+	"github.com/beacon-media/prism/internal/core/autosearch"
+	"github.com/beacon-media/prism/internal/core/blocklist"
+	"github.com/beacon-media/prism/internal/core/collection"
+	"github.com/beacon-media/prism/internal/core/customformat"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/downloadhandling"
+	"github.com/beacon-media/prism/internal/core/health"
+	"github.com/beacon-media/prism/internal/core/importlist"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/mediainfo"
+	"github.com/beacon-media/prism/internal/core/mediamanagement"
+	"github.com/beacon-media/prism/internal/core/mediaserver"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/notification"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/core/queue"
+	"github.com/beacon-media/prism/internal/core/stats"
+	"github.com/beacon-media/prism/internal/core/tag"
+	"github.com/beacon-media/prism/internal/core/watchsync"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/logging"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/plexsync"
+	"github.com/beacon-media/prism/internal/radarrimport"
+	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-media/prism/internal/version"
+	"github.com/beacon-media/prism/web"
 )
 
 // RouterConfig holds everything the router needs to function.
@@ -89,6 +89,7 @@ type RouterConfig struct {
 	LogBuffer                *logging.RingBuffer
 	WSHub                    *ws.Hub
 	Bus                      *events.Bus
+	PulseSyncHandler   http.HandlerFunc
 }
 
 // NewRouter builds and returns the application HTTP handler.
@@ -108,6 +109,13 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	// does not intercept the upgrade request.
 	if cfg.WSHub != nil {
 		r.Get("/api/v1/ws", cfg.WSHub.ServeHTTP)
+	}
+
+	// Pulse sync webhook — called by Pulse when indexer assignments change.
+	// Registered directly on chi (not through Huma) so Pulse can call it
+	// with its own API key without hitting Prism's auth middleware.
+	if cfg.PulseSyncHandler != nil {
+		r.Post("/api/v1/hooks/pulse/sync", cfg.PulseSyncHandler)
 	}
 
 	// Backup / restore — registered directly on chi (binary body/response, not JSON).
@@ -138,11 +146,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	humaConfig := huma.DefaultConfig("Luminarr API", version.Version)
+	humaConfig := huma.DefaultConfig("Prism API", version.Version)
 	humaConfig.DocsPath = "/api/docs"
 	humaConfig.OpenAPIPath = "/api/openapi"
 	humaConfig.SchemasPath = "/api/schemas"
-	humaConfig.Info.Description = "Luminarr movie collection manager API. " +
+	humaConfig.Info.Description = "Prism movie collection manager API. " +
 		"Browser requests are authenticated via Sec-Fetch-Site; external clients must provide X-Api-Key."
 
 	humaAPI := humachi.New(r, humaConfig)
@@ -307,9 +315,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// ── Radarr v3 API compatibility layer ────────────────────────────────
 	// External tools (Overseerr, Homepage, etc.) can point their "Radarr"
-	// integration at Luminarr and it will just work.
+	// integration at Prism and it will just work.
 	if cfg.DB != nil {
-		v3Config := huma.DefaultConfig("Luminarr Radarr-Compatible API", version.Version)
+		v3Config := huma.DefaultConfig("Prism Radarr-Compatible API", version.Version)
 		v3Config.DocsPath = ""
 		v3Config.OpenAPIPath = ""
 		v3Config.SchemasPath = ""

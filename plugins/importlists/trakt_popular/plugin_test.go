@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/trakt"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/trakt"
 )
 
 // mustMarshal panics if json.Marshal fails — acceptable in test helpers.

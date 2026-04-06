@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/importer"
-	"github.com/luminarr/luminarr/internal/core/mediamanagement"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/logging"
+	"github.com/beacon-media/prism/internal/core/importer"
+	"github.com/beacon-media/prism/internal/core/mediamanagement"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/logging"
 )
 
 // ── Fake DB querier ────────────────────────────────────────────────────────

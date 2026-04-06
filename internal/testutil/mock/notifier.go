@@ -3,7 +3,7 @@ package mock
 import (
 	"context"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // Notifier is a configurable mock of plugin.Notifier.

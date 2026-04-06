@@ -1,5 +1,5 @@
 // Package radarrimport orchestrates a one-time import from a running Radarr
-// instance into Luminarr's database using the existing service layer.
+// instance into Prism's database using the existing service layer.
 package radarrimport
 
 import (
@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/library"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // ── Result types ──────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ func NewService(
 }
 
 // Preview connects to a Radarr instance and returns a summary of what would be
-// imported, without making any changes to the Luminarr database.
+// imported, without making any changes to the Prism database.
 func (s *Service) Preview(ctx context.Context, radarrURL, apiKey string) (*PreviewResult, error) {
 	c := NewClient(radarrURL, apiKey)
 
@@ -181,7 +181,7 @@ func (s *Service) Preview(ctx context.Context, radarrURL, apiKey string) (*Previ
 	return result, nil
 }
 
-// Execute imports data from Radarr into Luminarr according to opts.
+// Execute imports data from Radarr into Prism according to opts.
 // It proceeds best-effort: individual failures are collected in ImportResult.Errors.
 func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts ImportOptions) (*ImportResult, error) {
 	c := NewClient(radarrURL, apiKey)
@@ -194,9 +194,9 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 		Errors: []string{},
 	}
 
-	// profileIDMap: Radarr int ID → Luminarr UUID
+	// profileIDMap: Radarr int ID → Prism UUID
 	profileIDMap := map[int]string{}
-	// libraryPathMap: Radarr root folder path → Luminarr library UUID
+	// libraryPathMap: Radarr root folder path → Prism library UUID
 	libraryPathMap := map[string]string{}
 	// firstProfileID: used as default for libraries that don't get a matched profile
 	var firstProfileID string
@@ -372,12 +372,12 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 					result.Movies.Skipped++
 					continue
 				}
-				// Map Radarr quality profile ID → Luminarr UUID.
+				// Map Radarr quality profile ID → Prism UUID.
 				profileID := profileIDMap[m.QualityProfileID]
 				if profileID == "" {
 					profileID = firstProfileID
 				}
-				// Map Radarr root folder path → Luminarr library UUID.
+				// Map Radarr root folder path → Prism library UUID.
 				libID := libraryPathMap[m.RootFolderPath]
 				if libID == "" {
 					// Fall back to any available library.
@@ -416,7 +416,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 
 // ── Mapping helpers ────────────────────────────────────────────────────────────
 
-// mapIndexerKind maps a Radarr configContract to a Luminarr indexer kind.
+// mapIndexerKind maps a Radarr configContract to a Prism indexer kind.
 // Returns "" for unsupported contracts.
 func mapIndexerKind(contract string) string {
 	switch contract {
@@ -429,7 +429,7 @@ func mapIndexerKind(contract string) string {
 	}
 }
 
-// mapClientKind maps a Radarr configContract to a Luminarr downloader kind.
+// mapClientKind maps a Radarr configContract to a Prism downloader kind.
 // Returns "" for unsupported contracts.
 func mapClientKind(contract string) string {
 	switch contract {
@@ -490,7 +490,7 @@ func cutoffName(items []radarrProfileItem, cutoffID int) string {
 	return ""
 }
 
-// mapProfile converts a Radarr quality profile into a Luminarr CreateRequest.
+// mapProfile converts a Radarr quality profile into a Prism CreateRequest.
 func mapProfile(p radarrProfile) quality.CreateRequest {
 	var qualities []plugin.Quality
 	for _, item := range p.Items {
@@ -507,7 +507,7 @@ func mapProfile(p radarrProfile) quality.CreateRequest {
 	}
 }
 
-// mapRadarrQuality translates a Radarr quality name into a Luminarr Quality.
+// mapRadarrQuality translates a Radarr quality name into a Prism Quality.
 // Codec defaults to "unknown" and HDR defaults to "none" since Radarr encodes
 // those via Custom Formats, not quality profiles.
 func mapRadarrQuality(name string) plugin.Quality {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/tag"
-	"github.com/luminarr/luminarr/internal/testutil"
+	"github.com/beacon-media/prism/internal/core/tag"
+	"github.com/beacon-media/prism/internal/testutil"
 )
 
 func newSvc(t *testing.T) *tag.Service {

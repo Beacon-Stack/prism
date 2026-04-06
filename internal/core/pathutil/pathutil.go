@@ -37,9 +37,9 @@ func ValidateContentPath(p string) error {
 		}
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		configDir := filepath.Join(home, ".config", "luminarr")
+		configDir := filepath.Join(home, ".config", "prism")
 		if clean == configDir || strings.HasPrefix(clean, configDir+"/") {
-			return fmt.Errorf("content_path %q is within the Luminarr config directory", clean)
+			return fmt.Errorf("content_path %q is within the Prism config directory", clean)
 		}
 	}
 	return nil

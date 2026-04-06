@@ -7,8 +7,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
 )
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -20,9 +20,9 @@ type discoverResultBody struct {
 	Overview       string  `json:"overview"        doc:"Plot summary"`
 	PosterPath     string  `json:"poster_path"     doc:"TMDB poster path"`
 	Rating         float64 `json:"rating"          doc:"TMDB vote average"`
-	InLibrary      bool    `json:"in_library"      doc:"Already in Luminarr library"`
+	InLibrary      bool    `json:"in_library"      doc:"Already in Prism library"`
 	Excluded       bool    `json:"excluded"        doc:"On the import exclusion list"`
-	LibraryMovieID string  `json:"library_movie_id,omitempty" doc:"Luminarr movie ID if in library"`
+	LibraryMovieID string  `json:"library_movie_id,omitempty" doc:"Prism movie ID if in library"`
 }
 
 type discoverListBody struct {

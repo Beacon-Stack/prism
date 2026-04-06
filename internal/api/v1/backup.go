@@ -24,7 +24,7 @@ func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerF
 		// Create a temp file in the same directory as the DB so that the
 		// VACUUM INTO path is on the same filesystem.
 		dir := filepath.Dir(dbPath)
-		tmp, err := os.CreateTemp(dir, "luminarr-backup-*.db")
+		tmp, err := os.CreateTemp(dir, "prism-backup-*.db")
 		if err != nil {
 			logger.ErrorContext(r.Context(), "backup: failed to create temp file", slog.Any("error", err))
 			http.Error(w, "failed to create backup", http.StatusInternalServerError)
@@ -55,7 +55,7 @@ func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerF
 		}
 		defer f.Close()
 
-		filename := fmt.Sprintf("luminarr-backup-%s.db", time.Now().UTC().Format("2006-01-02"))
+		filename := fmt.Sprintf("prism-backup-%s.db", time.Now().UTC().Format("2006-01-02"))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		w.WriteHeader(http.StatusOK)
@@ -67,7 +67,7 @@ func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerF
 
 // RestoreHandler returns an http.HandlerFunc that accepts a raw SQLite database
 // file upload (application/octet-stream) and writes it to a staging path.
-// On the next startup, Luminarr will detect the staging file and swap it in.
+// On the next startup, Prism will detect the staging file and swap it in.
 func RestoreHandler(dbPath string, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Override the global 1 MiB body limit — restore files are full DB copies.
@@ -103,7 +103,7 @@ func RestoreHandler(dbPath string, logger *slog.Logger) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Restore file saved. Restart Luminarr to complete the restore."}`))
+		_, _ = w.Write([]byte(`{"message":"Restore file saved. Restart Prism to complete the restore."}`))
 	}
 }
 

@@ -9,9 +9,9 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/tag"
-	"github.com/luminarr/luminarr/internal/registry"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/tag"
+	"github.com/beacon-media/prism/internal/registry"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

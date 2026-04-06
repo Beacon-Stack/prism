@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/anthropic"
-	"github.com/luminarr/luminarr/internal/core/autosearch"
-	"github.com/luminarr/luminarr/internal/core/library"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/core/stats"
+	"github.com/beacon-media/prism/internal/anthropic"
+	"github.com/beacon-media/prism/internal/core/autosearch"
+	"github.com/beacon-media/prism/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/core/stats"
 )
 
 // Service orchestrates AI command processing.
@@ -340,7 +340,7 @@ func (s *Service) resolveDefaults(ctx context.Context) (libID, profID string, er
 
 func (s *Service) buildSystemPrompt(ctx context.Context) string {
 	var sb strings.Builder
-	sb.WriteString(`You are a command interpreter for Luminarr, a movie collection manager. Your job is to understand the user's intent and return a JSON action.
+	sb.WriteString(`You are a command interpreter for Prism, a movie collection manager. Your job is to understand the user's intent and return a JSON action.
 
 IMPORTANT: Respond with ONLY valid JSON. No markdown, no code fences, no explanation outside the JSON.
 
@@ -382,7 +382,7 @@ Available actions:
 4. "search_releases" — Search for releases/downloads for a specific movie (requires movie ID).
    {"action": "search_releases", "params": {"movie_id": 123}, "explanation": "brief description"}
 
-5. "explain" — Explain a Luminarr concept.
+5. "explain" — Explain a Prism concept.
    {"action": "explain", "params": {}, "explanation": "Clear explanation of the concept"}
 
 6. "auto_search" — Search indexers for a release of a movie and automatically grab/download it. Use when the user says "grab", "download", "get", "fetch", or similar.

@@ -1,6 +1,6 @@
 package autosearch
 
-import "github.com/luminarr/luminarr/pkg/plugin"
+import "github.com/beacon-media/prism/pkg/plugin"
 
 // SkipReason identifies why a release candidate was not grabbed.
 type SkipReason string

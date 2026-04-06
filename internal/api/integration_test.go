@@ -17,30 +17,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/api"
-	"github.com/luminarr/luminarr/internal/config"
-	"github.com/luminarr/luminarr/internal/core/blocklist"
-	"github.com/luminarr/luminarr/internal/core/customformat"
-	"github.com/luminarr/luminarr/internal/core/downloader"
-	"github.com/luminarr/luminarr/internal/core/downloadhandling"
-	"github.com/luminarr/luminarr/internal/core/health"
-	"github.com/luminarr/luminarr/internal/core/indexer"
-	"github.com/luminarr/luminarr/internal/core/library"
-	"github.com/luminarr/luminarr/internal/core/mediamanagement"
-	"github.com/luminarr/luminarr/internal/core/mediaserver"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/notification"
-	"github.com/luminarr/luminarr/internal/core/quality"
-	"github.com/luminarr/luminarr/internal/core/queue"
-	"github.com/luminarr/luminarr/internal/core/stats"
-	"github.com/luminarr/luminarr/internal/core/tag"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/ratelimit"
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/scheduler"
-	"github.com/luminarr/luminarr/internal/testutil"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/api"
+	"github.com/beacon-media/prism/internal/config"
+	"github.com/beacon-media/prism/internal/core/blocklist"
+	"github.com/beacon-media/prism/internal/core/customformat"
+	"github.com/beacon-media/prism/internal/core/downloader"
+	"github.com/beacon-media/prism/internal/core/downloadhandling"
+	"github.com/beacon-media/prism/internal/core/health"
+	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-media/prism/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/mediamanagement"
+	"github.com/beacon-media/prism/internal/core/mediaserver"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/notification"
+	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-media/prism/internal/core/queue"
+	"github.com/beacon-media/prism/internal/core/stats"
+	"github.com/beacon-media/prism/internal/core/tag"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/ratelimit"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 const testAPIKey = "test-integration-key-abc123"
@@ -287,8 +287,8 @@ func TestIntegration_SystemStatus(t *testing.T) {
 	}
 	var body map[string]any
 	mustDecode(t, rec, &body)
-	if body["app_name"] != "Luminarr" {
-		t.Errorf("app_name = %v, want Luminarr", body["app_name"])
+	if body["app_name"] != "Prism" {
+		t.Errorf("app_name = %v, want Prism", body["app_name"])
 	}
 	if body["db_type"] != "sqlite" {
 		t.Errorf("db_type = %v, want sqlite", body["db_type"])
@@ -1532,8 +1532,8 @@ func TestIntegration_V3_SystemStatus(t *testing.T) {
 	var status map[string]any
 	mustDecode(t, rec, &status)
 
-	if status["appName"] != "Luminarr" {
-		t.Errorf("appName = %v, want Luminarr", status["appName"])
+	if status["appName"] != "Prism" {
+		t.Errorf("appName = %v, want Prism", status["appName"])
 	}
 	if status["authentication"] != "apiKey" {
 		t.Errorf("authentication = %v, want apiKey", status["authentication"])

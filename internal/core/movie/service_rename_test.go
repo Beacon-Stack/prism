@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/core/renamer"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/testutil"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/renamer"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // defaultRenameSettings uses the default file format and delete-colon strategy.

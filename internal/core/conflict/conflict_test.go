@@ -3,7 +3,7 @@ package conflict
 import (
 	"testing"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestCompare_NoConflictsOnUpgrade(t *testing.T) {

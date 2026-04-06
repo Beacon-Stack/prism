@@ -1,4 +1,4 @@
-// Package webhook implements a Luminarr notification plugin that sends events
+// Package webhook implements a Prism notification plugin that sends events
 // as JSON HTTP POST requests to a user-configured URL.
 package webhook
 
@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {
@@ -108,6 +108,6 @@ func (n *Notifier) Test(ctx context.Context) error {
 	return n.Notify(ctx, plugin.NotificationEvent{
 		Type:      plugin.EventType("test"),
 		Timestamp: time.Now().UTC(),
-		Message:   "Luminarr webhook test — connection successful",
+		Message:   "Prism webhook test — connection successful",
 	})
 }

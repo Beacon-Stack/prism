@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Copy, Monitor, Moon, Sun } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
-import { useSystemStatus, useSystemConfig, useSaveConfig, useRevealApiKey } from "@/api/system";
+import { useSystemStatus, useSystemConfig, useSaveConfig, useDisableAI, useRevealApiKey } from "@/api/system";
 import {
   THEME_PRESETS,
   getStoredMode,
@@ -339,6 +339,7 @@ function ConfigSection() {
   const { data: status } = useSystemStatus();
   const { data: sysConfig } = useSystemConfig();
   const saveConfig = useSaveConfig();
+  const disableAI = useDisableAI();
   const [key, setKey] = useState("");
   const [show, setShow] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -347,6 +348,7 @@ function ConfigSection() {
   const [aiKey, setAiKey] = useState("");
   const [showAiKey, setShowAiKey] = useState(false);
   const [aiSaved, setAiSaved] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
 
   function handleSave() {
     if (!key.trim()) return;
@@ -492,7 +494,7 @@ function ConfigSection() {
           )}
         </div>
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
-          Enables AI-powered commands in the command palette (Cmd+K). Get a key from{" "}
+          Optional — enables AI-powered commands in the command palette (Cmd+K). Get a key from{" "}
           <a
             href="https://console.anthropic.com/settings/keys"
             target="_blank"
@@ -500,7 +502,7 @@ function ConfigSection() {
             style={{ color: "var(--color-accent)" }}
           >
             console.anthropic.com
-          </a>.
+          </a>. You can disable AI at any time.
         </p>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
@@ -542,6 +544,75 @@ function ConfigSection() {
             <span style={{ fontSize: 12, color: "var(--color-success)" }}>Saved ✓</span>
           )}
         </div>
+
+        {/* Disable AI button — only shown when AI is currently active */}
+        {status?.ai_enabled && (
+          <div style={{ marginTop: 8 }}>
+            {!confirmDisable ? (
+              <button
+                onClick={() => setConfirmDisable(true)}
+                style={{
+                  background: "none",
+                  border: "1px solid var(--color-border-default)",
+                  borderRadius: 6,
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  color: "var(--color-text-muted)",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-danger)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-danger)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-default)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
+                }}
+              >
+                Disable AI
+              </button>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                  Remove your API key and disable all AI features?
+                </span>
+                <button
+                  onClick={() => {
+                    disableAI.mutate(undefined, {
+                      onSuccess: () => setConfirmDisable(false),
+                    });
+                  }}
+                  disabled={disableAI.isPending}
+                  style={{
+                    background: "var(--color-danger)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 6,
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: disableAI.isPending ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {disableAI.isPending ? "Disabling…" : "Confirm"}
+                </button>
+                <button
+                  onClick={() => setConfirmDisable(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: 12,
+                    color: "var(--color-text-muted)",
+                    cursor: "pointer",
+                    padding: "5px 8px",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {saveConfig.error && (
           <p style={{ fontSize: 12, color: "var(--color-danger)", margin: 0 }}>
@@ -689,7 +760,7 @@ function BackupSection() {
         body: file,
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      setRestoreMsg("Restore staged — restart Luminarr to apply the backup.");
+      setRestoreMsg("Restore staged — restart Prism to apply the backup.");
     } catch (e) {
       setRestoreError((e as Error).message);
     }

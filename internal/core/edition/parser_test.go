@@ -3,7 +3,7 @@ package edition_test
 import (
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/edition"
+	"github.com/beacon-media/prism/internal/core/edition"
 )
 
 func TestParse(t *testing.T) {

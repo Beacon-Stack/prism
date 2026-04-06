@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/config"
+	"github.com/beacon-media/prism/internal/config"
 )
 
 func TestLoad_Defaults(t *testing.T) {
@@ -25,9 +25,9 @@ func TestLoad_Defaults(t *testing.T) {
 }
 
 func TestLoad_EnvVarOverride(t *testing.T) {
-	t.Setenv("LUMINARR_AUTH_API_KEY", "my-secret-key")
-	t.Setenv("LUMINARR_SERVER_PORT", "9999")
-	t.Setenv("LUMINARR_LOG_LEVEL", "debug")
+	t.Setenv("PRISM_AUTH_API_KEY", "my-secret-key")
+	t.Setenv("PRISM_SERVER_PORT", "9999")
+	t.Setenv("PRISM_LOG_LEVEL", "debug")
 
 	cfg, err := config.Load("")
 	if err != nil {

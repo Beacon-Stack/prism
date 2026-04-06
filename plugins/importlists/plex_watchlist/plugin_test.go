@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/registry"
+	"github.com/beacon-media/prism/internal/registry"
 )
 
 // mustMarshal panics if json.Marshal fails — acceptable in test helpers.

@@ -1,4 +1,4 @@
-// Package command implements a Luminarr notification plugin that executes
+// Package command implements a Prism notification plugin that executes
 // a user-provided script from /config/scripts/ on each event. The event
 // payload is passed as JSON on stdin and key fields are set as environment
 // variables.
@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // ScriptsDir is the directory from which scripts are resolved.
@@ -84,10 +84,10 @@ func (n *Notifier) Notify(ctx context.Context, event plugin.NotificationEvent) e
 	cmd.WaitDelay = 3 * time.Second             // give pipes time to drain after kill
 	cmd.Stdin = bytes.NewReader(payload)
 	cmd.Env = append(os.Environ(),
-		"LUMINARR_EVENT_TYPE="+string(event.Type),
-		"LUMINARR_MOVIE_ID="+event.MovieID,
-		"LUMINARR_MESSAGE="+event.Message,
-		"LUMINARR_TIMESTAMP="+event.Timestamp.Format(time.RFC3339),
+		"PRISM_EVENT_TYPE="+string(event.Type),
+		"PRISM_MOVIE_ID="+event.MovieID,
+		"PRISM_MESSAGE="+event.Message,
+		"PRISM_TIMESTAMP="+event.Timestamp.Format(time.RFC3339),
 	)
 
 	// Use a buffer for combined output instead of CombinedOutput() which

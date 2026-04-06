@@ -6,8 +6,8 @@ import type { RadarrPreviewResult, RadarrImportOptions, RadarrImportResult, Cate
 
 // ── sessionStorage helpers (credentials cleared on tab close) ─────────────────
 
-const LS_URL = "luminarr.radarr.url";
-const LS_KEY = "luminarr.radarr.api_key";
+const LS_URL = "prism.radarr.url";
+const LS_KEY = "prism.radarr.api_key";
 
 function loadSaved(): { url: string; apiKey: string } | null {
   const url = sessionStorage.getItem(LS_URL);
@@ -461,7 +461,7 @@ function PreviewStep({
           label={`Movies (${preview.movie_count})`}
           checked={opts.movies}
           onChange={() => toggle("movies")}
-          detail="Movies already in Luminarr (by TMDB ID) will be skipped."
+          detail="Movies already in Prism (by TMDB ID) will be skipped."
         />
       </div>
 
@@ -808,7 +808,7 @@ export default function ImportPage() {
           Import from Radarr
         </h1>
         <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--color-text-secondary)" }}>
-          Import your Radarr configuration into Luminarr. Requires a running Radarr instance.
+          Import your Radarr configuration into Prism. Requires a running Radarr instance.
         </p>
       </div>
 

@@ -5,7 +5,7 @@ package conflict
 import (
 	"fmt"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // Severity indicates how significant a regression is.

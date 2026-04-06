@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/collection"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
-	"github.com/luminarr/luminarr/internal/testutil"
-	"github.com/luminarr/luminarr/internal/testutil/mock"
+	"github.com/beacon-media/prism/internal/core/collection"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-media/prism/internal/testutil/mock"
 
 	"log/slog"
 	"os"

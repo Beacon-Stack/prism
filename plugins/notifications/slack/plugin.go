@@ -1,4 +1,4 @@
-// Package slack implements a Luminarr notification plugin that sends events
+// Package slack implements a Prism notification plugin that sends events
 // to a Slack channel via an Incoming Webhook URL.
 package slack
 
@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {
@@ -55,7 +55,7 @@ type Notifier struct {
 // New creates a new Notifier from the given config.
 func New(cfg Config) *Notifier {
 	if cfg.Username == "" {
-		cfg.Username = "Luminarr"
+		cfg.Username = "Prism"
 	}
 	if cfg.IconEmoji == "" {
 		cfg.IconEmoji = ":clapper:"
@@ -108,9 +108,9 @@ func (n *Notifier) Notify(ctx context.Context, event plugin.NotificationEvent) e
 		Attachments: []slackAttachment{
 			{
 				Color:  colorForEvent(event.Type),
-				Title:  fmt.Sprintf("[Luminarr] %s", event.Type),
+				Title:  fmt.Sprintf("[Prism] %s", event.Type),
 				Text:   event.Message,
-				Footer: "Luminarr",
+				Footer: "Prism",
 				Ts:     event.Timestamp.UTC().Unix(),
 			},
 		},
@@ -144,6 +144,6 @@ func (n *Notifier) Test(ctx context.Context) error {
 	return n.Notify(ctx, plugin.NotificationEvent{
 		Type:      plugin.EventType("test"),
 		Timestamp: time.Now().UTC(),
-		Message:   "Luminarr Slack test — connection successful",
+		Message:   "Prism Slack test — connection successful",
 	})
 }

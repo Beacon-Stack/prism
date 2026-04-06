@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 // DiskFile represents a video file found on disk during a library scan.

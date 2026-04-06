@@ -9,8 +9,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/library"
-	"github.com/luminarr/luminarr/internal/core/movie"
+	"github.com/beacon-media/prism/internal/core/library"
+	"github.com/beacon-media/prism/internal/core/movie"
 )
 
 func registerMovieRoutes(api huma.API, db *sql.DB, movieSvc *movie.Service, libSvc *library.Service) {

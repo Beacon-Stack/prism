@@ -1,5 +1,5 @@
 // Package plugin defines the public interfaces and value types for
-// Luminarr's plugin system. Indexer, DownloadClient, and Notifier
+// Prism's plugin system. Indexer, DownloadClient, and Notifier
 // implementations (built-in or external) depend only on this package.
 package plugin
 

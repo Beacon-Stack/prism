@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// codecMap translates ffprobe codec_name values to Luminarr's canonical names.
+// codecMap translates ffprobe codec_name values to Prism's canonical names.
 var codecMap = map[string]string{
 	"hevc":       "x265",
 	"h265":       "x265",
@@ -181,7 +181,7 @@ func parseOutput(data []byte) (*Result, error) {
 	return r, nil
 }
 
-// normaliseCodec converts an ffprobe codec_name to Luminarr's canonical name.
+// normaliseCodec converts an ffprobe codec_name to Prism's canonical name.
 func normaliseCodec(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
 	if canon, ok := codecMap[name]; ok {

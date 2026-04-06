@@ -1,4 +1,4 @@
-// Package gotify implements a Luminarr notification plugin that sends events
+// Package gotify implements a Prism notification plugin that sends events
 // to a Gotify server via its REST API.
 package gotify
 
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {
@@ -76,7 +76,7 @@ type gotifyPayload struct {
 // Notify sends the event as a Gotify message.
 func (n *Notifier) Notify(ctx context.Context, event plugin.NotificationEvent) error {
 	payload := gotifyPayload{
-		Title:    fmt.Sprintf("Luminarr — %s", event.Type),
+		Title:    fmt.Sprintf("Prism — %s", event.Type),
 		Message:  event.Message,
 		Priority: 5,
 	}
@@ -109,8 +109,8 @@ func (n *Notifier) Notify(ctx context.Context, event plugin.NotificationEvent) e
 // Test sends a low-priority test message to verify the Gotify server is reachable.
 func (n *Notifier) Test(ctx context.Context) error {
 	payload := gotifyPayload{
-		Title:    "Luminarr",
-		Message:  "Luminarr Gotify test — connection successful",
+		Title:    "Prism",
+		Message:  "Prism Gotify test — connection successful",
 		Priority: 1,
 	}
 

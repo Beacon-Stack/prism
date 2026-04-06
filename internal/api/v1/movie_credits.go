@@ -6,8 +6,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
 )
 
 // creditsCastBody is a single cast member in the API response.
@@ -34,8 +34,8 @@ type recommendationBody struct {
 	Title      string `json:"title"       doc:"Movie title"`
 	Year       int    `json:"year"        doc:"Release year"`
 	PosterPath string `json:"poster_path" doc:"TMDB poster path"`
-	InLibrary  bool   `json:"in_library"  doc:"Whether this movie is in the Luminarr library"`
-	MovieID    string `json:"movie_id,omitempty" doc:"Luminarr movie ID if in library"`
+	InLibrary  bool   `json:"in_library"  doc:"Whether this movie is in the Prism library"`
+	MovieID    string `json:"movie_id,omitempty" doc:"Prism movie ID if in library"`
 }
 
 // movieCreditsBody is the response for GET /api/v1/movies/{id}/credits.

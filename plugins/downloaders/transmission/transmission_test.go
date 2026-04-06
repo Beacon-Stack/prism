@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
-	"github.com/luminarr/luminarr/plugins/downloaders/transmission"
+	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-media/prism/plugins/downloaders/transmission"
 )
 
 // rpcHandler is a mock handler for Transmission RPC requests.

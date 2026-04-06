@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/core/mediamanagement"
+	"github.com/beacon-media/prism/internal/core/mediamanagement"
 )
 
 // ── Response / request shapes ─────────────────────────────────────────────────

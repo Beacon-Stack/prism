@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/luminarr/luminarr/internal/core/customformat"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/testutil"
+	"github.com/beacon-media/prism/internal/core/customformat"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/testutil"
 )
 
 func newTestService(t *testing.T) *customformat.Service {
@@ -256,7 +256,7 @@ func TestService_ImportExport(t *testing.T) {
 	if !created[0].IncludeWhenRenaming {
 		t.Error("Import: include_when_renaming should be true")
 	}
-	// Implementation should be converted from TRaSH to Luminarr format.
+	// Implementation should be converted from TRaSH to Prism format.
 	if created[0].Specifications[0].Implementation != customformat.ImplReleaseTitle {
 		t.Errorf("Import: spec[0].implementation = %q, want %q",
 			created[0].Specifications[0].Implementation, customformat.ImplReleaseTitle)

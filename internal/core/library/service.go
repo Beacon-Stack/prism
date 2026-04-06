@@ -1,4 +1,4 @@
-// Package library manages Luminarr library records and their disk-level stats.
+// Package library manages Prism library records and their disk-level stats.
 package library
 
 import (
@@ -16,10 +16,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/luminarr/luminarr/internal/core/edition"
-	dbsqlite "github.com/luminarr/luminarr/internal/db/generated/sqlite"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/core/edition"
+	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
 )
 
 // tmdbSearcher is the minimal TMDB interface needed for background candidate matching.

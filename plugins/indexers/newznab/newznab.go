@@ -1,4 +1,4 @@
-// Package newznab implements the Newznab indexer plugin for Luminarr.
+// Package newznab implements the Newznab indexer plugin for Prism.
 // Newznab is an RSS/Atom-style XML protocol for NZB indexers. It shares the
 // same feed envelope and API parameter shape as Torznab, but serves NZB
 // releases rather than torrents — so there are no seeder/peer attributes.
@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func init() {

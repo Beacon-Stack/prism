@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
-	"github.com/luminarr/luminarr/plugins/downloaders/nzbget"
+	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-media/prism/plugins/downloaders/nzbget"
 )
 
 type rpcHandler struct {

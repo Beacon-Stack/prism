@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/pkg/plugin"
+	"github.com/beacon-media/prism/pkg/plugin"
 )
 
 func TestNotify_Success(t *testing.T) {
@@ -28,7 +28,7 @@ func TestNotify_Success(t *testing.T) {
 	defer srv.Close()
 
 	n := &Notifier{
-		cfg:    Config{WebhookURL: srv.URL, Username: "LuminarrBot", IconEmoji: ":movie_camera:"},
+		cfg:    Config{WebhookURL: srv.URL, Username: "PrismBot", IconEmoji: ":movie_camera:"},
 		client: srv.Client(),
 	}
 
@@ -42,8 +42,8 @@ func TestNotify_Success(t *testing.T) {
 		t.Fatalf("Notify() = %v", err)
 	}
 
-	if gotPayload.Username != "LuminarrBot" {
-		t.Errorf("username = %q, want LuminarrBot", gotPayload.Username)
+	if gotPayload.Username != "PrismBot" {
+		t.Errorf("username = %q, want PrismBot", gotPayload.Username)
 	}
 	if len(gotPayload.Attachments) != 1 {
 		t.Fatalf("attachments len = %d, want 1", len(gotPayload.Attachments))
@@ -72,8 +72,8 @@ func TestNotify_ServerError(t *testing.T) {
 
 func TestNew_Defaults(t *testing.T) {
 	n := New(Config{WebhookURL: "http://example.com"})
-	if n.cfg.Username != "Luminarr" {
-		t.Errorf("Username = %q, want Luminarr", n.cfg.Username)
+	if n.cfg.Username != "Prism" {
+		t.Errorf("Username = %q, want Prism", n.cfg.Username)
 	}
 	if n.cfg.IconEmoji != ":clapper:" {
 		t.Errorf("IconEmoji = %q, want :clapper:", n.cfg.IconEmoji)

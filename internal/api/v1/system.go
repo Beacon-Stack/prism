@@ -12,13 +12,13 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/anthropic"
-	"github.com/luminarr/luminarr/internal/config"
-	"github.com/luminarr/luminarr/internal/core/aicommand"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/metadata/tmdb"
-	"github.com/luminarr/luminarr/internal/safedialer"
-	"github.com/luminarr/luminarr/internal/version"
+	"github.com/beacon-media/prism/internal/anthropic"
+	"github.com/beacon-media/prism/internal/config"
+	"github.com/beacon-media/prism/internal/core/aicommand"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-media/prism/internal/version"
 )
 
 // systemStatus holds the shape of the status response body.
@@ -99,14 +99,14 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		Method:      "GET",
 		Path:        "/api/v1/system/status",
 		Summary:     "Get system status",
-		Description: "Returns runtime information about the Luminarr server.",
+		Description: "Returns runtime information about the Prism server.",
 		Tags:        []string{"System"},
 	}, func(ctx context.Context, _ *struct{}) (*systemStatusOutput, error) {
 		tmdbEnabled := movieSvc != nil && movieSvc.HasMetadataProvider()
 		aiEnabled := aiCmdSvc != nil && aiCmdSvc.Enabled()
 		return &systemStatusOutput{
 			Body: &systemStatus{
-				AppName:       "Luminarr",
+				AppName:       "Prism",
 				Version:       version.Version,
 				BuildTime:     version.BuildTime,
 				GoVersion:     version.GoVersion(),
@@ -172,6 +172,29 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		}, nil
 	})
 
+	// DELETE /api/v1/system/config/ai — clear the AI API key and disable AI features.
+	huma.Register(api, huma.Operation{
+		OperationID: "disable-ai",
+		Method:      http.MethodDelete,
+		Path:        "/api/v1/system/config/ai",
+		Summary:     "Disable AI features",
+		Description: "Clears the Claude API key from the config file and disables AI features immediately.",
+		Tags:        []string{"System"},
+	}, func(ctx context.Context, _ *struct{}) (*updateConfigOutput, error) {
+		writePath, err := config.WriteConfigKey(configFile, "ai.api_key", "")
+		if err != nil {
+			return nil, huma.NewError(http.StatusInternalServerError, "failed to clear AI config", err)
+		}
+		if aiCmdSvc != nil {
+			aiCmdSvc.SetClient(nil)
+		}
+		logger.Info("AI features disabled — API key cleared")
+		return &updateConfigOutput{Body: &updateConfigResult{
+			Saved:      true,
+			ConfigFile: writePath,
+		}}, nil
+	})
+
 	// PUT /api/v1/system/config — update config values and activate them immediately.
 	huma.Register(api, huma.Operation{
 		OperationID: "update-system-config",
@@ -231,12 +254,12 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		}
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet,
-			"https://api.github.com/repos/luminarr/luminarr/releases/latest", nil)
+			"https://api.github.com/repos/prism/prism/releases/latest", nil)
 		if err != nil {
 			return nil, huma.NewError(http.StatusBadGateway, "failed to build GitHub request", err)
 		}
 		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("User-Agent", fmt.Sprintf("Luminarr/%s", version.Version))
+		req.Header.Set("User-Agent", fmt.Sprintf("Prism/%s", version.Version))
 
 		resp, err := client.Do(req)
 		if err != nil {

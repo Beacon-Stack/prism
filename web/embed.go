@@ -1,4 +1,4 @@
-// Package web serves the embedded Luminarr web UI.
+// Package web serves the embedded Prism web UI.
 // Static assets live under web/static/ and are compiled into the binary
 // via the //go:embed directive.
 package web

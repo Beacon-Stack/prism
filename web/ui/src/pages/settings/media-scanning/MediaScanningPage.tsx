@@ -22,7 +22,7 @@ export default function MediaScanningPage() {
     <div style={{ maxWidth: 640 }}>
       <PageHeader
         title="Media Scanning"
-        description="Luminarr can use ffprobe to verify the actual codec, resolution, and HDR format of imported files — and flag mismatches against the filename-parsed quality."
+        description="Prism can use ffprobe to verify the actual codec, resolution, and HDR format of imported files — and flag mismatches against the filename-parsed quality."
         docsUrl={DOCS_URLS.mediaScanning}
       />
 
@@ -65,7 +65,7 @@ export default function MediaScanningPage() {
             <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
               Install ffprobe to enable media scanning. See the{" "}
               <a
-                href="https://github.com/luminarr/luminarr/blob/main/docs/getting-started.md#ffprobe-optional"
+                href="https://github.com/prism/prism/blob/main/docs/getting-started.md#ffprobe-optional"
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: "var(--color-accent)" }}

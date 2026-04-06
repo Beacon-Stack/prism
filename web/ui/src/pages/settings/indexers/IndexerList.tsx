@@ -9,7 +9,28 @@ import {
   useDeleteIndexer,
   useTestIndexer,
 } from "@/api/indexers";
+import { toast } from "sonner";
 import type { IndexerConfig, IndexerRequest, TestResult } from "@/types";
+
+// ── Source detection ──────────────────────────────────────────────────────────
+
+type IndexerSource = "configurarr" | "prowlarr" | "jackett" | "manual";
+
+function detectSource(settings: Record<string, unknown>): IndexerSource {
+  // Check for explicit Configurarr marker (set during download client sync)
+  if (settings.configurarr === true) return "configurarr";
+  const url = strSetting(settings, "url").toLowerCase();
+  if (url.includes("/api/v1/torznab/")) return "configurarr";
+  if (url.includes("prowlarr") || url.includes(":9696")) return "prowlarr";
+  if (url.includes("jackett") || url.includes(":9117")) return "jackett";
+  return "manual";
+}
+
+const sourceStyles: Record<Exclude<IndexerSource, "manual">, { label: string; color: string; bg: string }> = {
+  configurarr: { label: "Configurarr", color: "#7c6af7", bg: "color-mix(in srgb, #7c6af7 12%, transparent)" },
+  prowlarr: { label: "Prowlarr", color: "#3b9eff", bg: "color-mix(in srgb, #3b9eff 12%, transparent)" },
+  jackett: { label: "Jackett", color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 12%, transparent)" },
+};
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -532,18 +553,59 @@ function KindBadge({ kind }: { kind: string }) {
   );
 }
 
+function SourceBadge({ settings }: { settings: Record<string, unknown> }) {
+  const source = detectSource(settings);
+  if (source === "manual") return null;
+  const style = sourceStyles[source];
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+        background: style.bg,
+        color: style.color,
+      }}
+    >
+      {style.label}
+    </span>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function IndexerList() {
-  const { data, isLoading, error } = useIndexers();
+  const { data, isLoading, error, refetch } = useIndexers();
   const [modal, setModal] = useState<{ open: boolean; editing: IndexerConfig | null }>({
     open: false,
     editing: null,
   });
+  const [syncing, setSyncing] = useState(false);
 
   function openCreate() { setModal({ open: true, editing: null }); }
   function openEdit(cfg: IndexerConfig) { setModal({ open: true, editing: cfg }); }
   function closeModal() { setModal({ open: false, editing: null }); }
+
+  async function triggerSync() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/v1/hooks/configurarr/sync", { method: "POST" });
+      if (res.ok) {
+        toast.success("Sync triggered — refreshing...");
+        // Wait a moment for the sync to complete, then refetch
+        setTimeout(() => { refetch(); setSyncing(false); }, 2000);
+      } else {
+        toast.error("Sync not available — Configurarr integration may be disabled");
+        setSyncing(false);
+      }
+    } catch {
+      toast.error("Sync not available — Configurarr integration may be disabled");
+      setSyncing(false);
+    }
+  }
 
   return (
     <div style={{ padding: 24, maxWidth: 900 }}>
@@ -552,24 +614,46 @@ export default function IndexerList() {
         description="Torznab and Newznab sources for searching releases."
         docsUrl={DOCS_URLS.indexers}
         action={
-          <button
-            onClick={openCreate}
-            style={{
-              background: "var(--color-accent)",
-              color: "var(--color-accent-fg)",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 16px",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
-          >
-            + Add Indexer
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={triggerSync}
+              disabled={syncing}
+              style={{
+                background: "none",
+                color: "var(--color-text-secondary)",
+                border: "1px solid var(--color-border-default)",
+                borderRadius: 6,
+                padding: "8px 14px",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: syncing ? "wait" : "pointer",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              {syncing ? "Syncing..." : "Sync from Configurarr"}
+            </button>
+            <button
+              onClick={openCreate}
+              style={{
+                background: "var(--color-accent)",
+                color: "var(--color-accent-fg)",
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 16px",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+            >
+              + Add Indexer
+            </button>
+          </div>
         }
       />
 
@@ -634,7 +718,10 @@ export default function IndexerList() {
                   }}
                 >
                   <td style={{ padding: "0 16px", height: 52, color: "var(--color-text-primary)", fontWeight: 500 }}>
-                    {cfg.name}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {cfg.name}
+                      <SourceBadge settings={cfg.settings} />
+                    </span>
                   </td>
                   <td style={{ padding: "0 16px", height: 52 }}>
                     <KindBadge kind={cfg.kind} />

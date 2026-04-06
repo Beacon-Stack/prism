@@ -28,8 +28,8 @@ const (
 // If cfgFile is empty, the following paths are searched in order:
 //
 //	/config/config.yaml              (Docker volume mount)
-//	$HOME/.config/luminarr/config.yaml
-//	/etc/luminarr/config.yaml
+//	$HOME/.config/prism/config.yaml
+//	/etc/prism/config.yaml
 //	./config.yaml
 //
 // Missing config file is not an error — defaults and environment variables
@@ -58,29 +58,29 @@ func Load(cfgFile string) (*Config, error) {
 		v.SetConfigType("yaml")
 		v.AddConfigPath("/config") // Docker volume mount point
 		if home != "" {
-			v.AddConfigPath(filepath.Join(home, ".config", "luminarr"))
+			v.AddConfigPath(filepath.Join(home, ".config", "prism"))
 		}
-		v.AddConfigPath("/etc/luminarr")
+		v.AddConfigPath("/etc/prism")
 		v.AddConfigPath(".")
 	}
 
 	// Environment variable overrides.
 	// AutomaticEnv handles simple keys; BindEnv covers keys with underscores
 	// in the name (e.g. api_key) where viper's replacer can misfire.
-	v.SetEnvPrefix("LUMINARR")
+	v.SetEnvPrefix("PRISM")
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	// Explicit bindings for keys that contain underscores — these are
 	// not reliably resolved by AutomaticEnv alone.
-	_ = v.BindEnv("auth.api_key", "LUMINARR_AUTH_API_KEY")
-	_ = v.BindEnv("tmdb.api_key", "LUMINARR_TMDB_API_KEY")
-	_ = v.BindEnv("ai.api_key", "LUMINARR_AI_API_KEY")
-	_ = v.BindEnv("database.path", "LUMINARR_DATABASE_PATH")
-	_ = v.BindEnv("database.dsn", "LUMINARR_DATABASE_DSN")
-	_ = v.BindEnv("ai.match_model", "LUMINARR_AI_MATCH_MODEL")
-	_ = v.BindEnv("ai.score_model", "LUMINARR_AI_SCORE_MODEL")
-	_ = v.BindEnv("ai.filter_model", "LUMINARR_AI_FILTER_MODEL")
+	_ = v.BindEnv("auth.api_key", "PRISM_AUTH_API_KEY")
+	_ = v.BindEnv("tmdb.api_key", "PRISM_TMDB_API_KEY")
+	_ = v.BindEnv("ai.api_key", "PRISM_AI_API_KEY")
+	_ = v.BindEnv("database.path", "PRISM_DATABASE_PATH")
+	_ = v.BindEnv("database.dsn", "PRISM_DATABASE_DSN")
+	_ = v.BindEnv("ai.match_model", "PRISM_AI_MATCH_MODEL")
+	_ = v.BindEnv("ai.score_model", "PRISM_AI_SCORE_MODEL")
+	_ = v.BindEnv("ai.filter_model", "PRISM_AI_FILTER_MODEL")
 
 	if err := v.ReadInConfig(); err != nil {
 		// Missing config file is not an error — we use defaults.
@@ -102,14 +102,14 @@ func Load(cfgFile string) (*Config, error) {
 	}
 
 	// Default SQLite path: if /config exists (Docker volume), use it;
-	// otherwise fall back to ~/.config/luminarr/ (bare-metal).
+	// otherwise fall back to ~/.config/prism/ (bare-metal).
 	if cfg.Database.Driver == "sqlite" && cfg.Database.Path == "" {
 		if info, err := os.Stat("/config"); err == nil && info.IsDir() {
-			cfg.Database.Path = "/config/luminarr.db"
+			cfg.Database.Path = "/config/prism.db"
 		} else if home, _ := os.UserHomeDir(); home != "" {
-			cfg.Database.Path = filepath.Join(home, ".config", "luminarr", "luminarr.db")
+			cfg.Database.Path = filepath.Join(home, ".config", "prism", "prism.db")
 		} else {
-			cfg.Database.Path = "/config/luminarr.db"
+			cfg.Database.Path = "/config/prism.db"
 		}
 	}
 

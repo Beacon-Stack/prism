@@ -1,9 +1,9 @@
-## Luminarr configuration example
-## Copy to ~/.config/luminarr/config.yaml and edit to suit.
+## Prism configuration example
+## Copy to ~/.config/prism/config.yaml and edit to suit.
 ##
 ## All values can be overridden by environment variables.
-## Prefix the key path with LUMINARR_ and replace dots with underscores.
-## Example: server.port → LUMINARR_SERVER_PORT=8080
+## Prefix the key path with PRISM_ and replace dots with underscores.
+## Example: server.port → PRISM_SERVER_PORT=8080
 
 # ── HTTP server ───────────────────────────────────────────────────────────────
 server:
@@ -19,12 +19,12 @@ database:
   driver: sqlite
 
   # SQLite: path to the database file.
-  # Default: ~/.config/luminarr/luminarr.db
-  # path: /path/to/luminarr.db
+  # Default: ~/.config/prism/prism.db
+  # path: /path/to/prism.db
 
   # PostgreSQL: full connection string.
   # Only used when driver is "postgres".
-  # dsn: "postgres://user:password@localhost:5432/luminarr?sslmode=require"
+  # dsn: "postgres://user:password@localhost:5432/prism?sslmode=require"
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 log:
@@ -48,7 +48,7 @@ auth:
 # Get a free API key at: https://www.themoviedb.org/settings/api
 #
 # If not configured, a WARNING is shown on startup and metadata features
-# are disabled. Luminarr will still run and manage existing library files.
+# are disabled. Prism will still run and manage existing library files.
 tmdb:
   api_key: ""
 
@@ -66,3 +66,14 @@ ai:
   # match_model:  "claude-sonnet-4-6"          # accuracy matters
   # score_model:  "claude-haiku-4-5-20251001"  # high volume, latency matters
   # filter_model: "claude-haiku-4-5-20251001"  # high volume, latency matters
+
+# ── Configurarr integration (optional) ──────────────────────────────────────
+# When configured, Prism registers itself with the Configurarr control plane
+# on startup. This enables auto-discovery of ecosystem services, shared config,
+# and centralized indexer management.
+#
+# Set the URL and API key of your Configurarr instance.
+# If not configured, Prism runs standalone (no change in behavior).
+pulse:
+  # url: "http://pulse:9696"
+  # api_key: ""

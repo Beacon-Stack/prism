@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/queue"
-	"github.com/luminarr/luminarr/internal/scheduler"
+	"github.com/beacon-media/prism/internal/core/queue"
+	"github.com/beacon-media/prism/internal/scheduler"
 )
 
 // QueuePoll returns a Job that polls all active downloads and updates their

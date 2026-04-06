@@ -8,7 +8,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/luminarr/luminarr/internal/logging"
+	"github.com/beacon-media/prism/internal/logging"
 )
 
 type logEntryBody struct {

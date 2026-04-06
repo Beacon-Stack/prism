@@ -83,6 +83,22 @@ export function useRevealApiKey() {
   });
 }
 
+export function useDisableAI() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<{ saved: boolean; config_file: string }>("/system/config/ai", {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["system", "status"] });
+      qc.invalidateQueries({ queryKey: ["system", "config"] });
+      toast.success("AI features disabled");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+}
+
 export function useSaveConfig() {
   const qc = useQueryClient();
   return useMutation({

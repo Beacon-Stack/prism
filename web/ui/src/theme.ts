@@ -37,8 +37,8 @@ export interface ThemePreset {
 export const THEME_PRESETS: ThemePreset[] = [
   // ── Dark themes ──────────────────────────────────────────────────────────
   {
-    id: "luminarr",
-    label: "Luminarr",
+    id: "prism",
+    label: "Prism",
     mode: "dark",
     preview: { bg: "#0d0d12", surface: "#13131a", accent: "#7c6af7", text: "#f0f0f5" },
     vars: {
@@ -365,14 +365,14 @@ export const THEME_PRESETS: ThemePreset[] = [
   },
 ];
 
-export const DEFAULT_DARK_PRESET = "luminarr";
+export const DEFAULT_DARK_PRESET = "prism";
 export const DEFAULT_LIGHT_PRESET = "catppuccin-latte";
 
 // ── Storage keys ──────────────────────────────────────────────────────────────
 
-const KEY_MODE = "luminarr-theme-mode";
-const KEY_DARK = "luminarr-theme-dark";
-const KEY_LIGHT = "luminarr-theme-light";
+const KEY_MODE = "prism-theme-mode";
+const KEY_DARK = "prism-theme-dark";
+const KEY_LIGHT = "prism-theme-light";
 
 // ── Apply ─────────────────────────────────────────────────────────────────────
 
@@ -419,7 +419,7 @@ export function getStoredPreset(resolvedMode: "dark" | "light"): string {
   return localStorage.getItem(key) ?? (resolvedMode === "dark" ? DEFAULT_DARK_PRESET : DEFAULT_LIGHT_PRESET);
 }
 
-/** Find a preset by ID, falling back to the Luminarr default. */
+/** Find a preset by ID, falling back to the Prism default. */
 export function findPreset(id: string): ThemePreset {
   return THEME_PRESETS.find((p) => p.id === id) ?? THEME_PRESETS[0];
 }
@@ -454,7 +454,7 @@ export function setThemePreset(resolvedMode: "dark" | "light", presetId: string)
 
 // ── UI Preferences ────────────────────────────────────────────────────────────
 
-const KEY_TOOLTIPS = "luminarr-ui-tooltips";
+const KEY_TOOLTIPS = "prism-ui-tooltips";
 
 export function getTooltipsEnabled(): boolean {
   return localStorage.getItem(KEY_TOOLTIPS) !== "false";

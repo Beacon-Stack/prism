@@ -16,7 +16,7 @@ import type {
   PlexSection,
   PlexSyncPreviewResult,
   PlexSyncMovie,
-  LuminarrSyncMovie,
+  PrismSyncMovie,
   PlexSyncImportResult,
 } from "@/types";
 
@@ -221,7 +221,7 @@ function DiffView({
   );
   const [libraryID, setLibraryID] = useState("");
   const [profileID, setProfileID] = useState("");
-  const [tab, setTab] = useState<"plex" | "luminarr">("plex");
+  const [tab, setTab] = useState<"plex" | "prism">("plex");
 
   function toggleAll() {
     if (selected.size === preview.in_plex_only.length) {
@@ -254,7 +254,7 @@ function DiffView({
   const summaryItems = [
     { label: "In sync", value: preview.already_synced, color: "var(--color-success)" },
     { label: "Server only", value: preview.in_plex_only.length, color: "var(--color-accent)" },
-    { label: "Luminarr only", value: preview.in_luminarr_only.length, color: "var(--color-warning)" },
+    { label: "Prism only", value: preview.in_prism_only.length, color: "var(--color-warning)" },
     { label: "Unmatched", value: preview.unmatched, color: "var(--color-text-muted)" },
   ];
 
@@ -302,7 +302,7 @@ function DiffView({
 
       {/* Tab toggle */}
       <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
-        {(["plex", "luminarr"] as const).map((t) => (
+        {(["plex", "prism"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -320,7 +320,7 @@ function DiffView({
           >
             {t === "plex"
               ? `Server Only (${preview.in_plex_only.length})`
-              : `Luminarr Only (${preview.in_luminarr_only.length})`}
+              : `Prism Only (${preview.in_prism_only.length})`}
           </button>
         ))}
         <div style={{ flex: 1, borderBottom: "1px solid var(--color-border-default)" }} />
@@ -332,7 +332,7 @@ function DiffView({
           {preview.in_plex_only.length === 0 ? (
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", textAlign: "center", padding: 24 }}>
               <CheckCircle size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-              <div>All server movies are already in Luminarr.</div>
+              <div>All server movies are already in Prism.</div>
             </div>
           ) : (
             <>
@@ -432,19 +432,19 @@ function DiffView({
         </div>
       )}
 
-      {/* Luminarr-only tab */}
-      {tab === "luminarr" && (
+      {/* Prism-only tab */}
+      {tab === "prism" && (
         <div style={card}>
-          {preview.in_luminarr_only.length === 0 ? (
+          {preview.in_prism_only.length === 0 ? (
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", textAlign: "center", padding: 24 }}>
               <CheckCircle size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
-              <div>All Luminarr movies are on the server.</div>
+              <div>All Prism movies are on the server.</div>
             </div>
           ) : (
             <div style={{ maxHeight: 400, overflowY: "auto" }}>
-              {preview.in_luminarr_only
+              {preview.in_prism_only
                 .sort((a, b) => a.title.localeCompare(b.title))
-                .map((m: LuminarrSyncMovie) => (
+                .map((m: PrismSyncMovie) => (
                 <div
                   key={m.id}
                   style={{
@@ -562,8 +562,8 @@ export default function LibrarySyncPage() {
       </div>
 
       <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 24, maxWidth: 600 }}>
-        Compare your media server library with Luminarr to find movies that exist in one
-        but not the other. Import server-only movies into Luminarr with one click.
+        Compare your media server library with Prism to find movies that exist in one
+        but not the other. Import server-only movies into Prism with one click.
       </p>
 
       {step.kind === "select" && (

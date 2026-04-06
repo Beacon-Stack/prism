@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/luminarr/luminarr/internal/core/importlist"
-	"github.com/luminarr/luminarr/internal/core/movie"
-	"github.com/luminarr/luminarr/internal/events"
-	"github.com/luminarr/luminarr/internal/registry"
-	"github.com/luminarr/luminarr/internal/testutil"
+	"github.com/beacon-media/prism/internal/core/importlist"
+	"github.com/beacon-media/prism/internal/core/movie"
+	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-media/prism/internal/testutil"
 )
 
 func TestImportListSync_JobMetadata(t *testing.T) {
