@@ -9,14 +9,14 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/edition"
-	"github.com/beacon-media/prism/internal/core/mediainfo"
-	"github.com/beacon-media/prism/internal/core/mediamanagement"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/renamer"
-	"github.com/beacon-media/prism/internal/core/tag"
-	"github.com/beacon-media/prism/internal/core/watchsync"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/core/edition"
+	"github.com/beacon-stack/prism/internal/core/mediainfo"
+	"github.com/beacon-stack/prism/internal/core/mediamanagement"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/renamer"
+	"github.com/beacon-stack/prism/internal/core/tag"
+	"github.com/beacon-stack/prism/internal/core/watchsync"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
 // ── Movie file shapes ─────────────────────────────────────────────────────────

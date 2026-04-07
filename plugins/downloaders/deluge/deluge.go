@@ -17,9 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/internal/safedialer"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/safedialer"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func init() {

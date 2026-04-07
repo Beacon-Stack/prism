@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/pkg/plugin"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func TestNormalizeTitle(t *testing.T) {

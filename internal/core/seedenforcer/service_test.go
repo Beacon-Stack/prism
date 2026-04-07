@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/seedenforcer"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/testutil/mock"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/seedenforcer"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/testutil/mock"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ── Mock providers ──────────────────────────────────────────────────────────

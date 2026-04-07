@@ -24,6 +24,8 @@ import MediaScanningPage from "@/pages/settings/media-scanning/MediaScanningPage
 import AppSettingsPage from "@/pages/settings/app/AppSettingsPage";
 import ActivityPage from "@/pages/activity/ActivityPage";
 import DiscoverPage from "@/pages/discover/DiscoverPage";
+import DiscoverDetailPage from "@/pages/discover/DiscoverDetailPage";
+import PersonDetailPage from "@/pages/people/PersonDetailPage";
 import HistoryPage from "@/pages/history/HistoryPage";
 import WantedPage from "@/pages/wanted/WantedPage";
 import CalendarPage from "@/pages/calendar/CalendarPage";
@@ -57,6 +59,8 @@ export default function App() {
               <Route index element={<RouteEB><Dashboard /></RouteEB>} />
               <Route path="activity" element={<RouteEB><ActivityPage /></RouteEB>} />
               <Route path="discover" element={<RouteEB><DiscoverPage /></RouteEB>} />
+              <Route path="discover/:tmdbId" element={<RouteEB><DiscoverDetailPage /></RouteEB>} />
+              <Route path="people/:id" element={<RouteEB><PersonDetailPage /></RouteEB>} />
               <Route path="movies/:id" element={<RouteEB><MovieDetail /></RouteEB>} />
               <Route path="queue" element={<RouteEB><Queue /></RouteEB>} />
               <Route path="history" element={<RouteEB><HistoryPage /></RouteEB>} />

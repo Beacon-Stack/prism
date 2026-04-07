@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/testutil"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/testutil"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // newService is a thin helper that wires up a Service backed by a fresh in-memory DB.

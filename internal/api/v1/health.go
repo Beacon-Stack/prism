@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/health"
+	"github.com/beacon-stack/prism/internal/core/health"
 )
 
 type healthCheckBody struct {

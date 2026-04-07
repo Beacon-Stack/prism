@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/importer"
-	"github.com/beacon-media/prism/internal/core/mediamanagement"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/logging"
+	"github.com/beacon-stack/prism/internal/core/importer"
+	"github.com/beacon-stack/prism/internal/core/mediamanagement"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/logging"
 )
 
 // ── Fake DB querier ────────────────────────────────────────────────────────

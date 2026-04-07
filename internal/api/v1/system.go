@@ -12,13 +12,13 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/anthropic"
-	"github.com/beacon-media/prism/internal/config"
-	"github.com/beacon-media/prism/internal/core/aicommand"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
-	"github.com/beacon-media/prism/internal/safedialer"
-	"github.com/beacon-media/prism/internal/version"
+	"github.com/beacon-stack/prism/internal/anthropic"
+	"github.com/beacon-stack/prism/internal/config"
+	"github.com/beacon-stack/prism/internal/core/aicommand"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/safedialer"
+	"github.com/beacon-stack/prism/internal/version"
 )
 
 // systemStatus holds the shape of the status response body.

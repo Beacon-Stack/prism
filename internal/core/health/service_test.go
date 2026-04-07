@@ -6,15 +6,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/ratelimit"
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/internal/testutil"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/ratelimit"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/testutil"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func TestCheckPathAccessible_Valid(t *testing.T) {

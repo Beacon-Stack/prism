@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/importlist"
-	"github.com/beacon-media/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/internal/testutil"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/importlist"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/testutil"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ── Mock TMDB ────────────────────────────────────────────────────────────────

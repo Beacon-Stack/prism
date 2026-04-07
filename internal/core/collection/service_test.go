@@ -5,12 +5,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/collection"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
-	"github.com/beacon-media/prism/internal/testutil"
-	"github.com/beacon-media/prism/internal/testutil/mock"
+	"github.com/beacon-stack/prism/internal/core/collection"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/testutil"
+	"github.com/beacon-stack/prism/internal/testutil/mock"
 
 	"log/slog"
 	"os"

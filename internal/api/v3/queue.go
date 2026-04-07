@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/queue"
+	"github.com/beacon-stack/prism/internal/core/queue"
 )
 
 func registerQueueRoutes(api huma.API, svc *queue.Service) {

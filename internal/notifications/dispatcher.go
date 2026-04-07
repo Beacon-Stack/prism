@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/notification"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/notification"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // Dispatcher subscribes to the event bus and dispatches matching events to

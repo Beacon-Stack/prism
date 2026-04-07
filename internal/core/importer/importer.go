@@ -17,16 +17,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-media/prism/internal/core/downloadhandling"
-	"github.com/beacon-media/prism/internal/core/mediainfo"
-	"github.com/beacon-media/prism/internal/core/mediamanagement"
-	"github.com/beacon-media/prism/internal/core/pathutil"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/core/renamer"
-	"github.com/beacon-media/prism/internal/db"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/downloadhandling"
+	"github.com/beacon-stack/prism/internal/core/mediainfo"
+	"github.com/beacon-stack/prism/internal/core/mediamanagement"
+	"github.com/beacon-stack/prism/internal/core/pathutil"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/renamer"
+	"github.com/beacon-stack/prism/internal/db"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // videoExtensions is the set of file extensions considered video files.

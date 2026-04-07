@@ -9,9 +9,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/beacon-media/pulse/pkg/sdk"
-	"github.com/beacon-media/prism/internal/config"
-	"github.com/beacon-media/prism/internal/version"
+	"github.com/beacon-stack/prism/internal/config"
+	"github.com/beacon-stack/prism/internal/version"
+	"github.com/beacon-stack/pulse/pkg/sdk"
 )
 
 // Integration wraps the Pulse SDK client and provides
@@ -60,13 +60,13 @@ func New(cfg config.PulseConfig, serverHost string, serverPort int, logger *slog
 	}
 
 	client, err := sdk.New(sdk.Config{
-		PulseURL: cfg.URL,
-		APIKey:        apiKey,
-		ServiceName:   "prism",
-		ServiceType:   "media-manager",
-		APIURL:        apiURL,
-		HealthURL:     healthURL,
-		Version:       version.Version,
+		PulseURL:    cfg.URL,
+		APIKey:      apiKey,
+		ServiceName: "prism",
+		ServiceType: "media-manager",
+		APIURL:      apiURL,
+		HealthURL:   healthURL,
+		Version:     version.Version,
 		Capabilities: []string{
 			"supports_torrent",
 			"supports_usenet",

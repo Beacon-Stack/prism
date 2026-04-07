@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func TestValidateScriptName_Valid(t *testing.T) {

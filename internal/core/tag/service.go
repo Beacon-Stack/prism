@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-media/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/core/dbutil"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
 )
 
 // Tag is the domain representation of a tag.

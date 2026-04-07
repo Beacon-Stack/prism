@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/activity"
+	"github.com/beacon-stack/prism/internal/core/activity"
 )
 
 type listActivitiesInput struct {

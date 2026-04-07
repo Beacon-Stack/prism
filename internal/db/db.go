@@ -6,7 +6,7 @@ import (
 
 	_ "modernc.org/sqlite" // registers "sqlite" driver
 
-	"github.com/beacon-media/prism/internal/config"
+	"github.com/beacon-stack/prism/internal/config"
 )
 
 // DB wraps the underlying sql.DB and tracks which driver is in use.

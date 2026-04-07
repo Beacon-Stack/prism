@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/beacon-media/prism/pkg/plugin"
-	"github.com/beacon-media/prism/plugins/downloaders/sabnzbd"
+	"github.com/beacon-stack/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/plugins/downloaders/sabnzbd"
 )
 
 func newTestServer(t *testing.T, handlers map[string]http.HandlerFunc) *httptest.Server {

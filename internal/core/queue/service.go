@@ -9,9 +9,9 @@ import (
 	"log/slog"
 	"time"
 
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/pkg/plugin"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // Item is the queue-service view of an active download, enriching the raw

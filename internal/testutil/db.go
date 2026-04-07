@@ -6,8 +6,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/beacon-media/prism/internal/db"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/db"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
 )
 
 const testDSN = ":memory:?_foreign_keys=ON"

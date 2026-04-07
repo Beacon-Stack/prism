@@ -12,11 +12,11 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-media/prism/internal/core/mediaserver"
-	"github.com/beacon-media/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/mediaserver"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // WatchStatus is the derived watch state for a single movie.

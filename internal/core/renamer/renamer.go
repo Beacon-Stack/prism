@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // DefaultFileFormat is used when a library has no naming_format set.

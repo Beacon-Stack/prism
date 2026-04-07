@@ -15,17 +15,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/blocklist"
-	"github.com/beacon-media/prism/internal/core/conflict"
-	"github.com/beacon-media/prism/internal/core/customformat"
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/edition"
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/core/tag"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/blocklist"
+	"github.com/beacon-stack/prism/internal/core/conflict"
+	"github.com/beacon-stack/prism/internal/core/customformat"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/edition"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/tag"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // Result status constants.

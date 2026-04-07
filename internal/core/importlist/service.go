@@ -14,14 +14,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-media/prism/internal/core/autosearch"
-	"github.com/beacon-media/prism/internal/core/dbutil"
-	"github.com/beacon-media/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/internal/trakt"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/autosearch"
+	"github.com/beacon-stack/prism/internal/core/dbutil"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/trakt"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ErrNotFound is returned when an import list config does not exist.

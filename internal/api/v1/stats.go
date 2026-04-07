@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/stats"
+	"github.com/beacon-stack/prism/internal/core/stats"
 )
 
 // ── Response bodies ───────────────────────────────────────────────────────────

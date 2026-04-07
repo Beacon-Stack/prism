@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -219,60 +219,62 @@ function DiscoverCard({
 
   return (
     <div style={{ width: "100%" }}>
-      <div style={{ position: "relative" }}>
-        <Poster
-          src={
-            movie.poster_path
-              ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
-              : undefined
-          }
-          title={movie.title}
-          year={movie.year}
-        />
+      <Link to={`/discover/${movie.tmdb_id}`} style={{ textDecoration: "none", color: "inherit", display: "block", cursor: "pointer" }}>
+        <div style={{ position: "relative" }}>
+          <Poster
+            src={
+              movie.poster_path
+                ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+                : undefined
+            }
+            title={movie.title}
+            year={movie.year}
+          />
 
-        {/* Rating badge */}
-        {movie.rating > 0 && (
-          <div
+          {/* Rating badge */}
+          {movie.rating > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                padding: "2px 6px",
+                borderRadius: 4,
+                background: "rgba(0,0,0,0.7)",
+                backdropFilter: "blur(4px)",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#fbbf24",
+              }}
+            >
+              <Star size={10} fill="#fbbf24" stroke="none" />
+              {movie.rating.toFixed(1)}
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 8 }}>
+          <span
             style={{
-              position: "absolute",
-              top: 6,
-              right: 6,
-              display: "flex",
-              alignItems: "center",
-              gap: 3,
-              padding: "2px 6px",
-              borderRadius: 4,
-              background: "rgba(0,0,0,0.7)",
-              backdropFilter: "blur(4px)",
-              fontSize: 11,
-              fontWeight: 600,
-              color: "#fbbf24",
+              display: "block",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "var(--color-text-primary)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
-            <Star size={10} fill="#fbbf24" stroke="none" />
-            {movie.rating.toFixed(1)}
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginTop: 8 }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 12,
-            fontWeight: 500,
-            color: "var(--color-text-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {movie.title}
-        </span>
-        <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-          {movie.year > 0 && movie.year}
-        </span>
-      </div>
+            {movie.title}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+            {movie.year > 0 && movie.year}
+          </span>
+        </div>
+      </Link>
 
       {/* Action badge */}
       <div style={{ marginTop: 6 }}>

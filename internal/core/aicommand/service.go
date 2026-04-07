@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/beacon-media/prism/internal/anthropic"
-	"github.com/beacon-media/prism/internal/core/autosearch"
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/core/stats"
+	"github.com/beacon-stack/prism/internal/anthropic"
+	"github.com/beacon-stack/prism/internal/core/autosearch"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/stats"
 )
 
 // Service orchestrates AI command processing.

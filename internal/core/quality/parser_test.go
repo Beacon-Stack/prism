@@ -3,8 +3,8 @@ package quality_test
 import (
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func TestParseReleaseGroup(t *testing.T) {

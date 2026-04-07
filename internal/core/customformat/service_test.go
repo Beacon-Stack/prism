@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/customformat"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/testutil"
+	"github.com/beacon-stack/prism/internal/core/customformat"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/testutil"
 )
 
 func newTestService(t *testing.T) *customformat.Service {

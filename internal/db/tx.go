@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
 )
 
 // RunInTx runs fn inside a database transaction. If fn returns an error the

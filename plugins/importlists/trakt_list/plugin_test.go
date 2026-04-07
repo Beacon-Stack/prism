@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/internal/trakt"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/trakt"
 )
 
 func mustMarshal(t *testing.T, v any) []byte {

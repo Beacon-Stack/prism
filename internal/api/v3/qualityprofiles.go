@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/quality"
 )
 
 func registerQualityProfileRoutes(api huma.API, db *sql.DB, svc *quality.Service) {

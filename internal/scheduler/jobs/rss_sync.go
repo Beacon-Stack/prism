@@ -11,12 +11,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/quality"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/scheduler"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // RSSSync returns a Job that polls all enabled indexers for recent releases,

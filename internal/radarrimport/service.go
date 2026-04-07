@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ── Result types ──────────────────────────────────────────────────────────────

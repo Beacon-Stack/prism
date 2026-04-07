@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
 )
 
 // Definition describes a known quality level and the acceptable file-size

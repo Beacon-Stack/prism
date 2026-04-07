@@ -7,7 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/tag"
+	"github.com/beacon-stack/prism/internal/core/tag"
 )
 
 // tagMapper provides a stable bidirectional mapping between our UUID-based tag

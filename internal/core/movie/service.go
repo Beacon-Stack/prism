@@ -17,13 +17,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-media/prism/internal/core/edition"
-	"github.com/beacon-media/prism/internal/core/renamer"
-	"github.com/beacon-media/prism/internal/db"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/edition"
+	"github.com/beacon-stack/prism/internal/core/renamer"
+	"github.com/beacon-stack/prism/internal/db"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // Sentinel errors returned by Service methods.

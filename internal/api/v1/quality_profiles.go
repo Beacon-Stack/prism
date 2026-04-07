@@ -7,8 +7,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

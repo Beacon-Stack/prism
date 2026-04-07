@@ -1565,7 +1565,7 @@ export default function MovieDetail() {
                 }}
               >
                 {credits.cast.map((c) => (
-                  <div key={c.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 72, maxWidth: 72 }}>
+                  <Link key={c.id} to={`/people/${c.id}`} style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 72, maxWidth: 72 }}>
                     {c.profile_path ? (
                       <img
                         src={`https://image.tmdb.org/t/p/w185${c.profile_path}`}
@@ -1597,7 +1597,7 @@ export default function MovieDetail() {
                     <span style={{ fontSize: 9, color: "var(--color-text-muted)", textAlign: "center", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%" }}>
                       {c.character}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

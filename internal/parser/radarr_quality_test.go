@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // TestRadarr_QualityParser ports test cases from Radarr's QualityParserFixture.cs.

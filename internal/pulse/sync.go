@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
-	"github.com/beacon-media/pulse/pkg/sdk"
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/pulse/pkg/sdk"
 )
 
 // SyncIndexers pulls indexers assigned to this service from Pulse
@@ -262,9 +261,9 @@ func buildDownloadClientSettings(r sdk.DownloadClient) json.RawMessage {
 	}
 
 	m := map[string]interface{}{
-		"url":          fmt.Sprintf("%s://%s:%d", scheme, r.Host, r.Port),
-		"username":     r.Username,
-		"pulse":  true, // marker so we know this was synced
+		"url":      fmt.Sprintf("%s://%s:%d", scheme, r.Host, r.Port),
+		"username": r.Username,
+		"pulse":    true, // marker so we know this was synced
 	}
 
 	if r.Category != "" {
@@ -286,9 +285,4 @@ func buildDownloadClientSettings(r sdk.DownloadClient) json.RawMessage {
 
 	out, _ := json.Marshal(m)
 	return out
-}
-
-// logField returns a slog attribute for debug logging.
-func logField(key, value string) slog.Attr {
-	return slog.String(key, value)
 }

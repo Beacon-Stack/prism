@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/watchsync"
+	"github.com/beacon-stack/prism/internal/core/watchsync"
 )
 
 type watchSyncOutput struct {

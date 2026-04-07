@@ -6,8 +6,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/plexsync"
-	plexpkg "github.com/beacon-media/prism/plugins/mediaservers/plex"
+	"github.com/beacon-stack/prism/internal/plexsync"
+	plexpkg "github.com/beacon-stack/prism/plugins/mediaservers/plex"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

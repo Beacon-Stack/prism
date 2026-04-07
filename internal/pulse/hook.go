@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/indexer"
 )
 
 // SyncHandler returns an http.HandlerFunc that triggers an immediate
@@ -32,6 +32,6 @@ func (i *Integration) SyncHandler(indexerSvc *indexer.Service, dlSvc *downloader
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
 	}
 }

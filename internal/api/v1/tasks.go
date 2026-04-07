@@ -6,7 +6,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

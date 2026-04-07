@@ -4,15 +4,15 @@ package config
 // Values are loaded from config.yaml and can be overridden by
 // PRISM_* environment variables (e.g. PRISM_SERVER_PORT=8080).
 type Config struct {
-	Server      ServerConfig      `mapstructure:"server"`
-	Database    DatabaseConfig    `mapstructure:"database"`
-	Log         LogConfig         `mapstructure:"log"`
-	TMDB        TMDBConfig        `mapstructure:"tmdb"`
-	Trakt       TraktConfig       `mapstructure:"trakt"`
-	AI          AIConfig          `mapstructure:"ai"`
-	Auth        AuthConfig        `mapstructure:"auth"`
-	MediaInfo   MediaInfoConfig   `mapstructure:"mediainfo"`
-	Pulse PulseConfig `mapstructure:"pulse"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Log       LogConfig       `mapstructure:"log"`
+	TMDB      TMDBConfig      `mapstructure:"tmdb"`
+	Trakt     TraktConfig     `mapstructure:"trakt"`
+	AI        AIConfig        `mapstructure:"ai"`
+	Auth      AuthConfig      `mapstructure:"auth"`
+	MediaInfo MediaInfoConfig `mapstructure:"mediainfo"`
+	Pulse     PulseConfig     `mapstructure:"pulse"`
 
 	// ConfigFile is the path of the config file that was loaded, if any.
 	// Empty when running on defaults/env vars only.

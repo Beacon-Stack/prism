@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-stack/prism/internal/safedialer"
 )
 
 // ── Radarr API types ──────────────────────────────────────────────────────────

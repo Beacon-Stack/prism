@@ -3,7 +3,7 @@ package parser
 import (
 	"regexp"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 var (

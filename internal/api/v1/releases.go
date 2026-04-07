@@ -11,14 +11,14 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/autosearch"
-	"github.com/beacon-media/prism/internal/core/blocklist"
-	"github.com/beacon-media/prism/internal/core/conflict"
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/autosearch"
+	"github.com/beacon-stack/prism/internal/core/blocklist"
+	"github.com/beacon-stack/prism/internal/core/conflict"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ── Request / response shapes ────────────────────────────────────────────────

@@ -6,12 +6,12 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/core/queue"
-	"github.com/beacon-media/prism/internal/core/tag"
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/queue"
+	"github.com/beacon-stack/prism/internal/core/tag"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // Config holds the dependencies for the Radarr v3 compatibility layer.

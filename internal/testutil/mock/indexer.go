@@ -5,7 +5,7 @@ package mock
 import (
 	"context"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // Indexer is a configurable mock of plugin.Indexer.

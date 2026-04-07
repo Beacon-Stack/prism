@@ -3,7 +3,7 @@ package mediainfo_test
 import (
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/mediainfo"
+	"github.com/beacon-stack/prism/internal/core/mediainfo"
 )
 
 // TestScanner_unavailable verifies that a scanner with no binary path is

@@ -9,10 +9,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/beacon-media/prism/internal/core/mediaserver"
-	"github.com/beacon-media/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	plexpkg "github.com/beacon-media/prism/plugins/mediaservers/plex"
+	"github.com/beacon-stack/prism/internal/core/mediaserver"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	plexpkg "github.com/beacon-stack/prism/plugins/mediaservers/plex"
 )
 
 // ── Result types ─────────────────────────────────────────────────────────────
@@ -35,11 +35,11 @@ type PrismMovie struct {
 
 // SyncPreview summarises the library diff between Plex and Prism.
 type SyncPreview struct {
-	PlexTotal      int             `json:"plex_total"`
-	InPlexOnly     []SyncMovie     `json:"in_plex_only"`
-	InPrismOnly []PrismMovie `json:"in_prism_only"`
-	AlreadySynced  int             `json:"already_synced"`
-	Unmatched      int             `json:"unmatched"`
+	PlexTotal     int          `json:"plex_total"`
+	InPlexOnly    []SyncMovie  `json:"in_plex_only"`
+	InPrismOnly   []PrismMovie `json:"in_prism_only"`
+	AlreadySynced int          `json:"already_synced"`
+	Unmatched     int          `json:"unmatched"`
 }
 
 // SyncImportOptions controls what gets imported from Plex.
@@ -143,11 +143,11 @@ func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string)
 	}
 
 	return &SyncPreview{
-		PlexTotal:      len(plexMovies),
-		InPlexOnly:     inPlexOnly,
-		InPrismOnly: inPrismOnly,
-		AlreadySynced:  alreadySynced,
-		Unmatched:      unmatched,
+		PlexTotal:     len(plexMovies),
+		InPlexOnly:    inPlexOnly,
+		InPrismOnly:   inPrismOnly,
+		AlreadySynced: alreadySynced,
+		Unmatched:     unmatched,
 	}, nil
 }
 

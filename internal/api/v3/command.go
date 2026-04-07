@@ -8,8 +8,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 func registerCommandRoutes(api huma.API, db *sql.DB, movieSvc *movie.Service, sched *scheduler.Scheduler) {

@@ -3,7 +3,7 @@ package library
 import (
 	"testing"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func TestParseFilename(t *testing.T) {

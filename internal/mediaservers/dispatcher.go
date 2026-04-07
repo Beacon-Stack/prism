@@ -7,9 +7,9 @@ import (
 	"context"
 	"log/slog"
 
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/registry"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/registry"
 )
 
 // Dispatcher subscribes to the event bus and dispatches import_complete events

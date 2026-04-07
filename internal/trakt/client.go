@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-stack/prism/internal/safedialer"
 )
 
 const (

@@ -16,10 +16,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-media/prism/internal/core/edition"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/core/edition"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
 // tmdbSearcher is the minimal TMDB interface needed for background candidate matching.

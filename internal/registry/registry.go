@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // IndexerFactory constructs an Indexer from a JSON settings blob.

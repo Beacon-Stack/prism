@@ -8,12 +8,13 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/coder/websocket"
 
-	"github.com/beacon-media/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/events"
 )
 
 const (
@@ -62,10 +63,17 @@ func (h *Hub) HandleEvent(_ context.Context, e events.Event) {
 }
 
 // ServeHTTP upgrades the connection to WebSocket and starts pumping events
-// to the client. Same-origin browser requests (Sec-Fetch-Site: same-origin) are
-// trusted; external clients must provide a valid X-Api-Key header.
+// to the client. Browser WebSocket requests include an Origin header (checked
+// by the websocket library). External clients must provide a valid X-Api-Key
+// header. Sec-Fetch-Site is also accepted for non-WS callers.
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("Sec-Fetch-Site") != "same-origin" {
+	// Browsers do NOT send Sec-Fetch-* headers on WebSocket upgrades, so we
+	// check for the Upgrade header to identify browser WS connections. The
+	// Origin check is handled by websocket.Accept below.
+	isWSUpgrade := strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
+	isSameOrigin := r.Header.Get("Sec-Fetch-Site") == "same-origin"
+
+	if !isWSUpgrade && !isSameOrigin {
 		if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Api-Key")), h.apiKey) != 1 {
 			http.Error(w, `{"status":401,"title":"Unauthorized"}`, http.StatusUnauthorized)
 			return

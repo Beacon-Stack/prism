@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
 )
 
 // Service provides mediainfo scanning backed by the database.

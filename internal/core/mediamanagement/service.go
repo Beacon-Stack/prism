@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/beacon-media/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/core/dbutil"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
 )
 
 // Settings is the application-level view of the media_management table.

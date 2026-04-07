@@ -11,7 +11,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/safedialer"
+	"github.com/beacon-stack/prism/internal/safedialer"
 )
 
 const (

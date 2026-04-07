@@ -3,7 +3,7 @@ package parser
 import (
 	"testing"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ── Video quality tests (ported from quality/parser_test.go) ─────────────────

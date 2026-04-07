@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/config"
+	"github.com/beacon-stack/prism/internal/config"
 )
 
 func TestLoad_Defaults(t *testing.T) {

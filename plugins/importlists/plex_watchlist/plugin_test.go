@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/registry"
 )
 
 // mustMarshal panics if json.Marshal fails — acceptable in test helpers.

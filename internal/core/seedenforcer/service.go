@@ -8,10 +8,10 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/beacon-media/prism/internal/core/indexer"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // SeedCriteriaProvider loads seed criteria for an indexer by ID.

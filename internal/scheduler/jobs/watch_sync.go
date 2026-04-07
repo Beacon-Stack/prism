@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/watchsync"
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/core/watchsync"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // WatchSync returns a Job that polls media servers for watch history

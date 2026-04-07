@@ -56,3 +56,55 @@ export function useGenreList() {
     staleTime: Infinity,
   });
 }
+
+export interface DiscoverCast {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string;
+}
+
+export interface DiscoverCrew {
+  id: number;
+  name: string;
+  job: string;
+  profile_path: string;
+}
+
+export interface DiscoverRecommendation {
+  tmdb_id: number;
+  title: string;
+  year: number;
+  poster_path: string;
+}
+
+export interface DiscoverMovieDetail {
+  tmdb_id: number;
+  imdb_id?: string;
+  title: string;
+  original_title: string;
+  year: number;
+  overview: string;
+  release_date: string;
+  runtime_minutes: number;
+  genres: string[];
+  poster_path: string;
+  backdrop_path: string;
+  status: string;
+  rating: number;
+  in_library: boolean;
+  excluded: boolean;
+  library_movie_id?: string;
+  cast: DiscoverCast[];
+  crew: DiscoverCrew[];
+  recommendations: DiscoverRecommendation[];
+}
+
+export function useDiscoverMovie(tmdbId: number) {
+  return useQuery({
+    queryKey: ["discover", "movie", tmdbId],
+    queryFn: () => apiFetch<DiscoverMovieDetail>(`/discover/${tmdbId}`),
+    enabled: tmdbId > 0,
+    staleTime: 5 * 60_000,
+  });
+}

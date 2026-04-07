@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/config"
+	"github.com/beacon-stack/prism/internal/config"
 )
 
 func TestWriteConfigKey_ExplicitPath(t *testing.T) {

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/testutil"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/testutil"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 func newServices(t *testing.T) (*library.Service, *quality.Service) {

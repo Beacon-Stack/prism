@@ -8,7 +8,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/indexer"
 )
 
 type historyItemBody struct {

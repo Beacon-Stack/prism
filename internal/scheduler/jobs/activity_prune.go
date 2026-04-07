@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/activity"
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/core/activity"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // ActivityPrune returns a Job that deletes activity log entries older than

@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // LibraryScan returns a Job that scans all libraries, reconciling tracked

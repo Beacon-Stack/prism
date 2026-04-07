@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // DownloadClient is a configurable mock of plugin.DownloadClient.

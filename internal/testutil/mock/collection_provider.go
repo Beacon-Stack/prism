@@ -3,7 +3,7 @@ package mock
 import (
 	"context"
 
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
 // CollectionProvider is a configurable mock of collection.MetadataProvider.

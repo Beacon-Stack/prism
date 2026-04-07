@@ -9,8 +9,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-media/prism/internal/core/mediaserver"
-	"github.com/beacon-media/prism/internal/registry"
+	"github.com/beacon-stack/prism/internal/core/mediaserver"
+	"github.com/beacon-stack/prism/internal/registry"
 )
 
 // ── Request / response shapes ─────────────────────────────────────────────────

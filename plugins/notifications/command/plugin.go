@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/beacon-media/prism/internal/registry"
-	"github.com/beacon-media/prism/pkg/plugin"
+	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ScriptsDir is the directory from which scripts are resolved.

@@ -12,41 +12,41 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
-	"github.com/beacon-media/prism/internal/api/middleware"
-	v1 "github.com/beacon-media/prism/internal/api/v1"
-	v3 "github.com/beacon-media/prism/internal/api/v3"
-	"github.com/beacon-media/prism/internal/api/ws"
-	"github.com/beacon-media/prism/internal/config"
-	"github.com/beacon-media/prism/internal/core/activity"
-	"github.com/beacon-media/prism/internal/core/aicommand"
-	"github.com/beacon-media/prism/internal/core/autosearch"
-	"github.com/beacon-media/prism/internal/core/blocklist"
-	"github.com/beacon-media/prism/internal/core/collection"
-	"github.com/beacon-media/prism/internal/core/customformat"
-	"github.com/beacon-media/prism/internal/core/downloader"
-	"github.com/beacon-media/prism/internal/core/downloadhandling"
-	"github.com/beacon-media/prism/internal/core/health"
-	"github.com/beacon-media/prism/internal/core/importlist"
-	"github.com/beacon-media/prism/internal/core/indexer"
-	"github.com/beacon-media/prism/internal/core/library"
-	"github.com/beacon-media/prism/internal/core/mediainfo"
-	"github.com/beacon-media/prism/internal/core/mediamanagement"
-	"github.com/beacon-media/prism/internal/core/mediaserver"
-	"github.com/beacon-media/prism/internal/core/movie"
-	"github.com/beacon-media/prism/internal/core/notification"
-	"github.com/beacon-media/prism/internal/core/quality"
-	"github.com/beacon-media/prism/internal/core/queue"
-	"github.com/beacon-media/prism/internal/core/stats"
-	"github.com/beacon-media/prism/internal/core/tag"
-	"github.com/beacon-media/prism/internal/core/watchsync"
-	"github.com/beacon-media/prism/internal/events"
-	"github.com/beacon-media/prism/internal/logging"
-	"github.com/beacon-media/prism/internal/metadata/tmdb"
-	"github.com/beacon-media/prism/internal/plexsync"
-	"github.com/beacon-media/prism/internal/radarrimport"
-	"github.com/beacon-media/prism/internal/scheduler"
-	"github.com/beacon-media/prism/internal/version"
-	"github.com/beacon-media/prism/web"
+	"github.com/beacon-stack/prism/internal/api/middleware"
+	v1 "github.com/beacon-stack/prism/internal/api/v1"
+	v3 "github.com/beacon-stack/prism/internal/api/v3"
+	"github.com/beacon-stack/prism/internal/api/ws"
+	"github.com/beacon-stack/prism/internal/config"
+	"github.com/beacon-stack/prism/internal/core/activity"
+	"github.com/beacon-stack/prism/internal/core/aicommand"
+	"github.com/beacon-stack/prism/internal/core/autosearch"
+	"github.com/beacon-stack/prism/internal/core/blocklist"
+	"github.com/beacon-stack/prism/internal/core/collection"
+	"github.com/beacon-stack/prism/internal/core/customformat"
+	"github.com/beacon-stack/prism/internal/core/downloader"
+	"github.com/beacon-stack/prism/internal/core/downloadhandling"
+	"github.com/beacon-stack/prism/internal/core/health"
+	"github.com/beacon-stack/prism/internal/core/importlist"
+	"github.com/beacon-stack/prism/internal/core/indexer"
+	"github.com/beacon-stack/prism/internal/core/library"
+	"github.com/beacon-stack/prism/internal/core/mediainfo"
+	"github.com/beacon-stack/prism/internal/core/mediamanagement"
+	"github.com/beacon-stack/prism/internal/core/mediaserver"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	"github.com/beacon-stack/prism/internal/core/notification"
+	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/queue"
+	"github.com/beacon-stack/prism/internal/core/stats"
+	"github.com/beacon-stack/prism/internal/core/tag"
+	"github.com/beacon-stack/prism/internal/core/watchsync"
+	"github.com/beacon-stack/prism/internal/events"
+	"github.com/beacon-stack/prism/internal/logging"
+	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/internal/plexsync"
+	"github.com/beacon-stack/prism/internal/radarrimport"
+	"github.com/beacon-stack/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/version"
+	"github.com/beacon-stack/prism/web"
 )
 
 // RouterConfig holds everything the router needs to function.
@@ -89,7 +89,7 @@ type RouterConfig struct {
 	LogBuffer                *logging.RingBuffer
 	WSHub                    *ws.Hub
 	Bus                      *events.Bus
-	PulseSyncHandler   http.HandlerFunc
+	PulseSyncHandler         http.HandlerFunc
 }
 
 // NewRouter builds and returns the application HTTP handler.
@@ -210,6 +210,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		v1.RegisterMovieFileRoutes(humaAPI, cfg.MovieService, cfg.MediaManagementService, cfg.MediaInfoService)
 		v1.RegisterMovieCreditsRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
 		v1.RegisterDiscoverRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
+		v1.RegisterPeopleRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
 		v1.RegisterWantedRoutes(humaAPI, cfg.MovieService)
 	}
 

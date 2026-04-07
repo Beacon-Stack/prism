@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/beacon-media/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-media/prism/internal/db/generated/sqlite"
-	"github.com/beacon-media/prism/internal/scheduler"
+	"github.com/beacon-stack/prism/internal/core/movie"
+	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // RefreshMetadata returns a Job that re-fetches TMDB metadata for all
