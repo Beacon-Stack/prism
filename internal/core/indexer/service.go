@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/parser"
 	"github.com/beacon-stack/prism/internal/ratelimit"
@@ -60,7 +60,7 @@ type SearchResult struct {
 
 // Service manages indexer configuration and search orchestration.
 type Service struct {
-	q     dbsqlite.Querier
+	q     dbgen.Querier
 	reg   *registry.Registry
 	bus   *events.Bus
 	rl    *ratelimit.Registry
@@ -68,7 +68,7 @@ type Service struct {
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier, reg *registry.Registry, bus *events.Bus, rl *ratelimit.Registry) *Service {
+func NewService(q dbgen.Querier, reg *registry.Registry, bus *events.Bus, rl *ratelimit.Registry) *Service {
 	return &Service{q: q, reg: reg, bus: bus, rl: rl}
 }
 
@@ -107,12 +107,12 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Config, error)
 	}
 
 	now := time.Now().UTC()
-	row, err := s.q.CreateIndexerConfig(ctx, dbsqlite.CreateIndexerConfigParams{
+	row, err := s.q.CreateIndexerConfig(ctx, dbgen.CreateIndexerConfigParams{
 		ID:        uuid.New().String(),
 		Name:      req.Name,
 		Kind:      req.Kind,
-		Enabled:   dbutil.BoolToInt(req.Enabled),
-		Priority:  int64(priority),
+		Enabled:   req.Enabled,
+		Priority:  int32(priority),
 		Settings:  string(settings),
 		CreatedAt: now.Format(time.RFC3339),
 		UpdatedAt: now.Format(time.RFC3339),
@@ -176,12 +176,12 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Con
 		priority = 25
 	}
 
-	row, err := s.q.UpdateIndexerConfig(ctx, dbsqlite.UpdateIndexerConfigParams{
+	row, err := s.q.UpdateIndexerConfig(ctx, dbgen.UpdateIndexerConfigParams{
 		ID:        id,
 		Name:      req.Name,
 		Kind:      req.Kind,
-		Enabled:   dbutil.BoolToInt(req.Enabled),
-		Priority:  int64(priority),
+		Enabled:   req.Enabled,
+		Priority:  int32(priority),
 		Settings:  string(settings),
 		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
 	})
@@ -265,7 +265,7 @@ func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedI
 			}
 		}
 		wg.Add(1)
-		go func(row dbsqlite.IndexerConfig) {
+		go func(row dbgen.IndexerConfig) {
 			defer wg.Done()
 			cfg, _ := rowToConfig(row)
 			if err := s.rl.Wait(ctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
@@ -368,7 +368,7 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 
 	for _, row := range rows {
 		wg.Add(1)
-		go func(row dbsqlite.IndexerConfig) {
+		go func(row dbgen.IndexerConfig) {
 			defer wg.Done()
 			cfg, _ := rowToConfig(row)
 			if err := s.rl.Wait(ctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
@@ -447,30 +447,12 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 // accepted the release. Pass empty strings for downloadClientID / clientItemID
 // when no client is involved. scoreBreakdownJSON is a pre-serialized
 // plugin.ScoreBreakdown; pass "" when not available.
-func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.Release, downloadClientID, clientItemID, scoreBreakdownJSON string) (dbsqlite.GrabHistory, error) {
-	idxID := &indexerID
-	if indexerID == "" {
-		idxID = nil
-	}
-	var dcID *string
-	if downloadClientID != "" {
-		dcID = &downloadClientID
-	}
-	var itemID *string
-	if clientItemID != "" {
-		itemID = &clientItemID
-	}
-
-	var releaseEdition *string
-	if r.Edition != "" {
-		releaseEdition = &r.Edition
-	}
-
+func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.Release, downloadClientID, clientItemID, scoreBreakdownJSON string) (dbgen.GrabHistory, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
-	row, err := s.q.CreateGrabHistory(ctx, dbsqlite.CreateGrabHistoryParams{
+	row, err := s.q.CreateGrabHistory(ctx, dbgen.CreateGrabHistoryParams{
 		ID:                uuid.New().String(),
 		MovieID:           movieID,
-		IndexerID:         idxID,
+		IndexerID:         dbutil.NullStringFromString(indexerID),
 		ReleaseGuid:       r.GUID,
 		ReleaseTitle:      r.Title,
 		ReleaseSource:     string(r.Quality.Source),
@@ -479,16 +461,16 @@ func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.
 		ReleaseHdr:        string(r.Quality.HDR),
 		Protocol:          string(r.Protocol),
 		Size:              r.Size,
-		DownloadClientID:  dcID,
-		ClientItemID:      itemID,
+		DownloadClientID:  dbutil.NullStringFromString(downloadClientID),
+		ClientItemID:      dbutil.NullStringFromString(clientItemID),
 		GrabbedAt:         now,
 		DownloadStatus:    "queued",
 		DownloadedBytes:   0,
 		ScoreBreakdown:    scoreBreakdownJSON,
-		ReleaseEdition:    releaseEdition,
+		ReleaseEdition:    dbutil.NullStringFromString(r.Edition),
 	})
 	if err != nil {
-		return dbsqlite.GrabHistory{}, fmt.Errorf("recording grab history: %w", err)
+		return dbgen.GrabHistory{}, fmt.Errorf("recording grab history: %w", err)
 	}
 
 	if s.bus != nil {
@@ -503,36 +485,59 @@ func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.
 }
 
 // GrabHistory returns the grab history for a movie, newest first.
-func (s *Service) GrabHistory(ctx context.Context, movieID string) ([]dbsqlite.GrabHistory, error) {
+func (s *Service) GrabHistory(ctx context.Context, movieID string) ([]dbgen.GrabHistory, error) {
 	return s.q.ListGrabHistoryByMovie(ctx, movieID)
+}
+
+// ActiveGrabForMovie returns the active (non-terminal) grab for a movie, if
+// any. The grab_history table has a partial unique index that prevents more
+// than one such row per movie — this method is the read-side counterpart that
+// callers can use to detect "already downloading" state before attempting
+// another grab. Returns (nil, nil) when no active grab exists.
+//
+// Active = download_status NOT IN ('completed', 'failed', 'removed') —
+// matches the WHERE clause on idx_grab_history_active_movie.
+func (s *Service) ActiveGrabForMovie(ctx context.Context, movieID string) (*dbgen.GrabHistory, error) {
+	rows, err := s.q.ListGrabHistoryByMovie(ctx, movieID)
+	if err != nil {
+		return nil, fmt.Errorf("listing grab history: %w", err)
+	}
+	for i := range rows {
+		switch rows[i].DownloadStatus {
+		case "completed", "failed", "removed":
+			continue
+		}
+		return &rows[i], nil
+	}
+	return nil, nil
 }
 
 // ListHistory returns the most recent grab history entries across all movies,
 // optionally filtered by download status and/or protocol.
-func (s *Service) ListHistory(ctx context.Context, limit int, status, protocol string) ([]dbsqlite.GrabHistory, error) {
+func (s *Service) ListHistory(ctx context.Context, limit int, status, protocol string) ([]dbgen.GrabHistory, error) {
 	switch {
 	case status != "" && protocol != "":
-		return s.q.ListGrabHistoryByStatusAndProtocol(ctx, dbsqlite.ListGrabHistoryByStatusAndProtocolParams{
+		return s.q.ListGrabHistoryByStatusAndProtocol(ctx, dbgen.ListGrabHistoryByStatusAndProtocolParams{
 			DownloadStatus: status,
 			Protocol:       protocol,
-			Limit:          int64(limit),
+			Limit:          int32(limit),
 		})
 	case status != "":
-		return s.q.ListGrabHistoryByStatus(ctx, dbsqlite.ListGrabHistoryByStatusParams{
+		return s.q.ListGrabHistoryByStatus(ctx, dbgen.ListGrabHistoryByStatusParams{
 			DownloadStatus: status,
-			Limit:          int64(limit),
+			Limit:          int32(limit),
 		})
 	case protocol != "":
-		return s.q.ListGrabHistoryByProtocol(ctx, dbsqlite.ListGrabHistoryByProtocolParams{
+		return s.q.ListGrabHistoryByProtocol(ctx, dbgen.ListGrabHistoryByProtocolParams{
 			Protocol: protocol,
-			Limit:    int64(limit),
+			Limit:    int32(limit),
 		})
 	default:
-		return s.q.ListGrabHistory(ctx, int64(limit))
+		return s.q.ListGrabHistory(ctx, int32(limit))
 	}
 }
 
-func rowToConfig(row dbsqlite.IndexerConfig) (Config, error) {
+func rowToConfig(row dbgen.IndexerConfig) (Config, error) {
 	createdAt, err := time.Parse(time.RFC3339, row.CreatedAt)
 	if err != nil {
 		createdAt = time.Time{}
@@ -545,7 +550,7 @@ func rowToConfig(row dbsqlite.IndexerConfig) (Config, error) {
 		ID:        row.ID,
 		Name:      row.Name,
 		Kind:      row.Kind,
-		Enabled:   row.Enabled != 0,
+		Enabled:   row.Enabled,
 		Priority:  int(row.Priority),
 		Settings:  json.RawMessage(row.Settings),
 		CreatedAt: createdAt,

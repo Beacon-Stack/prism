@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/beacon-stack/prism/internal/core/indexer"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/ratelimit"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/internal/testutil"
@@ -52,7 +52,7 @@ func newTestReg(mock *mockIndexer) *registry.Registry {
 // newServiceFromSQL constructs an indexer.Service backed by an existing *sql.DB.
 // Use this when you need to insert seed rows into the same DB the service uses.
 func newServiceFromSQL(sqlDB *sql.DB, mock *mockIndexer) *indexer.Service {
-	q := dbsqlite.New(sqlDB)
+	q := dbgen.New(sqlDB)
 	return indexer.NewService(q, newTestReg(mock), nil, ratelimit.New())
 }
 
@@ -78,14 +78,14 @@ func seedMovie(t *testing.T, sqlDB *sql.DB, movieID string) {
 	now := "2024-01-01T00:00:00Z"
 	mustExec(t, sqlDB, ctx, `INSERT INTO quality_profiles
 		(id, name, cutoff_json, qualities_json, upgrade_allowed, created_at, updated_at)
-		VALUES ('qp-1','HD','{}','[]',1,?,?)`, now, now)
+		VALUES ('qp-1','HD','{}','[]',true,$1,$2)`, now, now)
 	mustExec(t, sqlDB, ctx, `INSERT INTO libraries
 		(id, name, root_path, default_quality_profile_id, min_free_space_gb, tags_json, created_at, updated_at)
-		VALUES ('lib-1','Movies','/movies','qp-1',0,'[]',?,?)`, now, now)
+		VALUES ('lib-1','Movies','/movies','qp-1',0,'[]',$1,$2)`, now, now)
 	mustExec(t, sqlDB, ctx, `INSERT INTO movies
 		(id, tmdb_id, title, original_title, year, overview, genres_json, status,
 		 monitored, library_id, quality_profile_id, added_at, updated_at)
-		VALUES (?,12345,'Test Movie','Test Movie',2023,'','[]','released',1,'lib-1','qp-1',?,?)`,
+		VALUES ($1,12345,'Test Movie','Test Movie',2023,'','[]','released',true,'lib-1','qp-1',$2,$3)`,
 		movieID, now, now)
 }
 

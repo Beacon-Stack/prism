@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { Shell } from "@/layouts/Shell";
+import { ConfirmProvider } from "@beacon-shared/ConfirmDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Dashboard from "@/pages/dashboard/Dashboard";
 import MovieDetail from "@/pages/movies/MovieDetail";
@@ -52,6 +53,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ConfirmProvider>
       <BrowserRouter>
         <ErrorBoundary>
           <Routes>
@@ -103,6 +105,7 @@ export default function App() {
           }}
         />
       </BrowserRouter>
+      </ConfirmProvider>
     </QueryClientProvider>
   );
 }

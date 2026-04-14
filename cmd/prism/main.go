@@ -41,7 +41,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/tag"
 	"github.com/beacon-stack/prism/internal/core/watchsync"
 	"github.com/beacon-stack/prism/internal/db"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/logging"
 	"github.com/beacon-stack/prism/internal/mediaservers"
@@ -57,12 +57,10 @@ import (
 	"github.com/beacon-stack/prism/internal/trakt"
 	"github.com/beacon-stack/prism/internal/version"
 
-	// Import pgx stdlib for database/sql compatibility (Postgres support).
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	// Blank-import built-in plugins so their init() functions register
 	// them with the default registry before any service is constructed.
 	_ "github.com/beacon-stack/prism/plugins/downloaders/deluge"
+	_ "github.com/beacon-stack/prism/plugins/downloaders/haul"
 	_ "github.com/beacon-stack/prism/plugins/downloaders/nzbget"
 	_ "github.com/beacon-stack/prism/plugins/downloaders/qbittorrent"
 	_ "github.com/beacon-stack/prism/plugins/downloaders/sabnzbd"
@@ -229,20 +227,6 @@ func run() error {
 		logger.Info("Claude API key not configured — AI features disabled, using rule-based fallbacks")
 	}
 
-	// ── Database restore staging check ───────────────────────────────────────
-	// If a restore file exists (written by the /api/v1/system/restore endpoint),
-	// swap it in before opening the database.
-	if cfg.Database.Path != "" {
-		stagingPath := cfg.Database.Path + ".restore"
-		if _, statErr := os.Stat(stagingPath); statErr == nil {
-			if renameErr := os.Rename(stagingPath, cfg.Database.Path); renameErr == nil {
-				logger.Info("database restored from backup")
-			} else {
-				logger.Warn("failed to swap restore file into place", "error", renameErr)
-			}
-		}
-	}
-
 	// ── Database ──────────────────────────────────────────────────────────────
 	database, err := db.Open(cfg.Database)
 	if err != nil {
@@ -250,11 +234,7 @@ func run() error {
 	}
 	defer database.Close()
 
-	if database.Driver == "sqlite" {
-		logger.Info("database connected", "driver", database.Driver, "path", cfg.Database.Path)
-	} else {
-		logger.Info("database connected", "driver", database.Driver)
-	}
+	logger.Info("database connected", "driver", database.Driver)
 
 	if err := db.Migrate(database.SQL, database.Driver); err != nil {
 		return fmt.Errorf("running migrations: %w", err)
@@ -270,7 +250,7 @@ func run() error {
 	bus.Subscribe(wsHub.HandleEvent)
 
 	// ── Services ──────────────────────────────────────────────────────────────
-	queries := dbsqlite.New(database.SQL)
+	queries := dbgen.New(database.SQL)
 
 	qualitySvc := quality.NewService(queries, bus)
 	qualityDefSvc := quality.NewDefinitionService(queries)
@@ -410,6 +390,7 @@ func run() error {
 		DB:                       database.SQL,
 		DBType:                   database.Driver,
 		DBPath:                   cfg.Database.Path,
+		DBDSN:                    cfg.Database.DSN.Value(),
 		ConfigFile:               cfg.ConfigFile,
 		TMDBKeyIsDefault:         cfg.TMDBKeyIsDefault,
 		QualityService:           qualitySvc,
@@ -459,9 +440,9 @@ func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Pulse indexer sync — pull assigned indexers from the control plane.
+	// Pulse sync — pull assigned indexers, download clients, quality profiles, and shared settings.
 	if cfgrrIntegration != nil {
-		go cfgrrIntegration.StartSyncLoop(ctx, indexerSvc, downloaderSvc, 30*time.Second)
+		go cfgrrIntegration.StartSyncLoop(ctx, indexerSvc, downloaderSvc, qualitySvc, mmSvc, 30*time.Second)
 	}
 
 	go sched.Start(ctx)

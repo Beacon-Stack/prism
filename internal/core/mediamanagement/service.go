@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // Settings is the application-level view of the media_management table.
@@ -24,11 +23,11 @@ type Settings struct {
 
 // Service exposes read/write access to the single media_management row.
 type Service struct {
-	q dbsqlite.Querier
+	q dbgen.Querier
 }
 
 // NewService creates a new Service backed by the given Querier.
-func NewService(q dbsqlite.Querier) *Service {
+func NewService(q dbgen.Querier) *Service {
 	return &Service{q: q}
 }
 
@@ -43,14 +42,14 @@ func (s *Service) Get(ctx context.Context) (Settings, error) {
 
 // Update persists new settings and returns the saved values.
 func (s *Service) Update(ctx context.Context, settings Settings) (Settings, error) {
-	row, err := s.q.UpdateMediaManagement(ctx, dbsqlite.UpdateMediaManagementParams{
-		RenameMovies:           dbutil.BoolToInt(settings.RenameMovies),
+	row, err := s.q.UpdateMediaManagement(ctx, dbgen.UpdateMediaManagementParams{
+		RenameMovies:           settings.RenameMovies,
 		StandardMovieFormat:    settings.StandardMovieFormat,
 		MovieFolderFormat:      settings.MovieFolderFormat,
 		ColonReplacement:       settings.ColonReplacement,
-		ImportExtraFiles:       dbutil.BoolToInt(settings.ImportExtraFiles),
+		ImportExtraFiles:       settings.ImportExtraFiles,
 		ExtraFileExtensions:    strings.Join(settings.ExtraFileExtensions, ","),
-		UnmonitorDeletedMovies: dbutil.BoolToInt(settings.UnmonitorDeletedMovies),
+		UnmonitorDeletedMovies: settings.UnmonitorDeletedMovies,
 	})
 	if err != nil {
 		return Settings{}, fmt.Errorf("media_management: update: %w", err)
@@ -59,15 +58,15 @@ func (s *Service) Update(ctx context.Context, settings Settings) (Settings, erro
 }
 
 // fromRow converts a DB row to a Settings value.
-func fromRow(row dbsqlite.MediaManagement) Settings {
+func fromRow(row dbgen.MediaManagement) Settings {
 	return Settings{
-		RenameMovies:           row.RenameMovies != 0,
+		RenameMovies:           row.RenameMovies,
 		StandardMovieFormat:    row.StandardMovieFormat,
 		MovieFolderFormat:      row.MovieFolderFormat,
 		ColonReplacement:       row.ColonReplacement,
-		ImportExtraFiles:       row.ImportExtraFiles != 0,
+		ImportExtraFiles:       row.ImportExtraFiles,
 		ExtraFileExtensions:    parseExtensions(row.ExtraFileExtensions),
-		UnmonitorDeletedMovies: row.UnmonitorDeletedMovies != 0,
+		UnmonitorDeletedMovies: row.UnmonitorDeletedMovies,
 	}
 }
 

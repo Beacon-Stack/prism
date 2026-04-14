@@ -11,7 +11,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	plexpkg "github.com/beacon-stack/prism/plugins/mediaservers/plex"
 )
 
@@ -64,11 +64,11 @@ type SyncImportResult struct {
 type Service struct {
 	ms     *mediaserver.Service
 	movies *movie.Service
-	q      dbsqlite.Querier
+	q      dbgen.Querier
 }
 
 // NewService creates a new plexsync Service.
-func NewService(ms *mediaserver.Service, movies *movie.Service, q dbsqlite.Querier) *Service {
+func NewService(ms *mediaserver.Service, movies *movie.Service, q dbgen.Querier) *Service {
 	return &Service{ms: ms, movies: movies, q: q}
 }
 
@@ -98,7 +98,7 @@ func (s *Service) Preview(ctx context.Context, mediaServerID, sectionKey string)
 	if err != nil {
 		return nil, fmt.Errorf("listing prism movies: %w", err)
 	}
-	prismByTmdb := make(map[int]dbsqlite.ListMovieSummariesRow, len(summaries))
+	prismByTmdb := make(map[int]dbgen.ListMovieSummariesRow, len(summaries))
 	for _, m := range summaries {
 		prismByTmdb[int(m.TmdbID)] = m
 	}

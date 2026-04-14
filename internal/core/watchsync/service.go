@@ -14,7 +14,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -35,7 +35,7 @@ type WatchStats struct {
 
 // Service manages watch history sync from media servers.
 type Service struct {
-	q        dbsqlite.Querier
+	q        dbgen.Querier
 	msSvc    *mediaserver.Service
 	movieSvc *movie.Service
 	reg      *registry.Registry
@@ -43,7 +43,7 @@ type Service struct {
 }
 
 // NewService creates a new watch sync service.
-func NewService(q dbsqlite.Querier, msSvc *mediaserver.Service, movieSvc *movie.Service, reg *registry.Registry, logger *slog.Logger) *Service {
+func NewService(q dbgen.Querier, msSvc *mediaserver.Service, movieSvc *movie.Service, reg *registry.Registry, logger *slog.Logger) *Service {
 	return &Service{q: q, msSvc: msSvc, movieSvc: movieSvc, reg: reg, logger: logger}
 }
 
@@ -83,10 +83,10 @@ func (s *Service) Sync(ctx context.Context) error {
 				continue // not in library — skip
 			}
 
-			err = s.q.InsertWatchEvent(ctx, dbsqlite.InsertWatchEventParams{
+			err = s.q.InsertWatchEvent(ctx, dbgen.InsertWatchEventParams{
 				ID:        uuid.New().String(),
 				MovieID:   m.ID,
-				TmdbID:    int64(e.TMDBID),
+				TmdbID:    int32(e.TMDBID),
 				WatchedAt: e.WatchedAt.UTC().Format(time.RFC3339),
 				UserName:  e.UserName,
 				Source:    cfg.Kind,
@@ -99,7 +99,7 @@ func (s *Service) Sync(ctx context.Context) error {
 
 		// Update last sync time only on success.
 		now := time.Now().UTC().Format(time.RFC3339)
-		_ = s.q.UpsertSyncState(ctx, dbsqlite.UpsertSyncStateParams{
+		_ = s.q.UpsertSyncState(ctx, dbgen.UpsertSyncStateParams{
 			MediaServerID: cfg.ID,
 			LastSyncAt:    now,
 		})

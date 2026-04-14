@@ -1,11 +1,10 @@
 import { useState, useMemo, useRef } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { LayoutGrid, List } from "lucide-react";
 import { Poster } from "@/components/Poster";
 import { toast } from "sonner";
 import {
   useMovies,
-  useDeleteMovie,
   useAddMovie,
   useLookupMovies,
   useUpdateMovie,
@@ -16,7 +15,7 @@ import { useQualityMovies } from "@/api/stats";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/api/client";
 import { useQualityProfiles } from "@/api/quality-profiles";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 import type { Movie, TMDBResult } from "@/types";
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -89,20 +88,15 @@ function PosterCard({
   isSelected: boolean;
   onToggle: (id: string) => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const del = useDeleteMovie();
+  const navigate = useNavigate();
   const onDisk = !!movie.path;
 
   return (
     <div
-      onMouseEnter={() => !selectionMode && setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-        setConfirming(false);
-      }}
-      onClick={() => selectionMode && onToggle(movie.id)}
-      style={selectionMode ? { cursor: "pointer" } : undefined}
+      onClick={() =>
+        selectionMode ? onToggle(movie.id) : navigate(`/movies/${movie.id}`)
+      }
+      style={{ cursor: "pointer" }}
     >
       {/* Poster */}
       <div
@@ -122,104 +116,6 @@ function PosterCard({
             imgStyle={{ borderRadius: 0 }}
           />
         </div>
-
-        {/* Hover overlay */}
-        {hovered && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "rgba(0,0,0,0.72)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {!confirming ? (
-              <>
-                <Link
-                  to={`/movies/${movie.id}`}
-                  style={{
-                    background: "var(--color-accent)",
-                    color: "var(--color-accent-fg)",
-                    borderRadius: 6,
-                    padding: "7px 0",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    textDecoration: "none",
-                    width: "72%",
-                    textAlign: "center",
-                  }}
-                >
-                  View
-                </Link>
-                <button
-                  onClick={() => setConfirming(true)}
-                  style={{
-                    background: "transparent",
-                    border: "1px solid rgba(255,255,255,0.25)",
-                    borderRadius: 6,
-                    padding: "7px 0",
-                    fontSize: 13,
-                    color: "rgba(255,255,255,0.65)",
-                    cursor: "pointer",
-                    width: "72%",
-                  }}
-                >
-                  Delete
-                </button>
-              </>
-            ) : (
-              <div style={{ textAlign: "center", padding: "0 12px" }}>
-                <p
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: 12,
-                    color: "rgba(255,255,255,0.85)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  Remove from library?
-                </p>
-                <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                  <button
-                    onClick={() => del.mutate(movie.id)}
-                    disabled={del.isPending}
-                    style={{
-                      background: "var(--color-danger)",
-                      border: "none",
-                      borderRadius: 6,
-                      padding: "6px 16px",
-                      fontSize: 13,
-                      color: "white",
-                      cursor: del.isPending ? "not-allowed" : "pointer",
-                      opacity: del.isPending ? 0.7 : 1,
-                    }}
-                  >
-                    {del.isPending ? "…" : "Yes"}
-                  </button>
-                  <button
-                    onClick={() => setConfirming(false)}
-                    style={{
-                      background: "transparent",
-                      border: "1px solid rgba(255,255,255,0.25)",
-                      borderRadius: 6,
-                      padding: "6px 16px",
-                      fontSize: 13,
-                      color: "rgba(255,255,255,0.65)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Selection overlay */}
         {selectionMode && (
@@ -377,21 +273,38 @@ function ListRow({
   isSelected: boolean;
   onToggle: (id: string) => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
-  const del = useDeleteMovie();
+  const navigate = useNavigate();
 
   return (
     <tr
+      onClick={() =>
+        selectionMode ? onToggle(movie.id) : navigate(`/movies/${movie.id}`)
+      }
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.background =
+            "color-mix(in srgb, var(--color-accent) 6%, transparent)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.background = "";
+        }
+      }}
       style={{
         borderBottom: isLast ? "none" : "1px solid var(--color-border-subtle)",
         background: isSelected
           ? "color-mix(in srgb, var(--color-accent) 8%, transparent)"
           : undefined,
+        cursor: "pointer",
       }}
     >
       {/* Selection checkbox */}
       {selectionMode && (
-        <td style={{ padding: "0 0 0 16px", width: 32, height: 60 }}>
+        <td
+          onClick={(e) => e.stopPropagation()}
+          style={{ padding: "0 0 0 16px", width: 32, height: 60 }}
+        >
           <input
             type="checkbox"
             checked={isSelected}
@@ -428,26 +341,16 @@ function ListRow({
       </td>
 
       {/* Title */}
-      <td style={{ padding: "0 8px 0 12px", height: 60 }}>
-        <Link
-          to={`/movies/${movie.id}`}
-          style={{
-            color: "var(--color-text-primary)",
-            fontWeight: 500,
-            textDecoration: "none",
-            fontSize: 13,
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.color =
-              "var(--color-accent)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLAnchorElement).style.color =
-              "var(--color-text-primary)";
-          }}
-        >
-          {movie.title}
-        </Link>
+      <td
+        style={{
+          padding: "0 8px 0 12px",
+          height: 60,
+          color: "var(--color-text-primary)",
+          fontWeight: 500,
+          fontSize: 13,
+        }}
+      >
+        {movie.title}
       </td>
 
       {/* Year */}
@@ -508,91 +411,6 @@ function ListRow({
           >
             Missing
           </span>
-        )}
-      </td>
-
-      {/* Actions */}
-      <td
-        style={{
-          padding: "0 16px",
-          height: 60,
-          width: 1,
-          whiteSpace: "nowrap",
-        }}
-      >
-        {confirming ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{ fontSize: 12, color: "var(--color-text-secondary)" }}
-            >
-              Delete?
-            </span>
-            <button
-              onClick={() =>
-                del.mutate(movie.id, { onSuccess: () => setConfirming(false) })
-              }
-              disabled={del.isPending}
-              style={{
-                background:
-                  "color-mix(in srgb, var(--color-danger) 15%, transparent)",
-                border: "1px solid var(--color-border-default)",
-                borderRadius: 5,
-                padding: "3px 10px",
-                fontSize: 12,
-                color: "var(--color-danger)",
-                cursor: del.isPending ? "not-allowed" : "pointer",
-              }}
-            >
-              {del.isPending ? "…" : "Yes"}
-            </button>
-            <button
-              onClick={() => setConfirming(false)}
-              style={{
-                background: "var(--color-bg-elevated)",
-                border: "1px solid var(--color-border-default)",
-                borderRadius: 5,
-                padding: "3px 10px",
-                fontSize: 12,
-                color: "var(--color-text-secondary)",
-                cursor: "pointer",
-              }}
-            >
-              No
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Link
-              to={`/movies/${movie.id}`}
-              style={{
-                display: "inline-block",
-                textDecoration: "none",
-                background: "var(--color-bg-elevated)",
-                border: "1px solid var(--color-border-default)",
-                borderRadius: 5,
-                padding: "3px 10px",
-                fontSize: 12,
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              View
-            </Link>
-            <button
-              onClick={() => setConfirming(true)}
-              style={{
-                background:
-                  "color-mix(in srgb, var(--color-danger) 12%, transparent)",
-                border: "1px solid var(--color-border-default)",
-                borderRadius: 5,
-                padding: "3px 10px",
-                fontSize: 12,
-                color: "var(--color-danger)",
-                cursor: "pointer",
-              }}
-            >
-              Delete
-            </button>
-          </div>
         )}
       </td>
     </tr>
@@ -2194,7 +2012,6 @@ export default function Dashboard() {
                 <th style={thStyle}>Status</th>
                 <th style={thStyle}>Monitored</th>
                 <th style={thStyle}>File</th>
-                <th style={thStyle} />
               </tr>
             </thead>
             <tbody>

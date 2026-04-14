@@ -15,7 +15,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/customformat/presets"
 	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // CustomFormat is the domain representation of a custom format.
@@ -69,11 +69,11 @@ type UpdateRequest struct {
 
 // Service manages custom format CRUD.
 type Service struct {
-	q dbsqlite.Querier
+	q dbgen.Querier
 }
 
 // NewService creates a new custom format Service.
-func NewService(q dbsqlite.Querier) *Service {
+func NewService(q dbgen.Querier) *Service {
 	return &Service{q: q}
 }
 
@@ -111,10 +111,10 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (CustomFormat, 
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	row, err := s.q.CreateCustomFormat(ctx, dbsqlite.CreateCustomFormatParams{
+	row, err := s.q.CreateCustomFormat(ctx, dbgen.CreateCustomFormatParams{
 		ID:                  uuid.New().String(),
 		Name:                req.Name,
-		IncludeWhenRenaming: dbutil.BoolToInt(req.IncludeWhenRenaming),
+		IncludeWhenRenaming: req.IncludeWhenRenaming,
 		SpecificationsJson:  string(specsJSON),
 		CreatedAt:           now,
 		UpdatedAt:           now,
@@ -135,10 +135,10 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Cus
 		return CustomFormat{}, fmt.Errorf("marshaling specifications: %w", err)
 	}
 
-	row, err := s.q.UpdateCustomFormat(ctx, dbsqlite.UpdateCustomFormatParams{
+	row, err := s.q.UpdateCustomFormat(ctx, dbgen.UpdateCustomFormatParams{
 		ID:                  id,
 		Name:                req.Name,
-		IncludeWhenRenaming: dbutil.BoolToInt(req.IncludeWhenRenaming),
+		IncludeWhenRenaming: req.IncludeWhenRenaming,
 		SpecificationsJson:  string(specsJSON),
 		UpdatedAt:           time.Now().UTC().Format(time.RFC3339),
 	})
@@ -178,10 +178,10 @@ func (s *Service) SetScores(ctx context.Context, profileID string, scores map[st
 		return fmt.Errorf("clearing custom format scores: %w", err)
 	}
 	for cfID, score := range scores {
-		if err := s.q.SetCustomFormatScore(ctx, dbsqlite.SetCustomFormatScoreParams{
+		if err := s.q.SetCustomFormatScore(ctx, dbgen.SetCustomFormatScoreParams{
 			QualityProfileID: profileID,
 			CustomFormatID:   cfID,
-			Score:            int64(score),
+			Score:            int32(score),
 		}); err != nil {
 			return fmt.Errorf("setting score for format %q: %w", cfID, err)
 		}
@@ -212,7 +212,7 @@ func (s *Service) ImportPreset(ctx context.Context, presetID string) (CustomForm
 }
 
 // fromRow converts a DB row to a domain CustomFormat.
-func fromRow(r dbsqlite.CustomFormat) (CustomFormat, error) {
+func fromRow(r dbgen.CustomFormat) (CustomFormat, error) {
 	var specs []Specification
 	if err := json.Unmarshal([]byte(r.SpecificationsJson), &specs); err != nil {
 		return CustomFormat{}, fmt.Errorf("parsing specifications for %q: %w", r.ID, err)
@@ -224,7 +224,7 @@ func fromRow(r dbsqlite.CustomFormat) (CustomFormat, error) {
 	return CustomFormat{
 		ID:                  r.ID,
 		Name:                r.Name,
-		IncludeWhenRenaming: r.IncludeWhenRenaming != 0,
+		IncludeWhenRenaming: r.IncludeWhenRenaming,
 		Specifications:      specs,
 		CreatedAt:           createdAt,
 		UpdatedAt:           updatedAt,

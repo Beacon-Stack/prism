@@ -14,7 +14,7 @@ import DOMPurify from "dompurify";
 import type { HealthStatus, UpdateCheck, LogEntry } from "@/types";
 import { card, sectionHeader } from "@/lib/styles";
 import Pill from "@/components/Pill";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);

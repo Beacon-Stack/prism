@@ -1,30 +1,24 @@
 package v1
 
 import (
-	"bytes"
-	"database/sql"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
+	"os/exec"
 	"strings"
 	"time"
 )
 
-// BackupHandler returns an http.HandlerFunc that streams the SQLite database
-// as a file download. It uses VACUUM INTO to create a consistent, defragmented
-// copy of the database before streaming, then removes the temp file.
+// BackupHandler returns an http.HandlerFunc that streams a pg_dump SQL dump of
+// the database as a file download.
 //
 // Registered directly on the chi router (not via huma) because huma wraps all
-// responses in JSON, which is unsuitable for binary file downloads.
-func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerFunc {
+// responses in JSON, which is unsuitable for file downloads.
+func BackupHandler(dsn string, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Create a temp file in the same directory as the DB so that the
-		// VACUUM INTO path is on the same filesystem.
-		dir := filepath.Dir(dbPath)
-		tmp, err := os.CreateTemp(dir, "prism-backup-*.db")
+		tmp, err := os.CreateTemp("", "prism-backup-*.sql")
 		if err != nil {
 			logger.ErrorContext(r.Context(), "backup: failed to create temp file", slog.Any("error", err))
 			http.Error(w, "failed to create backup", http.StatusInternalServerError)
@@ -34,29 +28,28 @@ func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerF
 		tmp.Close()
 		defer func() { _ = os.Remove(tmpPath) }()
 
-		// VACUUM INTO requires a string literal (no parameter binding).
-		// Guard against injection even though tmpPath comes from os.CreateTemp.
-		if strings.ContainsRune(tmpPath, '\'') {
-			logger.ErrorContext(r.Context(), "backup: temp path contains single quote", slog.String("path", tmpPath))
-			http.Error(w, "failed to create backup", http.StatusInternalServerError)
-			return
-		}
-		if _, err := db.ExecContext(r.Context(), fmt.Sprintf("VACUUM INTO '%s'", tmpPath)); err != nil {
-			logger.ErrorContext(r.Context(), "backup: VACUUM INTO failed", slog.Any("error", err))
+		// gosec G204: pg_dump's only variable input is the DSN, which comes
+		// from pilot's own config — not from user-supplied request data.
+		cmd := exec.CommandContext(r.Context(), "pg_dump", "--file="+tmpPath, "--format=plain", dsn) //nolint:gosec
+		if output, err := cmd.CombinedOutput(); err != nil {
+			logger.ErrorContext(r.Context(), "backup: pg_dump failed",
+				slog.Any("error", err),
+				slog.String("output", string(output)),
+			)
 			http.Error(w, "failed to create backup", http.StatusInternalServerError)
 			return
 		}
 
 		f, err := os.Open(tmpPath)
 		if err != nil {
-			logger.ErrorContext(r.Context(), "backup: failed to open temp file", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "backup: failed to open dump file", slog.Any("error", err))
 			http.Error(w, "failed to read backup", http.StatusInternalServerError)
 			return
 		}
 		defer f.Close()
 
-		filename := fmt.Sprintf("prism-backup-%s.db", time.Now().UTC().Format("2006-01-02"))
-		w.Header().Set("Content-Type", "application/octet-stream")
+		filename := fmt.Sprintf("prism-backup-%s.sql", time.Now().UTC().Format("2006-01-02"))
+		w.Header().Set("Content-Type", "application/sql")
 		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
 		w.WriteHeader(http.StatusOK)
 		if _, err := io.Copy(w, f); err != nil {
@@ -65,66 +58,74 @@ func BackupHandler(db *sql.DB, dbPath string, logger *slog.Logger) http.HandlerF
 	}
 }
 
-// RestoreHandler returns an http.HandlerFunc that accepts a raw SQLite database
-// file upload (application/octet-stream) and writes it to a staging path.
-// On the next startup, Prism will detect the staging file and swap it in.
-func RestoreHandler(dbPath string, logger *slog.Logger) http.HandlerFunc {
+// RestoreHandler returns an http.HandlerFunc that accepts a SQL dump file upload
+// (application/sql or application/octet-stream) and applies it to the database
+// using psql.
+func RestoreHandler(dsn string, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Override the global 1 MiB body limit — restore files are full DB copies.
+		// Override the global 1 MiB body limit — restore files can be large.
 		const maxRestoreSize = 500 << 20 // 500 MiB
 		r.Body = http.MaxBytesReader(w, r.Body, maxRestoreSize)
 
-		stagingPath := dbPath + ".restore"
-
-		f, err := os.Create(stagingPath)
+		tmp, err := os.CreateTemp("", "prism-restore-*.sql")
 		if err != nil {
-			logger.ErrorContext(r.Context(), "restore: failed to create staging file", slog.Any("error", err))
+			logger.ErrorContext(r.Context(), "restore: failed to create temp file", slog.Any("error", err))
 			http.Error(w, "failed to write restore file", http.StatusInternalServerError)
 			return
 		}
-		defer f.Close()
+		tmpPath := tmp.Name()
+		defer func() { _ = os.Remove(tmpPath) }()
 
-		if _, err := io.Copy(f, r.Body); err != nil {
-			// Clean up partial staging file on write failure.
-			_ = os.Remove(stagingPath)
+		if _, err := io.Copy(tmp, r.Body); err != nil {
+			tmp.Close()
 			logger.ErrorContext(r.Context(), "restore: failed to write body", slog.Any("error", err))
 			http.Error(w, "failed to write restore file", http.StatusInternalServerError)
 			return
 		}
+		tmp.Close()
 
-		// Validate the uploaded file is a real SQLite database by checking
-		// the 16-byte magic header ("SQLite format 3\000").
-		if err := validateSQLiteMagic(stagingPath); err != nil {
-			_ = os.Remove(stagingPath)
-			logger.WarnContext(r.Context(), "restore: uploaded file is not a valid SQLite database", slog.Any("error", err))
-			http.Error(w, "uploaded file is not a valid SQLite database", http.StatusBadRequest)
+		// Validate: the file should start with a recognizable SQL dump header.
+		if err := validateSQLDump(tmpPath); err != nil {
+			logger.WarnContext(r.Context(), "restore: uploaded file is not a valid SQL dump", slog.Any("error", err))
+			http.Error(w, "uploaded file is not a valid SQL dump", http.StatusBadRequest)
+			return
+		}
+
+		cmd := exec.CommandContext(r.Context(), "psql", dsn, "-f", tmpPath)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			logger.ErrorContext(r.Context(), "restore: psql failed",
+				slog.Any("error", err),
+				slog.String("output", string(output)),
+			)
+			http.Error(w, "failed to apply restore", http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"message":"Restore file saved. Restart Prism to complete the restore."}`))
+		_, _ = w.Write([]byte(`{"message":"Database restored from SQL dump."}`))
 	}
 }
 
-// sqliteMagic is the 16-byte header that every SQLite database starts with.
-var sqliteMagic = []byte("SQLite format 3\000")
-
-// validateSQLiteMagic opens path and checks that the first 16 bytes match the
-// SQLite file header. Returns an error if the file is too small or doesn't match.
-func validateSQLiteMagic(path string) error {
+// validateSQLDump checks that the file starts with a plausible SQL dump header.
+func validateSQLDump(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	header := make([]byte, 16)
-	if _, err := io.ReadFull(f, header); err != nil {
-		return fmt.Errorf("file too small to be a SQLite database")
+	header := make([]byte, 256)
+	n, err := f.Read(header)
+	if err != nil && n == 0 {
+		return fmt.Errorf("file is empty or unreadable: %w", err)
 	}
-	if !bytes.Equal(header, sqliteMagic) {
-		return fmt.Errorf("file header does not match SQLite magic bytes")
+	if n == 0 {
+		return fmt.Errorf("file is empty")
 	}
-	return nil
+	s := strings.ToLower(string(header[:n]))
+	if strings.Contains(s, "pg_dump") || strings.HasPrefix(s, "--") || strings.HasPrefix(s, "set ") || strings.HasPrefix(s, "create ") {
+		return nil
+	}
+	return fmt.Errorf("file does not appear to be a pg_dump SQL dump")
 }

@@ -5,16 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"testing"
-)
 
-func TestBoolToInt(t *testing.T) {
-	if BoolToInt(true) != 1 {
-		t.Error("BoolToInt(true) should be 1")
-	}
-	if BoolToInt(false) != 0 {
-		t.Error("BoolToInt(false) should be 0")
-	}
-}
+	"github.com/jackc/pgx/v5/pgconn"
+)
 
 func TestMergeSettings(t *testing.T) {
 	existing := json.RawMessage(`{"url":"http://localhost","password":"secret"}`)
@@ -39,6 +32,13 @@ func TestMergeSettingsEmptyNew(t *testing.T) {
 	merged := MergeSettings(existing, nil)
 	if string(merged) != string(existing) {
 		t.Errorf("empty new should return existing, got %s", merged)
+	}
+}
+
+func TestIsUniqueViolation_PgError(t *testing.T) {
+	err := &pgconn.PgError{Code: "23505"}
+	if !IsUniqueViolation(err) {
+		t.Error("23505 PgError should be a unique violation")
 	}
 }
 

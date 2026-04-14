@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/beacon-stack/prism/internal/core/dbutil"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
@@ -90,7 +90,7 @@ type AddMissingResult struct {
 
 // Service manages collection records.
 type Service struct {
-	q        dbsqlite.Querier
+	q        dbgen.Querier
 	provider MetadataProvider // nil when TMDB not configured
 	movieSvc *movie.Service
 	logger   *slog.Logger
@@ -98,7 +98,7 @@ type Service struct {
 
 // NewService creates a new Service. provider may be nil when TMDB is not configured;
 // Create and SearchPeople will return an error in that case.
-func NewService(q dbsqlite.Querier, provider MetadataProvider, movieSvc *movie.Service, logger *slog.Logger) *Service {
+func NewService(q dbgen.Querier, provider MetadataProvider, movieSvc *movie.Service, logger *slog.Logger) *Service {
 	return &Service{q: q, provider: provider, movieSvc: movieSvc, logger: logger}
 }
 
@@ -172,7 +172,7 @@ func (s *Service) Create(ctx context.Context, personID int, personType string) (
 	}
 
 	// Duplicate check before hitting TMDB.
-	if _, err := s.q.GetCollectionByPerson(ctx, dbsqlite.GetCollectionByPersonParams{
+	if _, err := s.q.GetCollectionByPerson(ctx, dbgen.GetCollectionByPersonParams{
 		PersonID:   int64(personID),
 		PersonType: personType,
 	}); err == nil {
@@ -196,7 +196,7 @@ func (s *Service) Create(ctx context.Context, personID int, personType string) (
 		entityName = person.Name
 	}
 
-	row, err := s.q.CreateCollection(ctx, dbsqlite.CreateCollectionParams{
+	row, err := s.q.CreateCollection(ctx, dbgen.CreateCollectionParams{
 		ID:         uuid.New().String(),
 		Name:       entityName,
 		PersonID:   int64(personID),
@@ -204,7 +204,7 @@ func (s *Service) Create(ctx context.Context, personID int, personType string) (
 		CreatedAt:  time.Now().UTC(),
 	})
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if dbutil.IsUniqueViolation(err) {
 			return nil, ErrAlreadyExists
 		}
 		return nil, fmt.Errorf("creating collection: %w", err)
@@ -240,14 +240,14 @@ func (s *Service) scanAndStoreCounts(ctx context.Context, collID string, personI
 			return
 		}
 	}
-	total := int64(len(items))
-	var inLibrary int64
+	total := int32(len(items))
+	var inLibrary int32
 	for _, item := range items {
-		if _, lookupErr := s.q.GetMovieByTMDBID(ctx, int64(item.TMDBID)); lookupErr == nil {
+		if _, lookupErr := s.q.GetMovieByTMDBID(ctx, int32(item.TMDBID)); lookupErr == nil {
 			inLibrary++
 		}
 	}
-	if err := s.q.UpdateCollectionCounts(ctx, dbsqlite.UpdateCollectionCountsParams{
+	if err := s.q.UpdateCollectionCounts(ctx, dbgen.UpdateCollectionCountsParams{
 		TotalItems:     total,
 		InLibraryItems: inLibrary,
 		ID:             collID,
@@ -311,11 +311,11 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 			PosterPath: item.PosterPath,
 		}
 		// Cross-reference with the movie library.
-		m, lookupErr := s.q.GetMovieByTMDBID(ctx, int64(item.TMDBID))
+		m, lookupErr := s.q.GetMovieByTMDBID(ctx, int32(item.TMDBID))
 		if lookupErr == nil {
 			ci.InLibrary = true
 			ci.MovieID = m.ID
-			ci.Monitored = m.Monitored != 0
+			ci.Monitored = m.Monitored
 			// Check whether a physical file exists for this movie.
 			files, filesErr := s.q.ListMovieFiles(ctx, m.ID)
 			if filesErr == nil {
@@ -346,9 +346,9 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 	}
 
 	// Refresh stored counts so List() stays accurate.
-	_ = s.q.UpdateCollectionCounts(ctx, dbsqlite.UpdateCollectionCountsParams{
-		TotalItems:     int64(coll.Total),
-		InLibraryItems: int64(coll.InLibrary),
+	_ = s.q.UpdateCollectionCounts(ctx, dbgen.UpdateCollectionCountsParams{
+		TotalItems:     int32(coll.Total),
+		InLibraryItems: int32(coll.InLibrary),
 		ID:             id,
 	})
 
@@ -427,7 +427,7 @@ func (s *Service) AddSelected(ctx context.Context, id string, req AddSelectedReq
 	return result, nil
 }
 
-func rowToCollection(r dbsqlite.Collection) *Collection {
+func rowToCollection(r dbgen.Collection) *Collection {
 	total := int(r.TotalItems)
 	inLibrary := int(r.InLibraryItems)
 	missing := total - inLibrary

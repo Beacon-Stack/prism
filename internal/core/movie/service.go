@@ -17,10 +17,11 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/beacon-stack/prism/internal/core/dbutil"
 	"github.com/beacon-stack/prism/internal/core/edition"
 	"github.com/beacon-stack/prism/internal/core/renamer"
 	"github.com/beacon-stack/prism/internal/db"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 	"github.com/beacon-stack/prism/pkg/plugin"
@@ -132,7 +133,7 @@ type RenameSettings struct {
 
 // Service manages movie records.
 type Service struct {
-	q          dbsqlite.Querier
+	q          dbgen.Querier
 	sqlDB      *sql.DB // for transactions; nil in tests that don't need them
 	meta       MetadataProvider
 	mu         sync.RWMutex
@@ -146,7 +147,7 @@ type Service struct {
 // methods that require it return ErrTMDBNotConfigured.
 // sqlDB may be nil in tests; when non-nil, multi-step mutations run in a
 // database transaction.
-func NewService(q dbsqlite.Querier, meta MetadataProvider, bus *events.Bus, logger *slog.Logger, opts ...ServiceOption) *Service {
+func NewService(q dbgen.Querier, meta MetadataProvider, bus *events.Bus, logger *slog.Logger, opts ...ServiceOption) *Service {
 	s := &Service{q: q, meta: meta, bus: bus, logger: logger, renameFile: os.Rename}
 	for _, o := range opts {
 		o(s)
@@ -199,7 +200,7 @@ func (s *Service) provider() MetadataProvider {
 // Returns ErrAlreadyExists if a movie with the same TMDB ID is already present.
 func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 	// Check for duplicates before hitting TMDB (or creating a stub).
-	if _, err := s.q.GetMovieByTMDBID(ctx, int64(req.TMDBID)); err == nil {
+	if _, err := s.q.GetMovieByTMDBID(ctx, int32(req.TMDBID)); err == nil {
 		return Movie{}, ErrAlreadyExists
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return Movie{}, fmt.Errorf("checking for existing movie with tmdb_id %d: %w", req.TMDBID, err)
@@ -221,59 +222,44 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	monitored := int64(0)
-	if req.Monitored {
-		monitored = 1
-	}
 
-	var imdbID *string
-	if detail.IMDBId != "" {
-		imdbID = &detail.IMDBId
-	}
+	imdbID := dbutil.NullStringFromString(detail.IMDBId)
 
-	var runtimeMinutes *int64
+	var runtimeMinutes sql.NullInt32
 	if detail.RuntimeMinutes > 0 {
-		rt := int64(detail.RuntimeMinutes)
-		runtimeMinutes = &rt
+		runtimeMinutes = sql.NullInt32{Int32: int32(detail.RuntimeMinutes), Valid: true}
 	}
 
-	var posterURL *string
-	if detail.PosterPath != "" {
-		posterURL = &detail.PosterPath
-	}
-
-	var fanartURL *string
-	if detail.BackdropPath != "" {
-		fanartURL = &detail.BackdropPath
-	}
+	posterURL := dbutil.NullStringFromString(detail.PosterPath)
+	fanartURL := dbutil.NullStringFromString(detail.BackdropPath)
 
 	minAvail := req.MinimumAvailability
 	if minAvail == "" {
 		minAvail = "released"
 	}
 
-	row, err := s.q.CreateMovie(ctx, dbsqlite.CreateMovieParams{
+	row, err := s.q.CreateMovie(ctx, dbgen.CreateMovieParams{
 		ID:                  uuid.New().String(),
-		TmdbID:              int64(detail.ID),
+		TmdbID:              int32(detail.ID),
 		ImdbID:              imdbID,
 		Title:               detail.Title,
 		OriginalTitle:       detail.OriginalTitle,
-		Year:                int64(detail.Year),
+		Year:                int32(detail.Year),
 		Overview:            detail.Overview,
 		RuntimeMinutes:      runtimeMinutes,
 		GenresJson:          genresJSON,
 		PosterUrl:           posterURL,
 		FanartUrl:           fanartURL,
 		Status:              detail.Status,
-		Monitored:           monitored,
+		Monitored:           req.Monitored,
 		LibraryID:           req.LibraryID,
 		QualityProfileID:    req.QualityProfileID,
 		MinimumAvailability: minAvail,
 		ReleaseDate:         detail.ReleaseDate,
-		Path:                nil,
+		Path:                sql.NullString{},
 		AddedAt:             now,
 		UpdatedAt:           now,
-		MetadataRefreshedAt: &now,
+		MetadataRefreshedAt: sql.NullString{String: now, Valid: true},
 	})
 	if err != nil {
 		return Movie{}, fmt.Errorf("inserting movie: %w", err)
@@ -285,9 +271,9 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 	}
 
 	if req.PreferredEdition != "" {
-		if err := s.q.UpdateMoviePreferredEdition(ctx, dbsqlite.UpdateMoviePreferredEditionParams{
+		if err := s.q.UpdateMoviePreferredEdition(ctx, dbgen.UpdateMoviePreferredEditionParams{
 			ID:               m.ID,
-			PreferredEdition: &req.PreferredEdition,
+			PreferredEdition: sql.NullString{String: req.PreferredEdition, Valid: true},
 			UpdatedAt:        time.Now().UTC().Format(time.RFC3339),
 		}); err != nil {
 			return Movie{}, fmt.Errorf("setting preferred edition for movie %q: %w", m.ID, err)
@@ -313,36 +299,32 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 // all stub fields with real data.
 func (s *Service) addStub(ctx context.Context, req AddRequest) (Movie, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
-	monitored := int64(0)
-	if req.Monitored {
-		monitored = 1
-	}
 	minAvail := req.MinimumAvailability
 	if minAvail == "" {
 		minAvail = "released"
 	}
 
-	row, err := s.q.CreateMovie(ctx, dbsqlite.CreateMovieParams{
+	row, err := s.q.CreateMovie(ctx, dbgen.CreateMovieParams{
 		ID:                  uuid.New().String(),
-		TmdbID:              int64(req.TMDBID),
-		ImdbID:              nil,
+		TmdbID:              int32(req.TMDBID),
+		ImdbID:              sql.NullString{},
 		Title:               fmt.Sprintf("tmdb:%d", req.TMDBID),
 		OriginalTitle:       "",
 		Year:                0,
 		Overview:            "",
-		RuntimeMinutes:      nil,
+		RuntimeMinutes:      sql.NullInt32{},
 		GenresJson:          "[]",
-		PosterUrl:           nil,
-		FanartUrl:           nil,
+		PosterUrl:           sql.NullString{},
+		FanartUrl:           sql.NullString{},
 		Status:              "unknown",
-		Monitored:           monitored,
+		Monitored:           req.Monitored,
 		LibraryID:           req.LibraryID,
 		QualityProfileID:    req.QualityProfileID,
 		MinimumAvailability: minAvail,
-		Path:                nil,
+		Path:                sql.NullString{},
 		AddedAt:             now,
 		UpdatedAt:           now,
-		MetadataRefreshedAt: nil,
+		MetadataRefreshedAt: sql.NullString{},
 	})
 	if err != nil {
 		return Movie{}, fmt.Errorf("inserting stub movie for tmdb_id %d: %w", req.TMDBID, err)
@@ -377,28 +359,28 @@ func (s *Service) addStub(ctx context.Context, req AddRequest) (Movie, error) {
 func (s *Service) AddUnmatched(ctx context.Context, req AddUnmatchedRequest) (Movie, error) {
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	row, err := s.q.CreateMovie(ctx, dbsqlite.CreateMovieParams{
+	row, err := s.q.CreateMovie(ctx, dbgen.CreateMovieParams{
 		ID:                  uuid.New().String(),
 		TmdbID:              0,
-		ImdbID:              nil,
+		ImdbID:              sql.NullString{},
 		Title:               req.Title,
 		OriginalTitle:       "",
 		Year:                0,
 		Overview:            "",
-		RuntimeMinutes:      nil,
+		RuntimeMinutes:      sql.NullInt32{},
 		GenresJson:          "[]",
-		PosterUrl:           nil,
-		FanartUrl:           nil,
+		PosterUrl:           sql.NullString{},
+		FanartUrl:           sql.NullString{},
 		Status:              "announced",
-		Monitored:           0,
+		Monitored:           false,
 		LibraryID:           req.LibraryID,
 		QualityProfileID:    req.QualityProfileID,
 		MinimumAvailability: "released",
 		ReleaseDate:         "",
-		Path:                nil,
+		Path:                sql.NullString{},
 		AddedAt:             now,
 		UpdatedAt:           now,
-		MetadataRefreshedAt: nil,
+		MetadataRefreshedAt: sql.NullString{},
 	})
 	if err != nil {
 		return Movie{}, fmt.Errorf("inserting unmatched movie: %w", err)
@@ -441,7 +423,7 @@ func (s *Service) MatchToTMDB(ctx context.Context, movieID string, tmdbID int) (
 	}
 
 	// Check that no other movie already owns this TMDB ID.
-	dup, err := s.q.GetMovieByTMDBID(ctx, int64(tmdbID))
+	dup, err := s.q.GetMovieByTMDBID(ctx, int32(tmdbID))
 	if err == nil && dup.ID != movieID {
 		return Movie{}, ErrAlreadyExists
 	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -449,8 +431,8 @@ func (s *Service) MatchToTMDB(ctx context.Context, movieID string, tmdbID int) (
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	if err := s.q.UpdateMovieTMDBID(ctx, dbsqlite.UpdateMovieTMDBIDParams{
-		TmdbID:    int64(tmdbID),
+	if err := s.q.UpdateMovieTMDBID(ctx, dbgen.UpdateMovieTMDBIDParams{
+		TmdbID:    int32(tmdbID),
 		UpdatedAt: now,
 		ID:        movieID,
 	}); err != nil {
@@ -488,11 +470,11 @@ func (s *Service) List(ctx context.Context, req ListRequest) (ListResult, error)
 		req.PerPage = 250
 	}
 
-	limit := int64(req.PerPage)
-	offset := int64((req.Page - 1) * req.PerPage)
+	limit := int32(req.PerPage)
+	offset := int32((req.Page - 1) * req.PerPage)
 
 	var (
-		rows  []dbsqlite.Movie
+		rows  []dbgen.Movie
 		total int64
 		err   error
 	)
@@ -503,7 +485,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) (ListResult, error)
 			return ListResult{}, fmt.Errorf("counting movies for library %q: %w", req.LibraryID, err)
 		}
 
-		rows, err = s.q.ListMoviesByLibrary(ctx, dbsqlite.ListMoviesByLibraryParams{
+		rows, err = s.q.ListMoviesByLibrary(ctx, dbgen.ListMoviesByLibraryParams{
 			LibraryID: req.LibraryID,
 			Limit:     limit,
 			Offset:    offset,
@@ -514,7 +496,7 @@ func (s *Service) List(ctx context.Context, req ListRequest) (ListResult, error)
 			return ListResult{}, fmt.Errorf("counting movies: %w", err)
 		}
 
-		rows, err = s.q.ListMovies(ctx, dbsqlite.ListMoviesParams{
+		rows, err = s.q.ListMovies(ctx, dbgen.ListMoviesParams{
 			Limit:  limit,
 			Offset: offset,
 		})
@@ -552,11 +534,6 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Mov
 		return Movie{}, fmt.Errorf("fetching movie %q for update: %w", id, err)
 	}
 
-	monitored := int64(0)
-	if req.Monitored {
-		monitored = 1
-	}
-
 	libraryID := req.LibraryID
 	if libraryID == "" {
 		libraryID = existing.LibraryID
@@ -579,7 +556,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Mov
 
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	row, err := s.q.UpdateMovie(ctx, dbsqlite.UpdateMovieParams{
+	row, err := s.q.UpdateMovie(ctx, dbgen.UpdateMovieParams{
 		ID:                  id,
 		Title:               title,
 		OriginalTitle:       existing.OriginalTitle,
@@ -590,7 +567,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Mov
 		PosterUrl:           existing.PosterUrl,
 		FanartUrl:           existing.FanartUrl,
 		Status:              existing.Status,
-		Monitored:           monitored,
+		Monitored:           req.Monitored,
 		LibraryID:           libraryID,
 		QualityProfileID:    qualityProfileID,
 		MinimumAvailability: minAvail,
@@ -607,20 +584,18 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Mov
 	}
 
 	if req.PreferredEdition != nil {
-		pe := req.PreferredEdition
-		if *pe == "" {
-			pe = nil // clear → store NULL
+		var pe sql.NullString
+		if *req.PreferredEdition != "" {
+			pe = sql.NullString{String: *req.PreferredEdition, Valid: true}
 		}
-		if err := s.q.UpdateMoviePreferredEdition(ctx, dbsqlite.UpdateMoviePreferredEditionParams{
+		if err := s.q.UpdateMoviePreferredEdition(ctx, dbgen.UpdateMoviePreferredEditionParams{
 			ID:               id,
 			PreferredEdition: pe,
 			UpdatedAt:        now,
 		}); err != nil {
 			return Movie{}, fmt.Errorf("setting preferred edition for movie %q: %w", id, err)
 		}
-		if req.PreferredEdition != nil {
-			m.PreferredEdition = *req.PreferredEdition
-		}
+		m.PreferredEdition = *req.PreferredEdition
 	}
 
 	return m, nil
@@ -643,7 +618,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 
 	// Auto-exclude from import lists so the movie isn't re-added on next sync.
 	if existing.TmdbID != 0 {
-		_, _ = s.q.CreateImportExclusion(ctx, dbsqlite.CreateImportExclusionParams{
+		_, _ = s.q.CreateImportExclusion(ctx, dbgen.CreateImportExclusionParams{
 			ID:        uuid.New().String(),
 			TmdbID:    existing.TmdbID,
 			Title:     existing.Title,
@@ -776,29 +751,21 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 		return Movie{}, err
 	}
 
-	var runtimeMinutes *int64
+	var runtimeMinutes sql.NullInt32
 	if detail.RuntimeMinutes > 0 {
-		rt := int64(detail.RuntimeMinutes)
-		runtimeMinutes = &rt
+		runtimeMinutes = sql.NullInt32{Int32: int32(detail.RuntimeMinutes), Valid: true}
 	}
 
-	var posterURL *string
-	if detail.PosterPath != "" {
-		posterURL = &detail.PosterPath
-	}
-
-	var fanartURL *string
-	if detail.BackdropPath != "" {
-		fanartURL = &detail.BackdropPath
-	}
+	posterURL := dbutil.NullStringFromString(detail.PosterPath)
+	fanartURL := dbutil.NullStringFromString(detail.BackdropPath)
 
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	row, err := s.q.UpdateMovie(ctx, dbsqlite.UpdateMovieParams{
+	row, err := s.q.UpdateMovie(ctx, dbgen.UpdateMovieParams{
 		ID:                  id,
 		Title:               detail.Title,
 		OriginalTitle:       detail.OriginalTitle,
-		Year:                int64(detail.Year),
+		Year:                int32(detail.Year),
 		Overview:            detail.Overview,
 		RuntimeMinutes:      runtimeMinutes,
 		GenresJson:          genresJSON,
@@ -817,8 +784,8 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 	}
 
 	// Record when the metadata was last refreshed.
-	if err := s.q.UpdateMovieMetadataRefreshed(ctx, dbsqlite.UpdateMovieMetadataRefreshedParams{
-		MetadataRefreshedAt: &now,
+	if err := s.q.UpdateMovieMetadataRefreshed(ctx, dbgen.UpdateMovieMetadataRefreshedParams{
+		MetadataRefreshedAt: sql.NullString{String: now, Valid: true},
 		UpdatedAt:           now,
 		ID:                  id,
 	}); err != nil {
@@ -836,7 +803,7 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 // GetByTMDBID returns a movie by its TMDB ID.
 // Returns ErrNotFound if no movie with that TMDB ID exists.
 func (s *Service) GetByTMDBID(ctx context.Context, tmdbID int) (Movie, error) {
-	row, err := s.q.GetMovieByTMDBID(ctx, int64(tmdbID))
+	row, err := s.q.GetMovieByTMDBID(ctx, int32(tmdbID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Movie{}, ErrNotFound
@@ -935,7 +902,7 @@ func (s *Service) DeleteFile(ctx context.Context, fileID string, deleteFromDisk 
 		}
 	}
 
-	do := func(q dbsqlite.Querier) error {
+	do := func(q dbgen.Querier) error {
 		if err := q.DeleteMovieFile(ctx, fileID); err != nil {
 			return fmt.Errorf("deleting movie file record %q: %w", fileID, err)
 		}
@@ -946,14 +913,14 @@ func (s *Service) DeleteFile(ctx context.Context, fileID string, deleteFromDisk 
 		}
 		if len(remaining) == 0 {
 			now := time.Now().UTC().Format(time.RFC3339)
-			if _, err := q.UpdateMoviePath(ctx, dbsqlite.UpdateMoviePathParams{
-				Path:      nil,
+			if _, err := q.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
+				Path:      sql.NullString{},
 				UpdatedAt: now,
 				ID:        row.MovieID,
 			}); err != nil {
 				return fmt.Errorf("clearing path for movie %q: %w", row.MovieID, err)
 			}
-			if _, err := q.UpdateMovieStatus(ctx, dbsqlite.UpdateMovieStatusParams{
+			if _, err := q.UpdateMovieStatus(ctx, dbgen.UpdateMovieStatusParams{
 				Status:    "wanted",
 				UpdatedAt: now,
 				ID:        row.MovieID,
@@ -983,36 +950,36 @@ func (s *Service) AttachFile(ctx context.Context, movieID, filePath string, size
 	}
 
 	// Auto-detect edition from the filename.
-	var editionPtr *string
+	var editionNS sql.NullString
 	if ed := edition.Parse(filepath.Base(filePath)); ed != nil {
-		editionPtr = &ed.Name
+		editionNS = sql.NullString{String: ed.Name, Valid: true}
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	do := func(q dbsqlite.Querier) error {
-		if _, err := q.UpdateMoviePath(ctx, dbsqlite.UpdateMoviePathParams{
-			Path:      &filePath,
+	do := func(q dbgen.Querier) error {
+		if _, err := q.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
+			Path:      sql.NullString{String: filePath, Valid: true},
 			UpdatedAt: now,
 			ID:        movieID,
 		}); err != nil {
 			return fmt.Errorf("updating movie path for %q: %w", movieID, err)
 		}
 
-		if _, err := q.CreateMovieFile(ctx, dbsqlite.CreateMovieFileParams{
+		if _, err := q.CreateMovieFile(ctx, dbgen.CreateMovieFileParams{
 			ID:          uuid.New().String(),
 			MovieID:     movieID,
 			Path:        filePath,
 			SizeBytes:   sizeBytes,
 			QualityJson: string(qualityJSON),
-			Edition:     editionPtr,
+			Edition:     editionNS,
 			ImportedAt:  now,
 			IndexedAt:   now,
 		}); err != nil {
 			return fmt.Errorf("creating movie file for %q: %w", movieID, err)
 		}
 
-		if _, err := q.UpdateMovieStatus(ctx, dbsqlite.UpdateMovieStatusParams{
+		if _, err := q.UpdateMovieStatus(ctx, dbgen.UpdateMovieStatusParams{
 			Status:    "downloaded",
 			UpdatedAt: now,
 			ID:        movieID,
@@ -1077,8 +1044,8 @@ func (s *Service) RenameFiles(ctx context.Context, movieID string, settings Rena
 
 		// Set per-file edition so {Edition} renders correctly for each file.
 		fileRM := rm
-		if f.Edition != nil {
-			fileRM.Edition = *f.Edition
+		if f.Edition.Valid {
+			fileRM.Edition = f.Edition.String
 		}
 
 		ext := filepath.Ext(f.Path)
@@ -1124,7 +1091,7 @@ func (s *Service) RenameFiles(ctx context.Context, movieID string, settings Rena
 			continue
 		}
 
-		if dbErr := s.q.UpdateMovieFilePath(ctx, dbsqlite.UpdateMovieFilePathParams{
+		if dbErr := s.q.UpdateMovieFilePath(ctx, dbgen.UpdateMovieFilePathParams{
 			Path: item.NewPath,
 			ID:   item.FileID,
 		}); dbErr != nil {
@@ -1137,9 +1104,9 @@ func (s *Service) RenameFiles(ctx context.Context, movieID string, settings Rena
 		}
 
 		// Keep movies.path in sync if this file's old path matches it.
-		if movie.Path != nil && *movie.Path == item.OldPath {
-			if _, pathErr := s.q.UpdateMoviePath(ctx, dbsqlite.UpdateMoviePathParams{
-				Path:      &item.NewPath,
+		if movie.Path.Valid && movie.Path.String == item.OldPath {
+			if _, pathErr := s.q.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
+				Path:      sql.NullString{String: item.NewPath, Valid: true},
 				UpdatedAt: now,
 				ID:        movieID,
 			}); pathErr != nil {
@@ -1188,7 +1155,7 @@ func tmdbImageURL(path, size string) string {
 }
 
 // rowToFileInfo converts a DB movie_files row into the FileInfo domain type.
-func rowToFileInfo(row dbsqlite.MovieFile) (FileInfo, error) {
+func rowToFileInfo(row dbgen.MovieFile) (FileInfo, error) {
 	var qual plugin.Quality
 	if err := json.Unmarshal([]byte(row.QualityJson), &qual); err != nil {
 		// Non-fatal: return zero Quality if JSON is malformed.
@@ -1204,10 +1171,7 @@ func rowToFileInfo(row dbsqlite.MovieFile) (FileInfo, error) {
 		indexedAt = time.Time{}
 	}
 
-	edition := ""
-	if row.Edition != nil {
-		edition = *row.Edition
-	}
+	edition := dbutil.NullStringValue(row.Edition)
 
 	return FileInfo{
 		ID:            row.ID,
@@ -1223,7 +1187,7 @@ func rowToFileInfo(row dbsqlite.MovieFile) (FileInfo, error) {
 }
 
 // rowToMovie converts a DB row into the domain Movie type.
-func rowToMovie(row dbsqlite.Movie) (Movie, error) {
+func rowToMovie(row dbgen.Movie) (Movie, error) {
 	var genres []string
 	if err := json.Unmarshal([]byte(row.GenresJson), &genres); err != nil {
 		return Movie{}, fmt.Errorf("unmarshaling genres for movie %q: %w", row.ID, err)
@@ -1243,43 +1207,29 @@ func rowToMovie(row dbsqlite.Movie) (Movie, error) {
 	}
 
 	var metadataRefreshedAt *time.Time
-	if row.MetadataRefreshedAt != nil {
-		t, err := time.Parse(time.RFC3339, *row.MetadataRefreshedAt)
+	if row.MetadataRefreshedAt.Valid {
+		t, err := time.Parse(time.RFC3339, row.MetadataRefreshedAt.String)
 		if err != nil {
 			return Movie{}, fmt.Errorf("parsing metadata_refreshed_at for movie %q: %w", row.ID, err)
 		}
 		metadataRefreshedAt = &t
 	}
 
-	var imdbID string
-	if row.ImdbID != nil {
-		imdbID = *row.ImdbID
-	}
-
-	var runtimeMinutes int
-	if row.RuntimeMinutes != nil {
-		runtimeMinutes = int(*row.RuntimeMinutes)
-	}
+	imdbID := dbutil.NullStringValue(row.ImdbID)
+	runtimeMinutes := dbutil.NullInt32Value(row.RuntimeMinutes)
 
 	var posterURL string
-	if row.PosterUrl != nil {
-		posterURL = tmdbImageURL(*row.PosterUrl, "w500")
+	if row.PosterUrl.Valid {
+		posterURL = tmdbImageURL(row.PosterUrl.String, "w500")
 	}
 
 	var fanartURL string
-	if row.FanartUrl != nil {
-		fanartURL = tmdbImageURL(*row.FanartUrl, "w1280")
+	if row.FanartUrl.Valid {
+		fanartURL = tmdbImageURL(row.FanartUrl.String, "w1280")
 	}
 
-	var path string
-	if row.Path != nil {
-		path = *row.Path
-	}
-
-	var preferredEdition string
-	if row.PreferredEdition != nil {
-		preferredEdition = *row.PreferredEdition
-	}
+	path := dbutil.NullStringValue(row.Path)
+	preferredEdition := dbutil.NullStringValue(row.PreferredEdition)
 
 	return Movie{
 		ID:                  row.ID,
@@ -1294,7 +1244,7 @@ func rowToMovie(row dbsqlite.Movie) (Movie, error) {
 		PosterURL:           posterURL,
 		FanartURL:           fanartURL,
 		Status:              row.Status,
-		Monitored:           row.Monitored != 0,
+		Monitored:           row.Monitored,
 		LibraryID:           row.LibraryID,
 		QualityProfileID:    row.QualityProfileID,
 		MinimumAvailability: row.MinimumAvailability,
@@ -1319,9 +1269,9 @@ func (s *Service) ListMissing(ctx context.Context, page, perPage int) ([]Movie, 
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting missing movies: %w", err)
 	}
-	rows, err := s.q.ListMonitoredMoviesWithoutFile(ctx, dbsqlite.ListMonitoredMoviesWithoutFileParams{
-		Limit:  int64(perPage),
-		Offset: int64((page - 1) * perPage),
+	rows, err := s.q.ListMonitoredMoviesWithoutFile(ctx, dbgen.ListMonitoredMoviesWithoutFileParams{
+		Limit:  int32(perPage),
+		Offset: int32((page - 1) * perPage),
 	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing missing movies: %w", err)
@@ -1348,7 +1298,7 @@ func (s *Service) ListCutoffUnmet(ctx context.Context) ([]Movie, error) {
 	}
 
 	type entry struct {
-		row    dbsqlite.ListMonitoredMoviesWithFilesRow
+		row    dbgen.ListMonitoredMoviesWithFilesRow
 		best   plugin.Quality
 		cutoff plugin.Quality
 	}
@@ -1421,9 +1371,9 @@ func (s *Service) CountCutoffUnmet(ctx context.Context) (int64, error) {
 
 // rowToMovieFromWithFilesRow converts a ListMonitoredMoviesWithFilesRow (which
 // includes extra quality columns) into the domain Movie type.
-func rowToMovieFromWithFilesRow(r dbsqlite.ListMonitoredMoviesWithFilesRow) (Movie, error) {
+func rowToMovieFromWithFilesRow(r dbgen.ListMonitoredMoviesWithFilesRow) (Movie, error) {
 	// Delegate to rowToMovie by re-mapping shared fields.
-	return rowToMovie(dbsqlite.Movie{
+	return rowToMovie(dbgen.Movie{
 		ID:                  r.ID,
 		TmdbID:              r.TmdbID,
 		ImdbID:              r.ImdbID,

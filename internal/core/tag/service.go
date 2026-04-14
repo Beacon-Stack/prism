@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // Tag is the domain representation of a tag.
@@ -27,11 +27,11 @@ type Tag struct {
 
 // Service manages tags and their entity associations.
 type Service struct {
-	q dbsqlite.Querier
+	q dbgen.Querier
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier) *Service {
+func NewService(q dbgen.Querier) *Service {
 	return &Service{q: q}
 }
 
@@ -72,7 +72,7 @@ func (s *Service) Get(ctx context.Context, id string) (Tag, error) {
 
 // Create creates a new tag with the given name.
 func (s *Service) Create(ctx context.Context, name string) (Tag, error) {
-	row, err := s.q.CreateTag(ctx, dbsqlite.CreateTagParams{
+	row, err := s.q.CreateTag(ctx, dbgen.CreateTagParams{
 		ID:   uuid.New().String(),
 		Name: name,
 	})
@@ -87,7 +87,7 @@ func (s *Service) Create(ctx context.Context, name string) (Tag, error) {
 
 // Update renames an existing tag.
 func (s *Service) Update(ctx context.Context, id, name string) (Tag, error) {
-	row, err := s.q.UpdateTag(ctx, dbsqlite.UpdateTagParams{ID: id, Name: name})
+	row, err := s.q.UpdateTag(ctx, dbgen.UpdateTagParams{ID: id, Name: name})
 	if err != nil {
 		if dbutil.IsUniqueViolation(err) {
 			return Tag{}, fmt.Errorf("tag %q already exists", name)
@@ -111,7 +111,7 @@ func (s *Service) SetMovieTags(ctx context.Context, movieID string, tagIDs []str
 		return fmt.Errorf("clearing movie tags: %w", err)
 	}
 	for _, tid := range tagIDs {
-		if err := s.q.AddMovieTag(ctx, dbsqlite.AddMovieTagParams{MovieID: movieID, TagID: tid}); err != nil {
+		if err := s.q.AddMovieTag(ctx, dbgen.AddMovieTagParams{MovieID: movieID, TagID: tid}); err != nil {
 			return fmt.Errorf("adding movie tag %q: %w", tid, err)
 		}
 	}
@@ -136,7 +136,7 @@ func (s *Service) SetIndexerTags(ctx context.Context, indexerID string, tagIDs [
 		return fmt.Errorf("clearing indexer tags: %w", err)
 	}
 	for _, tid := range tagIDs {
-		if err := s.q.AddIndexerTag(ctx, dbsqlite.AddIndexerTagParams{IndexerID: indexerID, TagID: tid}); err != nil {
+		if err := s.q.AddIndexerTag(ctx, dbgen.AddIndexerTagParams{IndexerID: indexerID, TagID: tid}); err != nil {
 			return fmt.Errorf("adding indexer tag %q: %w", tid, err)
 		}
 	}
@@ -161,7 +161,7 @@ func (s *Service) SetDownloadClientTags(ctx context.Context, clientID string, ta
 		return fmt.Errorf("clearing download client tags: %w", err)
 	}
 	for _, tid := range tagIDs {
-		if err := s.q.AddDownloadClientTag(ctx, dbsqlite.AddDownloadClientTagParams{DownloadClientID: clientID, TagID: tid}); err != nil {
+		if err := s.q.AddDownloadClientTag(ctx, dbgen.AddDownloadClientTagParams{DownloadClientID: clientID, TagID: tid}); err != nil {
 			return fmt.Errorf("adding download client tag %q: %w", tid, err)
 		}
 	}
@@ -186,7 +186,7 @@ func (s *Service) SetNotificationTags(ctx context.Context, notifID string, tagID
 		return fmt.Errorf("clearing notification tags: %w", err)
 	}
 	for _, tid := range tagIDs {
-		if err := s.q.AddNotificationTag(ctx, dbsqlite.AddNotificationTagParams{NotificationID: notifID, TagID: tid}); err != nil {
+		if err := s.q.AddNotificationTag(ctx, dbgen.AddNotificationTagParams{NotificationID: notifID, TagID: tid}); err != nil {
 			return fmt.Errorf("adding notification tag %q: %w", tid, err)
 		}
 	}
@@ -211,7 +211,7 @@ func (s *Service) SetImportListTags(ctx context.Context, importListID string, ta
 		return fmt.Errorf("clearing import list tags: %w", err)
 	}
 	for _, tid := range tagIDs {
-		if err := s.q.AddImportListTag(ctx, dbsqlite.AddImportListTagParams{ImportListID: importListID, TagID: tid}); err != nil {
+		if err := s.q.AddImportListTag(ctx, dbgen.AddImportListTagParams{ImportListID: importListID, TagID: tid}); err != nil {
 			return fmt.Errorf("adding import list tag %q: %w", tid, err)
 		}
 	}

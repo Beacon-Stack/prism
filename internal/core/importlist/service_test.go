@@ -11,7 +11,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/importlist"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 	"github.com/beacon-stack/prism/internal/registry"
@@ -66,7 +66,7 @@ func newTestReg(mock *mockImportList) *registry.Registry {
 	return reg
 }
 
-func newTestService(t *testing.T, reg *registry.Registry) (*importlist.Service, *dbsqlite.Queries, *sql.DB) {
+func newTestService(t *testing.T, reg *registry.Registry) (*importlist.Service, *dbgen.Queries, *sql.DB) {
 	t.Helper()
 	q, sqlDB := testutil.NewTestDBWithSQL(t)
 	bus := events.New(slog.New(slog.NewTextHandler(os.Stderr, nil)))
@@ -76,12 +76,12 @@ func newTestService(t *testing.T, reg *registry.Registry) (*importlist.Service, 
 	return svc, q, sqlDB
 }
 
-func seedFixtures(t *testing.T, q *dbsqlite.Queries) (libraryID, profileID string) {
+func seedFixtures(t *testing.T, q *dbgen.Queries) (libraryID, profileID string) {
 	t.Helper()
 	ctx := context.Background()
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	qp, err := q.CreateQualityProfile(ctx, dbsqlite.CreateQualityProfileParams{
+	qp, err := q.CreateQualityProfile(ctx, dbgen.CreateQualityProfileParams{
 		ID:            "qp-test",
 		Name:          "Test Profile",
 		CutoffJson:    `{}`,
@@ -93,7 +93,7 @@ func seedFixtures(t *testing.T, q *dbsqlite.Queries) (libraryID, profileID strin
 		t.Fatalf("seedFixtures: CreateQualityProfile: %v", err)
 	}
 
-	lib, err := q.CreateLibrary(ctx, dbsqlite.CreateLibraryParams{
+	lib, err := q.CreateLibrary(ctx, dbgen.CreateLibraryParams{
 		ID:                      "lib-test",
 		Name:                    "Test Library",
 		RootPath:                "/test",

@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/pkg/plugin"
@@ -52,14 +52,14 @@ type UpdateRequest = CreateRequest
 
 // Service manages download client configuration and release submission.
 type Service struct {
-	q     dbsqlite.Querier
+	q     dbgen.Querier
 	reg   *registry.Registry
 	bus   *events.Bus
 	cache sync.Map // config ID → plugin.DownloadClient
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier, reg *registry.Registry, bus *events.Bus) *Service {
+func NewService(q dbgen.Querier, reg *registry.Registry, bus *events.Bus) *Service {
 	return &Service{q: q, reg: reg, bus: bus}
 }
 
@@ -99,12 +99,12 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Config, error)
 	}
 
 	now := time.Now().UTC()
-	row, err := s.q.CreateDownloadClientConfig(ctx, dbsqlite.CreateDownloadClientConfigParams{
+	row, err := s.q.CreateDownloadClientConfig(ctx, dbgen.CreateDownloadClientConfigParams{
 		ID:        uuid.New().String(),
 		Name:      req.Name,
 		Kind:      req.Kind,
-		Enabled:   dbutil.BoolToInt(req.Enabled),
-		Priority:  int64(priority),
+		Enabled:   req.Enabled,
+		Priority:  int32(priority),
 		Settings:  string(settings),
 		CreatedAt: now.Format(time.RFC3339),
 		UpdatedAt: now.Format(time.RFC3339),
@@ -167,12 +167,12 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Con
 		priority = 25
 	}
 
-	row, err := s.q.UpdateDownloadClientConfig(ctx, dbsqlite.UpdateDownloadClientConfigParams{
+	row, err := s.q.UpdateDownloadClientConfig(ctx, dbgen.UpdateDownloadClientConfigParams{
 		ID:        id,
 		Name:      req.Name,
 		Kind:      req.Kind,
-		Enabled:   dbutil.BoolToInt(req.Enabled),
-		Priority:  int64(priority),
+		Enabled:   req.Enabled,
+		Priority:  int32(priority),
 		Settings:  string(settings),
 		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
 	})
@@ -284,14 +284,14 @@ func (s *Service) ClientFor(ctx context.Context, configID string) (plugin.Downlo
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-func rowToConfig(row dbsqlite.DownloadClientConfig) (Config, error) {
+func rowToConfig(row dbgen.DownloadClientConfig) (Config, error) {
 	createdAt, _ := time.Parse(time.RFC3339, row.CreatedAt)
 	updatedAt, _ := time.Parse(time.RFC3339, row.UpdatedAt)
 	return Config{
 		ID:        row.ID,
 		Name:      row.Name,
 		Kind:      row.Kind,
-		Enabled:   row.Enabled != 0,
+		Enabled:   row.Enabled,
 		Priority:  int(row.Priority),
 		Settings:  json.RawMessage(row.Settings),
 		CreatedAt: createdAt,

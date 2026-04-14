@@ -1,13 +1,12 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
+import { useConfirm } from "@beacon-shared/ConfirmDialog";
 import { Poster } from "@/components/Poster";
 import { useMovieCredits } from "@/api/movies";
 import { toast } from "sonner";
 import {
   useMovie,
-  useMovieReleases,
-  useGrabRelease,
   useDeleteMovie,
   useUpdateMovie,
   useRefreshMovie,
@@ -20,14 +19,12 @@ import {
   useRenameMovie,
   useAutoSearch,
   useEditions,
-  type GrabReleaseRequest,
 } from "@/api/movies";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
+import { ManualSearchModal } from "@/components/ManualSearchModal";
 import ScoreChip from "@/components/ScoreChip";
-import IndexerPill from "@/components/IndexerPill";
-import QualityBadge from "@/components/QualityBadge";
-import type { Release, RenamePreviewItem, TMDBResult, MediaInfo, Quality } from "@/types";
-import { formatBytes, sortReleases, RELEASE_SORT_LABELS, type ReleaseSortField } from "@/lib/utils";
+import type { RenamePreviewItem, TMDBResult, MediaInfo, Quality } from "@/types";
+import { formatBytes } from "@/lib/utils";
 import { useMediainfoStatus, useScanMovieFile } from "@/api/mediainfo";
 
 function formatRuntime(minutes: number): string {
@@ -50,251 +47,6 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-interface ReleasesTabProps {
-  movieId: string;
-}
-
-function ReleasesTab({ movieId }: ReleasesTabProps) {
-  const { data, isLoading, error, refetch } = useMovieReleases(movieId);
-  const grab = useGrabRelease();
-  const [grabbedGuids, setGrabbedGuids] = useState<Set<string>>(new Set());
-  const [pendingGuids, setPendingGuids] = useState<Set<string>>(new Set());
-  const [grabErrors, setGrabErrors] = useState<Record<string, string>>({});
-  const [sortField, setSortField] = useState<ReleaseSortField>("seeds");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  const sortedReleases = useMemo(
-    () => (data ? sortReleases(data, sortField, sortDir) : []),
-    [data, sortField, sortDir]
-  );
-
-  function toggleSort(field: ReleaseSortField) {
-    if (sortField === field) {
-      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setSortField(field);
-      setSortDir("desc");
-    }
-  }
-
-  const handleGrab = useCallback((release: Release) => {
-    const body: GrabReleaseRequest & { movieId: string } = {
-      movieId,
-      guid: release.guid,
-      title: release.title,
-      protocol: release.protocol,
-      download_url: release.download_url,
-      size: release.size,
-    };
-    setPendingGuids((prev) => new Set([...prev, release.guid]));
-    grab.mutate(body, {
-      onSuccess: () => {
-        setPendingGuids((prev) => { const n = new Set(prev); n.delete(release.guid); return n; });
-        setGrabbedGuids((prev) => new Set([...prev, release.guid]));
-      },
-      onError: (e) => {
-        setPendingGuids((prev) => { const n = new Set(prev); n.delete(release.guid); return n; });
-        setGrabErrors((prev) => ({ ...prev, [release.guid]: e.message }));
-        setTimeout(() => setGrabErrors((prev) => { const n = { ...prev }; delete n[release.guid]; return n; }), 5000);
-      },
-    });
-  }, [movieId, grab]);
-
-  if (isLoading) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 0" }}>
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="skeleton" style={{ height: 56, borderRadius: 6 }} />
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: "24px 0", textAlign: "center" }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
-          Failed to search indexers: {error.message}
-        </p>
-        <button
-          onClick={() => refetch()}
-          style={{
-            marginTop: 12,
-            ...actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)"),
-          }}
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (!data?.length) {
-    return (
-      <div style={{ padding: "48px 0", textAlign: "center" }}>
-        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-secondary)", fontWeight: 500 }}>
-          No releases found
-        </p>
-        <p style={{ margin: "6px 0 16px", fontSize: 13, color: "var(--color-text-muted)" }}>
-          No results from any configured indexer.
-        </p>
-        <button onClick={() => refetch()} style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}>
-          Search Again
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
-          {data.length} release{data.length !== 1 ? "s" : ""} found across all indexers.
-        </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 4 }}>Sort:</span>
-          {(Object.keys(RELEASE_SORT_LABELS) as ReleaseSortField[]).map((field) => (
-            <button
-              key={field}
-              onClick={() => toggleSort(field)}
-              aria-label={`Sort by ${RELEASE_SORT_LABELS[field]}`}
-              style={{
-                background: sortField === field ? "var(--color-bg-elevated)" : "transparent",
-                border: sortField === field ? "1px solid var(--color-border-default)" : "1px solid transparent",
-                borderRadius: 4,
-                padding: "2px 8px",
-                fontSize: 11,
-                color: sortField === field ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                cursor: "pointer",
-                fontWeight: sortField === field ? 600 : 400,
-              }}
-            >
-              {RELEASE_SORT_LABELS[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
-            </button>
-          ))}
-        </div>
-      </div>
-      {sortedReleases.map((release) => (
-        <ReleaseRow
-          key={release.guid}
-          release={release}
-          grabbed={grabbedGuids.has(release.guid)}
-          grabError={grabErrors[release.guid]}
-          onGrab={() => handleGrab(release)}
-          isPending={pendingGuids.has(release.guid)}
-        />
-      ))}
-    </div>
-  );
-}
-
-interface ReleaseRowProps {
-  release: Release;
-  grabbed: boolean;
-  grabError?: string;
-  onGrab: () => void;
-  isPending: boolean;
-}
-
-function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseRowProps) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "10px 14px",
-        background: "var(--color-bg-elevated)",
-        borderRadius: 6,
-        border: "1px solid var(--color-border-subtle)",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            color: "var(--color-text-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            fontFamily: "var(--font-family-mono)",
-          }}
-          title={release.title}
-        >
-          {release.title}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
-          <QualityBadge quality={release.quality} />
-          {release.edition && (
-            <span
-              style={{
-                display: "inline-block",
-                padding: "1px 6px",
-                borderRadius: 4,
-                fontSize: 10,
-                fontWeight: 600,
-                background: "color-mix(in srgb, var(--color-info, #3b82f6) 15%, transparent)",
-                color: "var(--color-info, #3b82f6)",
-              }}
-            >
-              {release.edition}
-            </span>
-          )}
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-            {formatBytes(release.size)}
-          </span>
-          {release.seeds !== undefined && (
-            <span style={{ fontSize: 11, color: "var(--color-success)" }}>
-              ↑{release.seeds}
-            </span>
-          )}
-          {release.peers !== undefined && (
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-              ↓{release.peers}
-            </span>
-          )}
-          <IndexerPill name={release.indexer} />
-          {release.age_days !== undefined && release.age_days > 0 && (
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-              {Math.round(release.age_days)}d old
-            </span>
-          )}
-        </div>
-        {grabError && (
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-danger)" }}>{grabError}</p>
-        )}
-      </div>
-
-      {grabbed ? (
-        <span style={{ fontSize: 12, color: "var(--color-success)", flexShrink: 0 }}>Grabbed ✓</span>
-      ) : (
-        <button
-          onClick={onGrab}
-          disabled={isPending}
-          style={{
-            background: "var(--color-accent)",
-            color: "var(--color-accent-fg)",
-            border: "none",
-            borderRadius: 6,
-            padding: "5px 14px",
-            fontSize: 12,
-            fontWeight: 500,
-            cursor: isPending ? "not-allowed" : "pointer",
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            if (!isPending) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)";
-          }}
-          onMouseLeave={(e) => {
-            if (!isPending) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
-          }}
-        >
-          Grab
-        </button>
-      )}
-    </div>
-  );
-}
 
 // ── Rename confirmation modal ───────────────────────────────────────────────────
 
@@ -465,6 +217,7 @@ function FilesTab({ movieId }: { movieId: string }) {
   const rename = useRenameMovie();
   const scanFile = useScanMovieFile(movieId);
   const { data: mediainfoStatus } = useMediainfoStatus();
+  const confirm = useConfirm();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [renamePreview, setRenamePreview] = useState<RenamePreviewItem[] | null>(null);
@@ -654,10 +407,12 @@ function FilesTab({ movieId }: { movieId: string }) {
 
               {/* Delete */}
               <button
-                onClick={() => {
-                  const fromDisk = confirm(
-                    "Also delete the file from disk?\n\nOK = delete from disk\nCancel = remove record only"
-                  );
+                onClick={async () => {
+                  const fromDisk = await confirm({
+                    title: "Delete File",
+                    message: "Also delete the file from disk? Choosing 'Delete' removes from disk. Cancel to remove the record only.",
+                    confirmLabel: "Delete from Disk",
+                  });
                   handleDelete(file.id, fromDisk);
                 }}
                 disabled={deletingId === file.id}
@@ -1039,7 +794,7 @@ function DeleteConfirmBar({ movieId, onCancel }: { movieId: string; onCancel: ()
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-type Tab = "overview" | "releases" | "files" | "history";
+type Tab = "overview" | "files" | "history";
 
 export default function MovieDetail() {
   const { id } = useParams<{ id: string }>();
@@ -1054,6 +809,7 @@ export default function MovieDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const [confirming, setConfirming] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
+  const [showManualSearch, setShowManualSearch] = useState(false);
 
   function handleMonitoredToggle() {
     if (!movie) return;
@@ -1235,9 +991,15 @@ export default function MovieDetail() {
             </button>
           )}
           <button
+            onClick={() => setShowManualSearch(true)}
+            style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}
+          >
+            Interactive Search
+          </button>
+          <button
             onClick={handleAutoSearch}
             disabled={autoSearch.isPending}
-            style={actionBtn("var(--color-accent-fg)", "var(--color-accent)")}
+            style={actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")}
           >
             {autoSearch.isPending ? "Searching…" : "Auto Search"}
           </button>
@@ -1267,7 +1029,7 @@ export default function MovieDetail() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Tabs */}
           <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--color-border-subtle)", marginBottom: 20 }}>
-            {(["overview", "releases", "files", "history"] as Tab[]).map((t) => (
+            {(["overview", "files", "history"] as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -1513,7 +1275,6 @@ export default function MovieDetail() {
             </div>
           )}
 
-          {tab === "releases" && <ReleasesTab movieId={movie.id} />}
           {tab === "files" && <FilesTab movieId={movie.id} />}
           {tab === "history" && <HistoryTab movieId={movie.id} />}
         </div>
@@ -1621,7 +1382,7 @@ export default function MovieDetail() {
                 {credits.recommendations.map((r) => (
                   <Link
                     key={r.tmdb_id}
-                    to={r.in_library && r.movie_id ? `/movies/${r.movie_id}` : `/`}
+                    to={r.in_library && r.movie_id ? `/movies/${r.movie_id}` : `/discover/${r.tmdb_id}`}
                     style={{ textDecoration: "none", minWidth: 100, maxWidth: 100 }}
                   >
                     <Poster
@@ -1648,6 +1409,14 @@ export default function MovieDetail() {
             </div>
           )}
         </div>
+      )}
+
+      {showManualSearch && (
+        <ManualSearchModal
+          movieId={movie.id}
+          movieTitle={movie.title}
+          onClose={() => setShowManualSearch(false)}
+        />
       )}
 
     </div>

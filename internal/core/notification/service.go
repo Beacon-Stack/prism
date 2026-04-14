@@ -12,8 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -47,12 +46,12 @@ type UpdateRequest = CreateRequest
 
 // Service manages notification configurations.
 type Service struct {
-	q   dbsqlite.Querier
+	q   dbgen.Querier
 	reg *registry.Registry
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier, reg *registry.Registry) *Service {
+func NewService(q dbgen.Querier, reg *registry.Registry) *Service {
 	return &Service{q: q, reg: reg}
 }
 
@@ -72,11 +71,11 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Config, error)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	row, err := s.q.CreateNotificationConfig(ctx, dbsqlite.CreateNotificationConfigParams{
+	row, err := s.q.CreateNotificationConfig(ctx, dbgen.CreateNotificationConfigParams{
 		ID:        uuid.New().String(),
 		Name:      req.Name,
 		Kind:      req.Kind,
-		Enabled:   dbutil.BoolToInt(req.Enabled),
+		Enabled:   req.Enabled,
 		Settings:  string(settings),
 		OnEvents:  string(onEventsJSON),
 		CreatedAt: now,
@@ -137,11 +136,11 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Con
 		return Config{}, fmt.Errorf("marshaling on_events: %w", err)
 	}
 
-	row, err := s.q.UpdateNotificationConfig(ctx, dbsqlite.UpdateNotificationConfigParams{
+	row, err := s.q.UpdateNotificationConfig(ctx, dbgen.UpdateNotificationConfigParams{
 		ID:        id,
 		Name:      req.Name,
 		Kind:      req.Kind,
-		Enabled:   dbutil.BoolToInt(req.Enabled),
+		Enabled:   req.Enabled,
 		Settings:  string(settings),
 		OnEvents:  string(onEventsJSON),
 		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
@@ -181,7 +180,7 @@ func (s *Service) Test(ctx context.Context, id string) error {
 }
 
 // rowToConfig converts a DB row into the domain Config type.
-func rowToConfig(row dbsqlite.NotificationConfig) (Config, error) {
+func rowToConfig(row dbgen.NotificationConfig) (Config, error) {
 	createdAt, _ := time.Parse(time.RFC3339, row.CreatedAt)
 	updatedAt, _ := time.Parse(time.RFC3339, row.UpdatedAt)
 
@@ -194,7 +193,7 @@ func rowToConfig(row dbsqlite.NotificationConfig) (Config, error) {
 		ID:        row.ID,
 		Name:      row.Name,
 		Kind:      row.Kind,
-		Enabled:   row.Enabled != 0,
+		Enabled:   row.Enabled,
 		Settings:  json.RawMessage(row.Settings),
 		OnEvents:  onEvents,
 		CreatedAt: createdAt,

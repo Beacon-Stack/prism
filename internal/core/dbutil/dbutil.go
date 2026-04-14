@@ -2,18 +2,89 @@
 package dbutil
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"time"
 
-	sqlitedrv "modernc.org/sqlite"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// BoolToInt converts a bool to an int64 (1 or 0) for SQLite storage.
-func BoolToInt(b bool) int64 {
-	if b {
-		return 1
+// NullString converts a *string to sql.NullString. A nil or empty pointer
+// yields a null value.
+func NullString(p *string) sql.NullString {
+	if p == nil {
+		return sql.NullString{}
 	}
-	return 0
+	return sql.NullString{String: *p, Valid: true}
+}
+
+// NullStringFromString converts a string to sql.NullString. An empty string
+// yields a null value.
+func NullStringFromString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: s, Valid: true}
+}
+
+// NullStringPtr converts a sql.NullString back to a *string. Invalid values
+// yield nil.
+func NullStringPtr(ns sql.NullString) *string {
+	if !ns.Valid {
+		return nil
+	}
+	s := ns.String
+	return &s
+}
+
+// NullStringValue returns the string value of a sql.NullString, or "" if invalid.
+func NullStringValue(ns sql.NullString) string {
+	if !ns.Valid {
+		return ""
+	}
+	return ns.String
+}
+
+// NullInt32 converts a *int to sql.NullInt32. A nil pointer yields a null value.
+func NullInt32(p *int) sql.NullInt32 {
+	if p == nil {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: int32(*p), Valid: true}
+}
+
+// NullInt32FromInt64Ptr converts a *int64 to sql.NullInt32.
+func NullInt32FromInt64Ptr(p *int64) sql.NullInt32 {
+	if p == nil {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: int32(*p), Valid: true}
+}
+
+// NullInt32Value returns the int value of a sql.NullInt32, or 0 if invalid.
+func NullInt32Value(ns sql.NullInt32) int {
+	if !ns.Valid {
+		return 0
+	}
+	return int(ns.Int32)
+}
+
+// NullTime converts a *time.Time to sql.NullTime. A nil pointer yields a null value.
+func NullTime(p *time.Time) sql.NullTime {
+	if p == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: *p, Valid: true}
+}
+
+// NullTimePtr converts a sql.NullTime back to a *time.Time. Invalid values yield nil.
+func NullTimePtr(nt sql.NullTime) *time.Time {
+	if !nt.Valid {
+		return nil
+	}
+	t := nt.Time
+	return &t
 }
 
 // MergeSettings returns newSettings with any keys absent from newSettings
@@ -43,14 +114,12 @@ func MergeSettings(existing, newSettings json.RawMessage) json.RawMessage {
 	return merged
 }
 
-// IsUniqueViolation reports whether err is a SQLite unique constraint violation.
-// Uses the driver's error code (2067 = SQLITE_CONSTRAINT_UNIQUE) rather than
-// fragile string matching.
+// IsUniqueViolation reports whether err is a PostgreSQL unique constraint violation
+// (error code 23505).
 func IsUniqueViolation(err error) bool {
-	var e *sqlitedrv.Error
-	if errors.As(err, &e) {
-		const sqliteConstraintUnique = 2067
-		return e.Code() == sqliteConstraintUnique
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505"
 	}
 	return false
 }

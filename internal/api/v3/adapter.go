@@ -21,18 +21,17 @@ import (
 
 // ── ROWID helpers ────────────────────────────────────────────────────────────
 //
-// sqlc doesn't understand SQLite's implicit ROWID column, so these use raw
-// database/sql. Each table with a TEXT PRIMARY KEY still has a stable integer
-// ROWID that we surface as the Radarr-compatible integer ID.
+// Tables with a TEXT PRIMARY KEY have an explicit row_id SERIAL column that we
+// surface as the Radarr-compatible integer ID.
 
-// rowIDMap builds a bidirectional UUID ↔ ROWID mapping for a table.
+// rowIDMap builds a bidirectional UUID ↔ row_id mapping for a table.
 type rowIDMap struct {
 	uuidToRow map[string]int64
 	rowToUUID map[int64]string
 }
 
 func buildRowIDMap(ctx context.Context, db *sql.DB, table string) (rowIDMap, error) {
-	rows, err := db.QueryContext(ctx, fmt.Sprintf("SELECT rowid, id FROM %s", table)) //nolint:gosec // table name is a constant from internal callers
+	rows, err := db.QueryContext(ctx, fmt.Sprintf("SELECT row_id, id FROM %s", table)) //nolint:gosec // table name is a constant from internal callers
 	if err != nil {
 		return rowIDMap{}, err
 	}
@@ -54,20 +53,20 @@ func buildRowIDMap(ctx context.Context, db *sql.DB, table string) (rowIDMap, err
 	return m, rows.Err()
 }
 
-// getUUIDByRowID returns the UUID for a given ROWID, or "" if not found.
+// getUUIDByRowID returns the UUID for a given row_id, or "" if not found.
 func getUUIDByRowID(ctx context.Context, db *sql.DB, table string, rowid int64) (string, error) {
 	var uuid string
-	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT id FROM %s WHERE rowid = ?", table), rowid).Scan(&uuid) //nolint:gosec
+	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT id FROM %s WHERE row_id = $1", table), rowid).Scan(&uuid) //nolint:gosec
 	if err == sql.ErrNoRows {
 		return "", nil
 	}
 	return uuid, err
 }
 
-// getRowIDByUUID returns the ROWID for a given UUID, or 0 if not found.
+// getRowIDByUUID returns the row_id for a given UUID, or 0 if not found.
 func getRowIDByUUID(ctx context.Context, db *sql.DB, table string, uuid string) (int64, error) {
 	var rowid int64
-	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT rowid FROM %s WHERE id = ?", table), uuid).Scan(&rowid) //nolint:gosec
+	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT row_id FROM %s WHERE id = $1", table), uuid).Scan(&rowid) //nolint:gosec
 	if err == sql.ErrNoRows {
 		return 0, nil
 	}

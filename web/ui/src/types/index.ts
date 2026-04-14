@@ -319,6 +319,7 @@ export interface QualityProfile {
   qualities: Quality[];
   upgrade_allowed: boolean;
   upgrade_until?: Quality;
+  managed_by_pulse?: boolean;
 }
 
 export interface QualityProfileRequest {

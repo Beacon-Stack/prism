@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // ErrAlreadyBlocklisted is returned when adding a GUID that is already on the blocklist.
@@ -32,34 +32,29 @@ type Entry struct {
 
 // Service manages the release blocklist.
 type Service struct {
-	q dbsqlite.Querier
+	q dbgen.Querier
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier) *Service {
+func NewService(q dbgen.Querier) *Service {
 	return &Service{q: q}
 }
 
 // Add inserts a new blocklist entry. Returns ErrAlreadyBlocklisted if the GUID
 // is already present (the unique index on release_guid enforces this).
 func (s *Service) Add(ctx context.Context, movieID, releaseGUID, releaseTitle, indexerID, protocol string, size int64, notes string) error {
-	var idxID *string
-	if indexerID != "" {
-		idxID = &indexerID
-	}
-	_, err := s.q.CreateBlocklistEntry(ctx, dbsqlite.CreateBlocklistEntryParams{
+	_, err := s.q.CreateBlocklistEntry(ctx, dbgen.CreateBlocklistEntryParams{
 		ID:           uuid.New().String(),
 		MovieID:      movieID,
 		ReleaseGuid:  releaseGUID,
 		ReleaseTitle: releaseTitle,
-		IndexerID:    idxID,
+		IndexerID:    dbutil.NullStringFromString(indexerID),
 		Protocol:     protocol,
 		Size:         size,
 		AddedAt:      time.Now().UTC(),
 		Notes:        notes,
 	})
 	if err != nil {
-		// SQLite unique constraint violation contains "UNIQUE constraint failed"
 		if dbutil.IsUniqueViolation(err) {
 			return ErrAlreadyBlocklisted
 		}
@@ -95,15 +90,15 @@ func (s *Service) List(ctx context.Context, page, perPage int) ([]Entry, int64, 
 	if perPage < 1 {
 		perPage = 50
 	}
-	offset := int64((page - 1) * perPage)
+	offset := int32((page - 1) * perPage)
 
 	total, err := s.q.CountBlocklist(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("counting blocklist: %w", err)
 	}
 
-	rows, err := s.q.ListBlocklist(ctx, dbsqlite.ListBlocklistParams{
-		Limit:  int64(perPage),
+	rows, err := s.q.ListBlocklist(ctx, dbgen.ListBlocklistParams{
+		Limit:  int32(perPage),
 		Offset: offset,
 	})
 	if err != nil {
@@ -112,17 +107,13 @@ func (s *Service) List(ctx context.Context, page, perPage int) ([]Entry, int64, 
 
 	entries := make([]Entry, len(rows))
 	for i, r := range rows {
-		idxID := ""
-		if r.IndexerID != nil {
-			idxID = *r.IndexerID
-		}
 		entries[i] = Entry{
 			ID:           r.ID,
 			MovieID:      r.MovieID,
 			MovieTitle:   r.MovieTitle,
 			ReleaseGUID:  r.ReleaseGuid,
 			ReleaseTitle: r.ReleaseTitle,
-			IndexerID:    idxID,
+			IndexerID:    dbutil.NullStringValue(r.IndexerID),
 			Protocol:     r.Protocol,
 			Size:         r.Size,
 			AddedAt:      r.AddedAt,

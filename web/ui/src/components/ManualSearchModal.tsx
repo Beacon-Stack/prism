@@ -1,18 +1,62 @@
 import { useState, useCallback, useMemo } from "react";
-import { TriangleAlert, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useMovieReleases, useGrabRelease, useExplainReleases, type GrabReleaseRequest } from "@/api/movies";
-import type { Release, QualityConflict, ReleaseDecision, ExplainResult } from "@/types";
-import { formatBytes, sortReleases, RELEASE_SORT_LABELS, type ReleaseSortField } from "@/lib/utils";
-import IndexerPill from "@/components/IndexerPill";
+import {
+  X,
+  Loader2,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  Wifi,
+  TriangleAlert,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useMovieReleases, useGrabRelease, useMovie, type GrabReleaseRequest } from "@/api/movies";
+import { useMovieFiles } from "@/api/movies";
+import { useQualityProfiles } from "@/api/quality-profiles";
+import type { Release, QualityConflict } from "@/types";
+import { formatBytes } from "@beacon-shared/utils";
 import QualityBadge from "@/components/QualityBadge";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 
-// ── Conflict pills ─────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+type SortField = "seeds" | "size" | "age";
+type SortDir = "asc" | "desc";
+
+function formatAge(days: number | undefined): string {
+  if (days === undefined || days <= 0) return "—";
+  if (days < 1) return "Today";
+  if (days === 1) return "1d";
+  if (days < 30) return `${Math.floor(days)}d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+  return `${Math.floor(months / 12)}y`;
+}
+
+// seedHealth maps a seed count to a colour and label. Ported verbatim from
+// Pilot's ManualSearchModal so both apps share the same buckets.
+function seedHealth(seeds: number | undefined): { color: string; label: string } {
+  const s = seeds ?? 0;
+  if (s === 0) return { color: "var(--color-danger)", label: "Dead" };
+  if (s <= 2) return { color: "var(--color-warning)", label: "Poor" };
+  if (s <= 10) return { color: "var(--color-text-secondary)", label: "OK" };
+  if (s <= 50) return { color: "var(--color-success)", label: "Good" };
+  return { color: "var(--color-success)", label: "Great" };
+}
+
+// closeOnGrab returns the user's preference for whether the modal should
+// close after a successful grab. Persisted in localStorage so users can
+// flip the default (stay-open) without a backend setting.
+function shouldCloseOnGrab(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem("manualSearchModal.closeOnGrab") === "true";
+}
+
+// ── Conflict pills ────────────────────────────────────────────────────────────
 
 function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
   if (conflicts.length === 0) return null;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
       {conflicts.map((c, i) => {
         const isWarning = c.severity === "warning";
         return (
@@ -22,19 +66,23 @@ function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 4,
-              padding: "2px 7px",
-              borderRadius: 4,
+              gap: 3,
+              padding: "1px 6px",
+              borderRadius: 3,
               fontSize: 10,
               fontWeight: 500,
               background: isWarning
                 ? "color-mix(in srgb, var(--color-warning) 14%, transparent)"
                 : "color-mix(in srgb, var(--color-text-muted) 10%, transparent)",
               color: isWarning ? "var(--color-warning)" : "var(--color-text-muted)",
-              border: `1px solid ${isWarning ? "color-mix(in srgb, var(--color-warning) 30%, transparent)" : "var(--color-border-subtle)"}`,
+              border: `1px solid ${
+                isWarning
+                  ? "color-mix(in srgb, var(--color-warning) 30%, transparent)"
+                  : "var(--color-border-subtle)"
+              }`,
             }}
           >
-            {isWarning && <TriangleAlert size={10} strokeWidth={2} style={{ flexShrink: 0 }} />}
+            {isWarning && <TriangleAlert size={9} strokeWidth={2} />}
             {c.summary}
           </span>
         );
@@ -43,7 +91,7 @@ function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
   );
 }
 
-// ── Release row ────────────────────────────────────────────────────────────────
+// ── Release row ───────────────────────────────────────────────────────────────
 
 interface ReleaseRowProps {
   release: Release;
@@ -54,25 +102,31 @@ interface ReleaseRowProps {
 }
 
 function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseRowProps) {
+  const dead = (release.seeds ?? 0) === 0;
+  const health = seedHealth(release.seeds);
   const hasConflicts = (release.conflicts?.length ?? 0) > 0;
+
   return (
-    <div
+    <tr
       style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "10px 14px",
-        background: "var(--color-bg-elevated)",
-        borderRadius: 6,
-        border: `1px solid ${hasConflicts ? "color-mix(in srgb, var(--color-warning) 25%, var(--color-border-subtle))" : "var(--color-border-subtle)"}`,
-        flexShrink: 0,
+        borderBottom: "1px solid var(--color-border-subtle)",
+        opacity: dead && !grabbed ? 0.55 : 1,
+        background: hasConflicts
+          ? "color-mix(in srgb, var(--color-warning) 5%, transparent)"
+          : undefined,
       }}
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Title */}
+      <td
+        style={{
+          padding: "10px 12px",
+          fontSize: 12,
+          color: "var(--color-text-primary)",
+          maxWidth: 380,
+        }}
+      >
         <div
           style={{
-            fontSize: 12,
-            color: "var(--color-text-primary)",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -82,7 +136,43 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
         >
           {release.title}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--color-text-muted)",
+            marginTop: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <span>{release.indexer}</span>
+          {dead && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                color: "var(--color-danger)",
+                fontSize: 10,
+              }}
+            >
+              <TriangleAlert size={10} /> No seeders
+            </span>
+          )}
+        </div>
+        {hasConflicts && release.conflicts && <ConflictPills conflicts={release.conflicts} />}
+        {grabError && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-danger)" }}>
+            {grabError}
+          </p>
+        )}
+      </td>
+
+      {/* Quality + Edition */}
+      <td style={{ padding: "10px 12px", width: 170 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           <QualityBadge quality={release.quality} />
           {release.edition && (
             <span
@@ -99,197 +189,93 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
               {release.edition}
             </span>
           )}
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-            {formatBytes(release.size)}
-          </span>
-          {release.seeds !== undefined && (
-            <span style={{ fontSize: 11, color: "var(--color-success)" }}>↑{release.seeds}</span>
-          )}
-          {release.peers !== undefined && (
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>↓{release.peers}</span>
-          )}
-          <IndexerPill name={release.indexer} />
-          {release.age_days !== undefined && release.age_days > 0 && (
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-              {Math.round(release.age_days)}d old
-            </span>
-          )}
         </div>
-        {release.conflicts && release.conflicts.length > 0 && (
-          <ConflictPills conflicts={release.conflicts} />
-        )}
-        {grabError && (
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-danger)" }}>{grabError}</p>
-        )}
-      </div>
+      </td>
 
-      {grabbed ? (
-        <span style={{ fontSize: 12, color: "var(--color-success)", flexShrink: 0, marginTop: 2 }}>Grabbed ✓</span>
-      ) : (
-        <button
-          onClick={onGrab}
-          disabled={isPending}
-          style={{
-            background: "var(--color-accent)",
-            color: "var(--color-accent-fg)",
-            border: "none",
-            borderRadius: 6,
-            padding: "5px 14px",
-            fontSize: 12,
-            fontWeight: 500,
-            cursor: isPending ? "not-allowed" : "pointer",
-            flexShrink: 0,
-            marginTop: 2,
-          }}
-          onMouseEnter={(e) => {
-            if (!isPending) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)";
-          }}
-          onMouseLeave={(e) => {
-            if (!isPending) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
-          }}
-        >
-          {isPending ? "…" : "Grab"}
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ── Decision panel ─────────────────────────────────────────────────────────────
-
-function OutcomeBadge({ outcome }: { outcome: ReleaseDecision["outcome"] }) {
-  const isGrabbed = outcome === "grabbed";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "1px 7px",
-        borderRadius: 4,
-        fontSize: 10,
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        flexShrink: 0,
-        background: isGrabbed
-          ? "color-mix(in srgb, var(--color-success) 15%, transparent)"
-          : "color-mix(in srgb, var(--color-text-muted) 12%, transparent)",
-        color: isGrabbed ? "var(--color-success)" : "var(--color-text-muted)",
-      }}
-    >
-      {outcome}
-    </span>
-  );
-}
-
-function DecisionRow({ decision }: { decision: ReleaseDecision }) {
-  return (
-    <div
-      style={{
-        padding: "8px 0",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-      }}
-    >
-      <OutcomeBadge outcome={decision.outcome} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 11,
-            color: "var(--color-text-primary)",
-            fontFamily: "var(--font-family-mono)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-          title={decision.title}
-        >
-          {decision.title}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
-          {decision.explanation}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DecisionPanel({ explain }: { explain: ExplainResult | undefined }) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (!explain) return null;
-
-  return (
-    <div
-      style={{
-        margin: "0 0 16px",
-        border: "1px solid var(--color-border-subtle)",
-        borderRadius: 8,
-        background: "var(--color-bg-surface)",
-        overflow: "hidden",
-      }}
-    >
-      {/* Summary header — always visible */}
-      <button
-        onClick={() => setExpanded((v) => !v)}
+      {/* Size */}
+      <td
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          width: "100%",
-          padding: "10px 14px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
+          padding: "10px 12px",
+          fontSize: 12,
+          color: "var(--color-text-secondary)",
+          whiteSpace: "nowrap",
+          width: 86,
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-primary)" }}>
-            Profile: {explain.profile_name}
-          </span>
-          {explain.current_file && (
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginLeft: 10 }}>
-              Current: {explain.current_file.name || `${explain.current_file.resolution} ${explain.current_file.source}`}
-            </span>
-          )}
-        </div>
-        <span style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>
-          {explain.decisions.length} decision{explain.decisions.length !== 1 ? "s" : ""}
-        </span>
-        {expanded
-          ? <ChevronUp size={14} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
-          : <ChevronDown size={14} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
-        }
-      </button>
+        {formatBytes(release.size)}
+      </td>
 
-      {/* Decision list */}
-      {expanded && (
-        <div
-          style={{
-            padding: "0 14px 10px",
-            borderTop: "1px solid var(--color-border-subtle)",
-            maxHeight: 300,
-            overflowY: "auto",
-          }}
-        >
-          {explain.decisions.length === 0 ? (
-            <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--color-text-muted)" }}>
-              No decisions recorded.
-            </p>
-          ) : (
-            explain.decisions.map((d) => (
-              <DecisionRow key={d.guid} decision={d} />
-            ))
-          )}
-        </div>
-      )}
-    </div>
+      {/* Seeds */}
+      <td
+        style={{
+          padding: "10px 12px",
+          width: 80,
+          fontSize: 12,
+          fontWeight: 600,
+          color: health.color,
+          whiteSpace: "nowrap",
+        }}
+        title={`${release.seeds ?? 0} seeders / ${release.peers ?? 0} peers — ${health.label}`}
+      >
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <Wifi size={12} strokeWidth={1.5} />
+          {release.seeds ?? 0}
+        </span>
+      </td>
+
+      {/* Age */}
+      <td
+        style={{
+          padding: "10px 12px",
+          fontSize: 12,
+          color: "var(--color-text-muted)",
+          whiteSpace: "nowrap",
+          width: 60,
+        }}
+      >
+        {formatAge(release.age_days)}
+      </td>
+
+      {/* Grab */}
+      <td style={{ padding: "10px 12px", width: 80 }}>
+        {grabbed ? (
+          <span
+            style={{
+              fontSize: 11,
+              color: "var(--color-success)",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Grabbed ✓
+          </span>
+        ) : (
+          <button
+            onClick={onGrab}
+            disabled={isPending}
+            title={dead ? "No seeders — grab anyway?" : "Grab this release"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "5px 8px",
+              background: dead ? "var(--color-bg-elevated)" : "var(--color-accent)",
+              border: dead ? "1px solid var(--color-border-default)" : "none",
+              borderRadius: 5,
+              cursor: isPending ? "not-allowed" : "pointer",
+              color: dead ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+              opacity: isPending ? 0.6 : 1,
+            }}
+          >
+            <Download size={13} strokeWidth={2} />
+          </button>
+        )}
+      </td>
+    </tr>
   );
 }
 
-// ── Modal ──────────────────────────────────────────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────────────────────
 
 interface ManualSearchModalProps {
   movieId: string;
@@ -298,171 +284,256 @@ interface ManualSearchModalProps {
 }
 
 export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearchModalProps) {
-  const { data, isLoading, error, refetch } = useMovieReleases(movieId);
+  const { data: releases, isLoading, error, refetch } = useMovieReleases(movieId);
   const grab = useGrabRelease();
+
+  // Profile + current-file lookup for the header note. All three hooks hit
+  // React Query's shared cache, so when this modal is opened from MovieDetail
+  // the data is already loaded; opening from WantedPage costs at most three
+  // small extra requests on first open.
+  const { data: movie } = useMovie(movieId);
+  const { data: profiles } = useQualityProfiles();
+  const { data: files } = useMovieFiles(movieId);
+
+  const profileName = useMemo(() => {
+    if (!movie || !profiles) return undefined;
+    return profiles.find((p) => p.id === movie.quality_profile_id)?.name;
+  }, [movie, profiles]);
+
+  const currentLabel = useMemo(() => {
+    if (!files || files.length === 0) return undefined;
+    const best = files[0];
+    return best.quality?.name || `${best.quality?.resolution ?? ""} ${best.quality?.source ?? ""}`.trim();
+  }, [files]);
+
   const [grabbedGuids, setGrabbedGuids] = useState<Set<string>>(new Set());
   const [pendingGuids, setPendingGuids] = useState<Set<string>>(new Set());
   const [grabErrors, setGrabErrors] = useState<Record<string, string>>({});
-  const [sortField, setSortField] = useState<ReleaseSortField>("seeds");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [showExplain, setShowExplain] = useState(false);
+  const [sort, setSort] = useState<{ field: SortField; dir: SortDir } | null>(null);
 
-  const explain = useExplainReleases(movieId, showExplain);
+  const sortedReleases = useMemo(() => {
+    if (!releases) return [];
+    if (!sort) return releases;
+    const arr = [...releases];
+    arr.sort((a, b) => {
+      let av: number;
+      let bv: number;
+      switch (sort.field) {
+        case "seeds":
+          av = a.seeds ?? 0;
+          bv = b.seeds ?? 0;
+          break;
+        case "size":
+          av = a.size;
+          bv = b.size;
+          break;
+        case "age":
+          av = a.age_days ?? 0;
+          bv = b.age_days ?? 0;
+          break;
+      }
+      return sort.dir === "desc" ? bv - av : av - bv;
+    });
+    return arr;
+  }, [releases, sort]);
 
-  const sortedReleases = useMemo(
-    () => (data ? sortReleases(data, sortField, sortDir) : []),
-    [data, sortField, sortDir]
-  );
-
-  function toggleSort(field: ReleaseSortField) {
-    if (sortField === field) {
-      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setSortField(field);
-      setSortDir("desc");
-    }
+  function toggleSort(field: SortField) {
+    setSort((prev) => {
+      if (prev?.field !== field) return { field, dir: "desc" };
+      if (prev.dir === "desc") return { field, dir: "asc" };
+      return null; // third click resets to API order
+    });
   }
 
-  const handleGrab = useCallback((release: Release) => {
-    const body: GrabReleaseRequest & { movieId: string } = {
-      movieId,
-      guid: release.guid,
-      title: release.title,
-      protocol: release.protocol,
-      download_url: release.download_url,
-      size: release.size,
-    };
-    setPendingGuids((prev) => new Set([...prev, release.guid]));
-    grab.mutate(body, {
-      onSuccess: () => {
-        setPendingGuids((prev) => { const n = new Set(prev); n.delete(release.guid); return n; });
-        setGrabbedGuids((prev) => new Set([...prev, release.guid]));
-      },
-      onError: (e) => {
-        setPendingGuids((prev) => { const n = new Set(prev); n.delete(release.guid); return n; });
-        setGrabErrors((prev) => ({ ...prev, [release.guid]: e.message }));
-        setTimeout(() => setGrabErrors((prev) => { const n = { ...prev }; delete n[release.guid]; return n; }), 5000);
-      },
-    });
-  }, [movieId, grab]);
+  const handleGrab = useCallback(
+    (release: Release) => {
+      const body: GrabReleaseRequest & { movieId: string } = {
+        movieId,
+        guid: release.guid,
+        title: release.title,
+        protocol: release.protocol,
+        download_url: release.download_url,
+        size: release.size,
+      };
+      setPendingGuids((prev) => new Set([...prev, release.guid]));
+      grab.mutate(body, {
+        onSuccess: () => {
+          setPendingGuids((prev) => {
+            const n = new Set(prev);
+            n.delete(release.guid);
+            return n;
+          });
+          setGrabbedGuids((prev) => new Set([...prev, release.guid]));
+          toast.success("Sent to download client");
+          if (shouldCloseOnGrab()) {
+            onClose();
+          }
+        },
+        onError: (e) => {
+          setPendingGuids((prev) => {
+            const n = new Set(prev);
+            n.delete(release.guid);
+            return n;
+          });
+          setGrabErrors((prev) => ({ ...prev, [release.guid]: e.message }));
+          setTimeout(
+            () =>
+              setGrabErrors((prev) => {
+                const n = { ...prev };
+                delete n[release.guid];
+                return n;
+              }),
+            5000,
+          );
+        },
+      });
+    },
+    [movieId, grab, onClose],
+  );
+
+  const liveCount = releases?.filter((r) => (r.seeds ?? 0) > 0).length ?? 0;
+
+  const sortIcon = (field: SortField) => {
+    if (sort?.field !== field) return null;
+    return sort.dir === "desc" ? (
+      <ArrowDown size={10} strokeWidth={2.5} />
+    ) : (
+      <ArrowUp size={10} strokeWidth={2.5} />
+    );
+  };
+
+  const thStyle: React.CSSProperties = {
+    textAlign: "left",
+    padding: "8px 12px",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    color: "var(--color-text-muted)",
+    borderBottom: "1px solid var(--color-border-subtle)",
+    position: "sticky",
+    top: 0,
+    background: "var(--color-bg-surface)",
+  };
+
+  const sortableThStyle = (field: SortField): React.CSSProperties => ({
+    ...thStyle,
+    cursor: "pointer",
+    userSelect: "none",
+    color: sort?.field === field ? "var(--color-accent)" : "var(--color-text-muted)",
+  });
 
   return (
-    <Modal onClose={onClose} width={760} maxHeight="85vh">
-        {/* Header */}
+    <Modal onClose={onClose} width={800} maxHeight="calc(100vh - 64px)">
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "18px 20px",
+          borderBottom: "1px solid var(--color-border-subtle)",
+          flexShrink: 0,
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--color-text-primary)" }}>
+            {movieTitle}
+          </h2>
+          {!isLoading && releases && releases.length > 0 && (
+            <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
+              {releases.length} results · {liveCount} with seeders
+            </div>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "var(--color-text-muted)",
+            display: "flex",
+            padding: 4,
+          }}
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Profile / Current note — replaces the old "Why?" panel */}
+      {(profileName || currentLabel) && (
         <div
           style={{
-            padding: "16px 20px",
+            padding: "8px 20px",
             borderBottom: "1px solid var(--color-border-subtle)",
+            background: "var(--color-bg-surface)",
+            fontSize: 11,
+            color: "var(--color-text-muted)",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
             flexShrink: 0,
           }}
         >
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text-primary)" }}>
-              Manual Search
-            </div>
-            <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
-              {movieTitle}
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {/* Why? button */}
-            <button
-              onClick={() => setShowExplain((v) => !v)}
-              title="Show scoring decisions"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                background: showExplain
-                  ? "color-mix(in srgb, var(--color-accent) 12%, transparent)"
-                  : "none",
-                border: showExplain
-                  ? "1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)"
-                  : "1px solid transparent",
-                borderRadius: 6,
-                padding: "5px 10px",
-                fontSize: 12,
-                fontWeight: 500,
-                color: showExplain ? "var(--color-accent)" : "var(--color-text-muted)",
-                cursor: "pointer",
-                transition: "color 120ms ease, background 120ms ease, border-color 120ms ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!showExplain) {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showExplain) {
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
-                }
-              }}
-            >
-              <HelpCircle size={14} strokeWidth={1.75} />
-              Why?
-              {explain.isLoading && <span style={{ marginLeft: 2 }}>…</span>}
-            </button>
-
-            <button
-              onClick={onClose}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--color-text-muted)",
-                fontSize: 18,
-                lineHeight: 1,
-                padding: "4px 6px",
-                borderRadius: 4,
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
-            >
-              ✕
-            </button>
-          </div>
+          {profileName && (
+            <span>
+              Quality Profile:{" "}
+              <span style={{ color: "var(--color-text-secondary)", fontWeight: 500 }}>
+                {profileName}
+              </span>
+            </span>
+          )}
+          <span>
+            Current:{" "}
+            <span style={{ color: "var(--color-text-secondary)", fontWeight: 500 }}>
+              {currentLabel || "(none)"}
+            </span>
+          </span>
         </div>
+      )}
 
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
-          {/* Decision panel (Feature 2) */}
-          {showExplain && (
-            explain.isLoading ? (
-              <div className="skeleton" style={{ height: 44, borderRadius: 8, marginBottom: 16 }} />
-            ) : explain.error ? (
-              <div
-                style={{
-                  padding: "10px 14px",
-                  marginBottom: 16,
-                  borderRadius: 8,
-                  border: "1px solid var(--color-border-subtle)",
-                  fontSize: 12,
-                  color: "var(--color-danger)",
-                }}
-              >
-                Could not load decisions: {(explain.error as Error).message}
-              </div>
-            ) : explain.data ? (
-              <DecisionPanel explain={explain.data} />
-            ) : null
-          )}
+      {/* Body */}
+      <div style={{ overflowY: "auto", flex: 1 }}>
+        {/* Loading */}
+        {isLoading && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "56px 24px",
+              gap: 12,
+              color: "var(--color-text-muted)",
+              fontSize: 13,
+            }}
+          >
+            <Loader2
+              size={28}
+              strokeWidth={1.5}
+              style={{ color: "var(--color-accent)", animation: "spin 1s linear infinite" }}
+            />
+            Searching indexers...
+          </div>
+        )}
 
-          {isLoading && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="skeleton" style={{ height: 60, borderRadius: 6 }} />
-              ))}
+        {/* Error */}
+        {error && (
+          <div style={{ margin: 20 }}>
+            <div
+              style={{
+                padding: 16,
+                background: "color-mix(in srgb, var(--color-danger) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)",
+                borderRadius: 8,
+                color: "var(--color-danger)",
+                fontSize: 13,
+              }}
+            >
+              {(error as Error).message ?? "Search failed. Check that indexers are configured and reachable."}
             </div>
-          )}
-
-          {error && (
-            <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                Failed to search indexers: {(error as Error).message}
-              </p>
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 12 }}>
               <button
                 onClick={() => refetch()}
                 style={{
@@ -471,6 +542,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
                   borderRadius: 6,
                   padding: "6px 14px",
                   fontSize: 12,
+                  fontWeight: 500,
                   color: "var(--color-text-secondary)",
                   cursor: "pointer",
                 }}
@@ -478,62 +550,73 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
                 Retry
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {!isLoading && !error && data?.length === 0 && (
-            <div style={{ textAlign: "center", padding: "32px 0" }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--color-text-secondary)" }}>
-                No releases found
-              </p>
-              <p style={{ margin: "6px 0 16px", fontSize: 13, color: "var(--color-text-muted)" }}>
-                No results from any configured indexer.
-              </p>
-              <button
-                onClick={() => refetch()}
-                style={{
-                  background: "var(--color-bg-elevated)",
-                  border: "1px solid var(--color-border-default)",
-                  borderRadius: 6,
-                  padding: "6px 14px",
-                  fontSize: 12,
-                  color: "var(--color-text-secondary)",
-                  cursor: "pointer",
-                }}
-              >
-                Search Again
-              </button>
-            </div>
-          )}
+        {/* Empty */}
+        {!isLoading && !error && releases && releases.length === 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "56px 24px",
+              gap: 12,
+              fontSize: 14,
+              color: "var(--color-text-muted)",
+            }}
+          >
+            No releases found.
+            <button
+              onClick={() => refetch()}
+              style={{
+                background: "var(--color-bg-elevated)",
+                border: "1px solid var(--color-border-default)",
+                borderRadius: 6,
+                padding: "6px 14px",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--color-text-secondary)",
+                cursor: "pointer",
+              }}
+            >
+              Search Again
+            </button>
+          </div>
+        )}
 
-          {data && data.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
-                  {data.length} release{data.length !== 1 ? "s" : ""} found
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 11, color: "var(--color-text-muted)", marginRight: 4 }}>Sort:</span>
-                  {(Object.keys(RELEASE_SORT_LABELS) as ReleaseSortField[]).map((field) => (
-                    <button
-                      key={field}
-                      onClick={() => toggleSort(field)}
-                      aria-label={`Sort by ${RELEASE_SORT_LABELS[field]}`}
-                      style={{
-                        background: sortField === field ? "var(--color-bg-elevated)" : "transparent",
-                        border: sortField === field ? "1px solid var(--color-border-default)" : "1px solid transparent",
-                        borderRadius: 4,
-                        padding: "2px 8px",
-                        fontSize: 11,
-                        color: sortField === field ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                        cursor: "pointer",
-                        fontWeight: sortField === field ? 600 : 400,
-                      }}
-                    >
-                      {RELEASE_SORT_LABELS[field]} {sortField === field ? (sortDir === "desc" ? "↓" : "↑") : ""}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        {/* Results table */}
+        {!isLoading && !error && releases && releases.length > 0 && (
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: 13,
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={thStyle}>Release</th>
+                <th style={thStyle}>Quality</th>
+                <th style={sortableThStyle("size")} onClick={() => toggleSort("size")}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Size {sortIcon("size")}
+                  </span>
+                </th>
+                <th style={sortableThStyle("seeds")} onClick={() => toggleSort("seeds")}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Seeds {sortIcon("seeds")}
+                  </span>
+                </th>
+                <th style={sortableThStyle("age")} onClick={() => toggleSort("age")}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Age {sortIcon("age")}
+                  </span>
+                </th>
+                <th style={thStyle}></th>
+              </tr>
+            </thead>
+            <tbody>
               {sortedReleases.map((release) => (
                 <ReleaseRow
                   key={release.guid}
@@ -544,9 +627,10 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
                   isPending={pendingGuids.has(release.guid)}
                 />
               ))}
-            </div>
-          )}
-        </div>
+            </tbody>
+          </table>
+        )}
+      </div>
     </Modal>
   );
 }

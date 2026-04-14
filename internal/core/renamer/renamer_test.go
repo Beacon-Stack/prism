@@ -101,3 +101,153 @@ func TestApply_ZeroYear(t *testing.T) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
+
+// ── Comprehensive table-driven tests (inspired by Sonarr/Radarr) ───────────
+
+func TestApplyWithOptions_ColonStrategies(t *testing.T) {
+	movie := renamer.Movie{Title: "Batman: The Dark Knight", Year: 2008}
+	format := "{Movie CleanTitle} ({Release Year})"
+	qual := plugin.Quality{}
+
+	tests := []struct {
+		name  string
+		colon renamer.ColonReplacement
+		want  string
+	}{
+		{"delete", renamer.ColonDelete, "Batman The Dark Knight (2008)"},
+		{"dash", renamer.ColonDash, "Batman- The Dark Knight (2008)"},
+		{"space-dash", renamer.ColonSpaceDash, "Batman - The Dark Knight (2008)"},
+		{"smart", renamer.ColonSmart, "Batman - The Dark Knight (2008)"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := renamer.ApplyWithOptions(format, movie, qual, tt.colon)
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestApply_Edition(t *testing.T) {
+	tests := []struct {
+		name   string
+		format string
+		movie  renamer.Movie
+		want   string
+	}{
+		{
+			name:   "edition present",
+			format: "{Movie Title} ({Release Year}) {Edition}",
+			movie:  renamer.Movie{Title: "Blade Runner", Year: 1982, Edition: "The Final Cut"},
+			want:   "Blade Runner (1982) The Final Cut",
+		},
+		{
+			name:   "edition empty",
+			format: "{Movie Title} ({Release Year}) {Edition}",
+			movie:  renamer.Movie{Title: "Blade Runner", Year: 1982},
+			want:   "Blade Runner (1982)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := renamer.Apply(tt.format, tt.movie, plugin.Quality{})
+			if got != tt.want {
+				t.Errorf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCleanTitleColon_Comprehensive(t *testing.T) {
+	tests := []struct {
+		name  string
+		title string
+		colon renamer.ColonReplacement
+		want  string
+	}{
+		{"basic", "Normal Title", renamer.ColonDelete, "Normal Title"},
+		{"colon delete", "CSI: Vegas", renamer.ColonDelete, "CSI Vegas"},
+		{"colon dash", "CSI: Vegas", renamer.ColonDash, "CSI- Vegas"},
+		{"colon space-dash", "CSI: Vegas", renamer.ColonSpaceDash, "CSI - Vegas"},
+		{"smart colon-space", "Batman: Begins", renamer.ColonSmart, "Batman - Begins"},
+		{"smart colon-no-space", "Code:Breaker", renamer.ColonSmart, "Code-Breaker"},
+		{"multiple colons", "A: B: C", renamer.ColonSpaceDash, "A - B - C"},
+		{"angle brackets", "<Title>", renamer.ColonDelete, "Title"},
+		{"question mark", "Who?", renamer.ColonDelete, "Who"},
+		{"pipe", "A|B", renamer.ColonDelete, "AB"},
+		{"quotes", `Say "Hello"`, renamer.ColonDelete, "Say Hello"},
+		{"spaces collapsed", "Too   Many   Spaces", renamer.ColonDelete, "Too Many Spaces"},
+		{"trimmed", "  Padded  ", renamer.ColonDelete, "Padded"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := renamer.CleanTitleColon(tt.title, tt.colon)
+			if got != tt.want {
+				t.Errorf("CleanTitleColon(%q, %q) = %q, want %q", tt.title, tt.colon, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDestPath_Comprehensive(t *testing.T) {
+	tests := []struct {
+		name      string
+		root      string
+		fileFmt   string
+		folderFmt string
+		movie     renamer.Movie
+		qual      plugin.Quality
+		colon     renamer.ColonReplacement
+		ext       string
+		want      string
+	}{
+		{
+			name:      "basic movie",
+			root:      "/media/movies",
+			fileFmt:   "{Movie Title} ({Release Year})",
+			folderFmt: "{Movie Title} ({Release Year})",
+			movie:     renamer.Movie{Title: "Oppenheimer", Year: 2023},
+			qual:      plugin.Quality{},
+			colon:     renamer.ColonDelete,
+			ext:       ".mkv",
+			want:      "/media/movies/Oppenheimer (2023)/Oppenheimer (2023).mkv",
+		},
+		{
+			name:      "quality and codec",
+			root:      "/data/movies",
+			fileFmt:   "{Movie Title} ({Release Year}) [{Quality Full}][{MediaInfo VideoCodec}]",
+			folderFmt: "{Movie Title} ({Release Year})",
+			movie:     renamer.Movie{Title: "Dune", Year: 2021},
+			qual:      plugin.Quality{Name: "Bluray-2160p", Codec: "x265"},
+			colon:     renamer.ColonDelete,
+			ext:       ".mkv",
+			want:      "/data/movies/Dune (2021)/Dune (2021) [Bluray-2160p][x265].mkv",
+		},
+		{
+			name:      "colon in title",
+			root:      "/media/movies",
+			fileFmt:   "{Movie CleanTitle} ({Release Year})",
+			folderFmt: "{Movie CleanTitle} ({Release Year})",
+			movie:     renamer.Movie{Title: "Star Wars: A New Hope", Year: 1977},
+			qual:      plugin.Quality{},
+			colon:     renamer.ColonSpaceDash,
+			ext:       ".mkv",
+			// FolderName uses Apply() which defaults to ColonDelete, so folder uses delete strategy.
+			// File uses the passed colon strategy (ColonSpaceDash).
+			want: "/media/movies/Star Wars A New Hope (1977)/Star Wars - A New Hope (1977).mkv",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := renamer.DestPath(tt.root, tt.fileFmt, tt.folderFmt, tt.movie, tt.qual, tt.colon, tt.ext)
+			if got != tt.want {
+				t.Errorf("DestPath() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

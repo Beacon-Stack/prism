@@ -11,7 +11,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/notification"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/pkg/plugin"
@@ -20,7 +20,7 @@ import (
 // Dispatcher subscribes to the event bus and dispatches matching events to
 // all enabled notification plugins.
 type Dispatcher struct {
-	q        dbsqlite.Querier
+	q        dbgen.Querier
 	reg      *registry.Registry
 	bus      *events.Bus
 	logger   *slog.Logger
@@ -29,7 +29,7 @@ type Dispatcher struct {
 
 // NewDispatcher creates a Dispatcher. Call Subscribe() to start receiving events.
 // movieSvc may be nil — enrichment will be skipped.
-func NewDispatcher(q dbsqlite.Querier, reg *registry.Registry, bus *events.Bus, logger *slog.Logger, movieSvc *movie.Service) *Dispatcher {
+func NewDispatcher(q dbgen.Querier, reg *registry.Registry, bus *events.Bus, logger *slog.Logger, movieSvc *movie.Service) *Dispatcher {
 	return &Dispatcher{q: q, reg: reg, bus: bus, logger: logger, movieSvc: movieSvc}
 }
 

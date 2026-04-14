@@ -12,7 +12,7 @@ import { useAddMovie } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import { Poster } from "@/components/Poster";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

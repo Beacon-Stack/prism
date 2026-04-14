@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
 import { useQueryClient } from "@tanstack/react-query";
@@ -106,6 +106,18 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
 
   const isPending = createLib.isPending || updateLib.isPending;
 
+  // Seed the quality profile dropdown to the first profile once the list
+  // loads. Without this, the state is "" while the <select> visually shows
+  // the first <option>, so submitting without touching the dropdown fails
+  // validation on the server.
+  useEffect(() => {
+    if (form.default_quality_profile_id) return;
+    const first = profiles?.[0]?.id;
+    if (first) {
+      setForm((f) => ({ ...f, default_quality_profile_id: first }));
+    }
+  }, [profiles, form.default_quality_profile_id]);
+
   function set(field: keyof FormState, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
     setError(null);
@@ -114,6 +126,7 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
   function handleSubmit() {
     if (!form.name.trim()) { setError("Name is required."); return; }
     if (!form.root_path.trim()) { setError("Root path is required."); return; }
+    if (!form.default_quality_profile_id) { setError("Quality profile is required."); return; }
 
     const body = formToRequest(form);
 
@@ -219,7 +232,6 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
                 onFocus={onInputFocus}
                 onBlur={onInputBlur}
               >
-                <option value="">None</option>
                 {profiles?.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}

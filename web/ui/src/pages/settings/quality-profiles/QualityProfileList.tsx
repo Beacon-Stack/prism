@@ -8,7 +8,7 @@ import {
   useDeleteQualityProfile,
 } from "@/api/quality-profiles";
 import { useQualityDefinitions } from "@/api/quality-definitions";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 import type { Quality, QualityDefinition, QualityProfile, QualityProfileRequest } from "@/types";
 
 // ── Quality helpers ──────────────────────────────────────────────────────────
@@ -421,7 +421,16 @@ export default function QualityProfileList() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function openCreate() { setModal({ open: true, editing: null }); }
-  function openEdit(p: QualityProfile) { setModal({ open: true, editing: p }); }
+  function openEdit(p: QualityProfile) {
+    if (p.managed_by_pulse) {
+      const ok = window.confirm(
+        `"${p.name}" is managed by Pulse. Editing it here will disconnect it from Pulse updates — ` +
+        `future changes in Pulse will no longer sync to this profile. Continue?`,
+      );
+      if (!ok) return;
+    }
+    setModal({ open: true, editing: p });
+  }
   function closeModal() { setModal({ open: false, editing: null }); }
 
   function handleDelete(id: string) {
@@ -490,7 +499,27 @@ export default function QualityProfileList() {
               {data.map((profile, i) => (
                 <tr key={profile.id} style={{ borderBottom: i < data.length - 1 ? "1px solid var(--color-border-subtle)" : "none" }}>
                   <td style={{ padding: "0 16px", height: 52, color: "var(--color-text-primary)", fontWeight: 500 }}>
-                    {profile.name}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span>{profile.name}</span>
+                      {profile.managed_by_pulse && (
+                        <span
+                          title="This profile is managed by Pulse. Editing disconnects it."
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                            padding: "2px 6px",
+                            borderRadius: 3,
+                            background: "color-mix(in srgb, var(--color-accent) 15%, transparent)",
+                            color: "var(--color-accent)",
+                            border: "1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)",
+                          }}
+                        >
+                          Pulse
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ padding: "0 16px", height: 52, color: "var(--color-text-secondary)" }}>
                     {profile.cutoff.name}
@@ -537,7 +566,18 @@ export default function QualityProfileList() {
                         </button>
                         <button
                           onClick={() => { setDeleteError(null); setConfirming(profile.id); }}
-                          style={{ background: "color-mix(in srgb, var(--color-danger) 12%, transparent)", border: "1px solid var(--color-border-default)", borderRadius: 5, padding: "3px 10px", fontSize: 12, color: "var(--color-danger)", cursor: "pointer" }}
+                          disabled={profile.managed_by_pulse}
+                          title={profile.managed_by_pulse ? "Managed by Pulse — delete via Pulse instead" : "Delete"}
+                          style={{
+                            background: "color-mix(in srgb, var(--color-danger) 12%, transparent)",
+                            border: "1px solid var(--color-border-default)",
+                            borderRadius: 5,
+                            padding: "3px 10px",
+                            fontSize: 12,
+                            color: "var(--color-danger)",
+                            cursor: profile.managed_by_pulse ? "not-allowed" : "pointer",
+                            opacity: profile.managed_by_pulse ? 0.4 : 1,
+                          }}
                         >
                           Delete
                         </button>

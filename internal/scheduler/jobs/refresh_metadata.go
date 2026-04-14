@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/beacon-stack/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
 // RefreshMetadata returns a Job that re-fetches TMDB metadata for all
 // monitored movies. Runs every 24 hours. Silently skips movies that are
 // removed mid-run and exits early if TMDB is not configured.
-func RefreshMetadata(movieSvc *movie.Service, q dbsqlite.Querier, logger *slog.Logger) scheduler.Job {
+func RefreshMetadata(movieSvc *movie.Service, q dbgen.Querier, logger *slog.Logger) scheduler.Job {
 	return scheduler.Job{
 		Name:     "refresh_metadata",
 		Interval: 24 * time.Hour,

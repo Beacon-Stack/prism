@@ -16,8 +16,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/beacon-stack/prism/internal/core/dbutil"
 	"github.com/beacon-stack/prism/internal/core/edition"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
@@ -68,14 +69,14 @@ type Stats struct {
 
 // Service manages library records.
 type Service struct {
-	q    dbsqlite.Querier
+	q    dbgen.Querier
 	bus  *events.Bus
 	meta tmdbSearcher // nil when TMDB is not configured
 }
 
 // NewService creates a new Service backed by the given querier, event bus, and
 // optional TMDB searcher (pass nil to disable background candidate matching).
-func NewService(q dbsqlite.Querier, bus *events.Bus, meta tmdbSearcher) *Service {
+func NewService(q dbgen.Querier, bus *events.Bus, meta tmdbSearcher) *Service {
 	return &Service{q: q, bus: bus, meta: meta}
 }
 
@@ -87,13 +88,13 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Library, error
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	row, err := s.q.CreateLibrary(ctx, dbsqlite.CreateLibraryParams{
+	row, err := s.q.CreateLibrary(ctx, dbgen.CreateLibraryParams{
 		ID:                      uuid.New().String(),
 		Name:                    req.Name,
 		RootPath:                req.RootPath,
 		DefaultQualityProfileID: req.DefaultQualityProfileID,
-		NamingFormat:            req.NamingFormat,
-		MinFreeSpaceGb:          int64(req.MinFreeSpaceGB),
+		NamingFormat:            dbutil.NullString(req.NamingFormat),
+		MinFreeSpaceGb:          int32(req.MinFreeSpaceGB),
 		TagsJson:                tagsJSON,
 		CreatedAt:               now,
 		UpdatedAt:               now,
@@ -152,13 +153,13 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Lib
 		return Library{}, err
 	}
 
-	row, err := s.q.UpdateLibrary(ctx, dbsqlite.UpdateLibraryParams{
+	row, err := s.q.UpdateLibrary(ctx, dbgen.UpdateLibraryParams{
 		ID:                      id,
 		Name:                    req.Name,
 		RootPath:                req.RootPath,
 		DefaultQualityProfileID: req.DefaultQualityProfileID,
-		NamingFormat:            req.NamingFormat,
-		MinFreeSpaceGb:          int64(req.MinFreeSpaceGB),
+		NamingFormat:            dbutil.NullString(req.NamingFormat),
+		MinFreeSpaceGb:          int32(req.MinFreeSpaceGB),
 		TagsJson:                tagsJSON,
 		UpdatedAt:               time.Now().UTC().Format(time.RFC3339),
 	})
@@ -204,7 +205,7 @@ func (s *Service) Stats(ctx context.Context, id string) (Stats, error) {
 	}
 
 	// SumMovieFileSizesByLibrary returns interface{} — it may be nil when the
-	// library has no files, or a numeric type depending on the SQLite driver.
+	// library has no files, or a numeric type depending on the driver.
 	var totalSizeBytes int64
 	if rawSize != nil {
 		switch v := rawSize.(type) {
@@ -212,6 +213,11 @@ func (s *Service) Stats(ctx context.Context, id string) (Stats, error) {
 			totalSizeBytes = v
 		case float64:
 			totalSizeBytes = int64(v)
+		case []byte:
+			// pgx returns numeric as []byte; parse it.
+			if _, err := fmt.Sscanf(string(v), "%d", &totalSizeBytes); err != nil {
+				totalSizeBytes = 0
+			}
 		}
 	}
 
@@ -272,26 +278,26 @@ func (s *Service) ScanDisk(ctx context.Context, libraryID string) ([]DiskFile, e
 	// Upsert candidates (preserves existing TMDB matches on conflict).
 	now := time.Now().UTC().Format(time.RFC3339)
 	for _, f := range files {
-		_ = s.q.UpsertLibraryFileCandidate(ctx, dbsqlite.UpsertLibraryFileCandidateParams{
+		_ = s.q.UpsertLibraryFileCandidate(ctx, dbgen.UpsertLibraryFileCandidateParams{
 			LibraryID:   libraryID,
 			FilePath:    f.Path,
 			FileSize:    f.SizeBytes,
 			ParsedTitle: f.ParsedTitle,
-			ParsedYear:  int64(f.ParsedYear),
+			ParsedYear:  int32(f.ParsedYear),
 			ScannedAt:   now,
 		})
 	}
 
 	// Remove candidates not seen in this scan (e.g. deleted files, #recycle paths
 	// that were scanned before the directory-skip fix was applied).
-	_ = s.q.PruneStaleLibraryFileCandidates(ctx, dbsqlite.PruneStaleLibraryFileCandidatesParams{
+	_ = s.q.PruneStaleLibraryFileCandidates(ctx, dbgen.PruneStaleLibraryFileCandidatesParams{
 		LibraryID: libraryID,
 		ScannedAt: now,
 	})
 
 	// Fetch stored TMDB matches and attach them to the returned files.
 	candidates, _ := s.q.ListLibraryFileCandidates(ctx, libraryID)
-	matchMap := make(map[string]dbsqlite.LibraryFileCandidate, len(candidates))
+	matchMap := make(map[string]dbgen.LibraryFileCandidate, len(candidates))
 	for _, c := range candidates {
 		if c.TmdbID > 0 {
 			matchMap[c.FilePath] = c
@@ -338,22 +344,22 @@ func (s *Service) Scan(ctx context.Context, libraryID string) error {
 	for _, f := range files {
 		if _, statErr := os.Stat(f.Path); statErr == nil {
 			// File present — refresh indexed_at.
-			_ = s.q.UpdateMovieFileIndexed(ctx, dbsqlite.UpdateMovieFileIndexedParams{
+			_ = s.q.UpdateMovieFileIndexed(ctx, dbgen.UpdateMovieFileIndexedParams{
 				IndexedAt: now,
 				ID:        f.ID,
 			})
 			// Backfill edition from filename if not already set.
-			if f.Edition == nil {
+			if !f.Edition.Valid {
 				if ed := edition.Parse(filepath.Base(f.Path)); ed != nil {
-					_ = s.q.UpdateMovieFileEdition(ctx, dbsqlite.UpdateMovieFileEditionParams{
-						Edition: &ed.Name,
+					_ = s.q.UpdateMovieFileEdition(ctx, dbgen.UpdateMovieFileEditionParams{
+						Edition: sql.NullString{String: ed.Name, Valid: true},
 						ID:      f.ID,
 					})
 				}
 			}
 		} else if os.IsNotExist(statErr) {
 			// File gone — mark owning movie as missing.
-			_, _ = s.q.UpdateMovieStatus(ctx, dbsqlite.UpdateMovieStatusParams{
+			_, _ = s.q.UpdateMovieStatus(ctx, dbgen.UpdateMovieStatusParams{
 				Status:    "missing",
 				UpdatedAt: now,
 				ID:        f.MovieID,
@@ -385,12 +391,12 @@ func (s *Service) matchCandidates(ctx context.Context, libraryID string) {
 		if best == nil {
 			continue
 		}
-		_ = s.q.SetLibraryFileCandidateMatch(ctx, dbsqlite.SetLibraryFileCandidateMatchParams{
-			TmdbID:            int64(best.ID),
+		_ = s.q.SetLibraryFileCandidateMatch(ctx, dbgen.SetLibraryFileCandidateMatchParams{
+			TmdbID:            int32(best.ID),
 			TmdbTitle:         best.Title,
-			TmdbYear:          int64(best.Year),
+			TmdbYear:          int32(best.Year),
 			TmdbOriginalTitle: best.OriginalTitle,
-			MatchedAt:         &now,
+			MatchedAt:         sql.NullString{String: now, Valid: true},
 			LibraryID:         libraryID,
 			FilePath:          c.FilePath,
 		})
@@ -454,7 +460,7 @@ func (s *Service) ListCandidates(ctx context.Context, libraryID string) ([]DiskF
 // DeleteCandidate removes a file from the candidate table after it has been
 // imported. It is a best-effort call — errors are intentionally ignored.
 func (s *Service) DeleteCandidate(ctx context.Context, libraryID, filePath string) error {
-	return s.q.DeleteLibraryFileCandidate(ctx, dbsqlite.DeleteLibraryFileCandidateParams{
+	return s.q.DeleteLibraryFileCandidate(ctx, dbgen.DeleteLibraryFileCandidateParams{
 		LibraryID: libraryID,
 		FilePath:  filePath,
 	})
@@ -484,7 +490,7 @@ func marshalTags(tags []string) (string, error) {
 }
 
 // rowToLibrary converts a DB row into the domain Library type.
-func rowToLibrary(row dbsqlite.Library) (Library, error) {
+func rowToLibrary(row dbgen.Library) (Library, error) {
 	var tags []string
 	if err := json.Unmarshal([]byte(row.TagsJson), &tags); err != nil {
 		return Library{}, fmt.Errorf("unmarshaling tags for library %q: %w", row.ID, err)
@@ -508,7 +514,7 @@ func rowToLibrary(row dbsqlite.Library) (Library, error) {
 		Name:                    row.Name,
 		RootPath:                row.RootPath,
 		DefaultQualityProfileID: row.DefaultQualityProfileID,
-		NamingFormat:            row.NamingFormat,
+		NamingFormat:            dbutil.NullStringPtr(row.NamingFormat),
 		MinFreeSpaceGB:          int(row.MinFreeSpaceGb),
 		Tags:                    tags,
 		CreatedAt:               createdAt,

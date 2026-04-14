@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
@@ -71,7 +71,7 @@ type IndexerStat struct {
 
 // Service provides library statistics.
 type Service struct {
-	q             dbsqlite.Querier
+	q             dbgen.Querier
 	cutoffCounter cutoffUnmetLister
 }
 
@@ -82,7 +82,7 @@ type cutoffUnmetLister interface {
 }
 
 // NewService creates a new statistics Service.
-func NewService(q dbsqlite.Querier, cutoff cutoffUnmetLister) *Service {
+func NewService(q dbgen.Querier, cutoff cutoffUnmetLister) *Service {
 	return &Service{q: q, cutoffCounter: cutoff}
 }
 
@@ -109,12 +109,12 @@ func (s *Service) Collection(ctx context.Context) (CollectionStats, error) {
 
 	return CollectionStats{
 		TotalMovies:       row.TotalMovies,
-		Monitored:         derefFloat(row.Monitored),
-		WithFile:          derefFloat(row.WithFile),
-		Missing:           derefFloat(row.Missing),
+		Monitored:         toInt64(row.Monitored),
+		WithFile:          toInt64(row.WithFile),
+		Missing:           toInt64(row.Missing),
 		NeedsUpgrade:      needsUpgrade,
 		EditionMismatches: editionMismatches,
-		RecentlyAdded:     derefFloat(row.RecentlyAdded),
+		RecentlyAdded:     toInt64(row.RecentlyAdded),
 	}, nil
 }
 
@@ -276,7 +276,7 @@ func (s *Service) Storage(ctx context.Context) (StorageStat, error) {
 
 // StorageTrend returns the most recent n storage snapshots, oldest first.
 func (s *Service) StorageTrend(ctx context.Context, limit int) ([]StoragePoint, error) {
-	rows, err := s.q.ListStorageSnapshots(ctx, int64(limit))
+	rows, err := s.q.ListStorageSnapshots(ctx, int32(limit))
 	if err != nil {
 		return nil, fmt.Errorf("listing storage snapshots: %w", err)
 	}
@@ -298,8 +298,8 @@ func (s *Service) GrabPerformance(ctx context.Context) (GrabStats, []IndexerStat
 	if err != nil {
 		return GrabStats{}, nil, fmt.Errorf("getting grab stats: %w", err)
 	}
-	successful := derefFloat(gr.Successful)
-	failed := derefFloat(gr.Failed)
+	successful := toInt64(gr.Successful)
+	failed := toInt64(gr.Failed)
 
 	var rate float64
 	if gr.TotalGrabs > 0 {
@@ -321,10 +321,10 @@ func (s *Service) GrabPerformance(ctx context.Context) (GrabStats, []IndexerStat
 	indexers := make([]IndexerStat, len(indexerRows))
 	for i, r := range indexerRows {
 		idxID := ""
-		if r.IndexerID != nil {
-			idxID = *r.IndexerID
+		if r.IndexerID.Valid {
+			idxID = r.IndexerID.String
 		}
-		successes := derefFloat(r.SuccessCount)
+		successes := toInt64(r.SuccessCount)
 		var idxRate float64
 		if r.GrabCount > 0 {
 			idxRate = float64(successes) / float64(r.GrabCount)
@@ -395,13 +395,9 @@ func (s *Service) LibraryGrowth(ctx context.Context) ([]GrowthPoint, error) {
 	points := make([]GrowthPoint, len(rows))
 	var cumulative int64
 	for i, r := range rows {
-		month := ""
-		if s, ok := r.Month.(string); ok {
-			month = s
-		}
 		cumulative += r.Count
 		points[i] = GrowthPoint{
-			Month:      month,
+			Month:      r.Month,
 			Added:      r.Count,
 			Cumulative: cumulative,
 		}
@@ -450,7 +446,7 @@ func (s *Service) TakeSnapshot(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("getting storage totals for snapshot: %w", err)
 	}
-	if err := s.q.InsertStorageSnapshot(ctx, dbsqlite.InsertStorageSnapshotParams{
+	if err := s.q.InsertStorageSnapshot(ctx, dbgen.InsertStorageSnapshotParams{
 		ID:         uuid.New().String(),
 		CapturedAt: time.Now().UTC(),
 		TotalBytes: toInt64(totals.TotalBytes),
@@ -470,16 +466,8 @@ func (s *Service) PruneSnapshots(ctx context.Context, olderThan time.Duration) e
 	return nil
 }
 
-// derefFloat returns 0 for a nil *float64 and the rounded int64 otherwise.
-func derefFloat(p *float64) int64 {
-	if p == nil {
-		return 0
-	}
-	return int64(*p)
-}
-
-// toInt64 converts the interface{} returned by COALESCE(SUM(...), 0) to int64.
-// SQLite may return int64 or float64 depending on the driver; handle both.
+// toInt64 converts the interface{} returned by SUM/COALESCE to int64.
+// pgx returns numeric as []byte; also handle int64/float64 for safety.
 func toInt64(v interface{}) int64 {
 	if v == nil {
 		return 0
@@ -487,10 +475,24 @@ func toInt64(v interface{}) int64 {
 	switch n := v.(type) {
 	case int64:
 		return n
+	case int32:
+		return int64(n)
 	case float64:
 		return int64(n)
 	case int:
 		return int64(n)
+	case []byte:
+		var i int64
+		if _, err := fmt.Sscanf(string(n), "%d", &i); err == nil {
+			return i
+		}
+		return 0
+	case string:
+		var i int64
+		if _, err := fmt.Sscanf(n, "%d", &i); err == nil {
+			return i
+		}
+		return 0
 	}
 	return 0
 }

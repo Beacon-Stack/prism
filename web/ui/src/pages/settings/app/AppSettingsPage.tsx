@@ -314,10 +314,18 @@ function ToggleRow({
 
 function UIPreferencesSection() {
   const [tooltips, setTooltips] = useState(getTooltipsEnabled);
+  const [closeOnGrab, setCloseOnGrab] = useState(
+    () => window.localStorage.getItem("manualSearchModal.closeOnGrab") === "true",
+  );
 
   function handleTooltipsChange(v: boolean) {
     setTooltips(v);
     setTooltipsEnabled(v);
+  }
+
+  function handleCloseOnGrabChange(v: boolean) {
+    setCloseOnGrab(v);
+    window.localStorage.setItem("manualSearchModal.closeOnGrab", v ? "true" : "false");
   }
 
   return (
@@ -328,6 +336,13 @@ function UIPreferencesSection() {
         description="Show informational tooltips when hovering over UI elements."
         checked={tooltips}
         onChange={handleTooltipsChange}
+      />
+      <div style={{ height: 16 }} />
+      <ToggleRow
+        label="Close interactive search after grabbing"
+        description="By default, the modal stays open so you can grab additional releases. Enable this to close the modal automatically after the first grab."
+        checked={closeOnGrab}
+        onChange={handleCloseOnGrabChange}
       />
     </div>
   );

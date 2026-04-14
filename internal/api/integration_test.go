@@ -34,7 +34,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/queue"
 	"github.com/beacon-stack/prism/internal/core/stats"
 	"github.com/beacon-stack/prism/internal/core/tag"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/ratelimit"
 	"github.com/beacon-stack/prism/internal/registry"
@@ -124,7 +124,7 @@ func (m *testMediaServer) Test(_ context.Context) error                     { re
 
 // newIntegrationRouterFromDB builds a fully-wired router using the provided
 // queries so that callers can seed data directly into the same DB.
-func newIntegrationRouterFromDB(t *testing.T, q *dbsqlite.Queries, sqlDBs ...*sql.DB) http.Handler {
+func newIntegrationRouterFromDB(t *testing.T, q *dbgen.Queries, sqlDBs ...*sql.DB) http.Handler {
 	t.Helper()
 	logger := slog.Default()
 	bus := events.New(logger)
@@ -1516,7 +1516,7 @@ func TestIntegration_MovieLifecycle(t *testing.T) {
 // ── Radarr v3 compatibility ──────────────────────────────────────────────────
 
 // newV3IntegrationRouter creates a router with *sql.DB wired so v3 endpoints work.
-func newV3IntegrationRouter(t *testing.T) (http.Handler, *dbsqlite.Queries) {
+func newV3IntegrationRouter(t *testing.T) (http.Handler, *dbgen.Queries) {
 	t.Helper()
 	q, sqlDB := testutil.NewTestDBWithSQL(t)
 	return newIntegrationRouterFromDB(t, q, sqlDB), q
@@ -1744,20 +1744,19 @@ func TestIntegration_V3_Movies_ListAndGet(t *testing.T) {
 	libID, _ := lib["id"].(string)
 
 	// Insert a movie directly via sqlc (movieSvc.Add requires TMDB which we don't have in tests).
-	runtime := int64(139)
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := q.CreateMovie(context.Background(), dbsqlite.CreateMovieParams{
+	_, err := q.CreateMovie(context.Background(), dbgen.CreateMovieParams{
 		ID:                  "test-movie-uuid",
 		TmdbID:              550,
 		Title:               "Fight Club",
 		OriginalTitle:       "Fight Club",
 		Year:                1999,
 		Overview:            "Test overview",
-		RuntimeMinutes:      &runtime,
+		RuntimeMinutes:      sql.NullInt32{Int32: 139, Valid: true},
 		GenresJson:          `["Drama","Thriller"]`,
 		LibraryID:           libID,
 		QualityProfileID:    qpID,
-		Monitored:           1,
+		Monitored:           true,
 		Status:              "released",
 		AddedAt:             now,
 		UpdatedAt:           now,
@@ -1846,9 +1845,9 @@ func TestIntegration_V3_Movies_DeleteByRowID(t *testing.T) {
 	libID, _ := lib["id"].(string)
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	_, err := q.CreateMovie(context.Background(), dbsqlite.CreateMovieParams{
+	_, err := q.CreateMovie(context.Background(), dbgen.CreateMovieParams{
 		ID: "del-test-uuid", TmdbID: 100, Title: "Delete Me", OriginalTitle: "Delete Me", Year: 2020,
-		LibraryID: libID, QualityProfileID: qpID, Monitored: 1, Status: "released",
+		LibraryID: libID, QualityProfileID: qpID, Monitored: true, Status: "released",
 		GenresJson: "[]", AddedAt: now, UpdatedAt: now, MinimumAvailability: "released", ReleaseDate: "2020-01-01",
 	})
 	if err != nil {

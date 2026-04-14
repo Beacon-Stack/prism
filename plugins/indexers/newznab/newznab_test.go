@@ -87,13 +87,16 @@ func queryParams(rawURL string) url.Values {
 	return u.Query()
 }
 
-// TestSearch_WithTMDBID verifies that Search uses the movie endpoint and passes
-// tmdbid when q.TMDBID is non-zero. Also verifies Seeds=0 and Peers=0 for NZBs.
+// TestSearch_WithTMDBID verifies that Search runs BOTH the tmdbid lookup
+// and the text search when q.TMDBID is non-zero. The two-call strategy is
+// load-bearing: some indexers silently ignore the tmdbid parameter and
+// return the recent-uploads feed, so the text search must always run as a
+// safety net (see TestSearch_IndexerIgnoresTMDBID).
 func TestSearch_WithTMDBID(t *testing.T) {
-	var capturedURL string
+	var capturedURLs []string
 
 	idx, srv := newTestIndexer(t, func(w http.ResponseWriter, r *http.Request) {
-		capturedURL = r.URL.String()
+		capturedURLs = append(capturedURLs, r.URL.String())
 		w.Header().Set("Content-Type", "application/rss+xml")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(feedXML))
@@ -109,23 +112,38 @@ func TestSearch_WithTMDBID(t *testing.T) {
 		t.Fatalf("Search returned error: %v", err)
 	}
 
-	// Verify endpoint and parameters.
-	params := queryParams(srv.URL + capturedURL)
-	if got := params.Get("t"); got != "movie" {
-		t.Errorf("expected t=movie, got %q", got)
-	}
-	if got := params.Get("tmdbid"); got != "27205" {
-		t.Errorf("expected tmdbid=27205, got %q", got)
-	}
-	if got := params.Get("cat"); got != "2000" {
-		t.Errorf("expected cat=2000, got %q", got)
-	}
-	if got := params.Get("apikey"); got != "testapikey" {
-		t.Errorf("expected apikey=testapikey, got %q", got)
+	// Both the tmdbid lookup AND the text search must run.
+	if len(capturedURLs) != 2 {
+		t.Fatalf("expected 2 requests (tmdbid + text), got %d", len(capturedURLs))
 	}
 
+	// First request: ?t=movie&tmdbid=27205&cat=2000
+	p1 := queryParams(srv.URL + capturedURLs[0])
+	if got := p1.Get("t"); got != "movie" {
+		t.Errorf("first request: expected t=movie, got %q", got)
+	}
+	if got := p1.Get("tmdbid"); got != "27205" {
+		t.Errorf("first request: expected tmdbid=27205, got %q", got)
+	}
+	if got := p1.Get("cat"); got != "2000" {
+		t.Errorf("first request: expected cat=2000, got %q", got)
+	}
+	if got := p1.Get("apikey"); got != "testapikey" {
+		t.Errorf("first request: expected apikey=testapikey, got %q", got)
+	}
+
+	// Second request: ?t=search&q=Inception+2010&cat=2000
+	p2 := queryParams(srv.URL + capturedURLs[1])
+	if got := p2.Get("t"); got != "search" {
+		t.Errorf("second request: expected t=search, got %q", got)
+	}
+	if q := p2.Get("q"); !strings.Contains(q, "Inception") || !strings.Contains(q, "2010") {
+		t.Errorf("second request: q=%q missing title or year", q)
+	}
+
+	// Both calls return the same feed, so dedup by GUID collapses to 2.
 	if len(releases) != 2 {
-		t.Fatalf("expected 2 releases, got %d", len(releases))
+		t.Fatalf("expected 2 deduped releases, got %d", len(releases))
 	}
 
 	r0 := releases[0]
@@ -164,6 +182,77 @@ func TestSearch_WithTMDBID(t *testing.T) {
 	}
 	if r1.AgeDays < 0.5 || r1.AgeDays > 1.5 {
 		t.Errorf("release[1].AgeDays = %f, want ~1.0", r1.AgeDays)
+	}
+}
+
+// TestSearch_IndexerIgnoresTMDBID is the regression test for the "Arrival"
+// bug: some Newznab indexers silently ignore the `tmdbid` parameter and
+// return the recent-uploads feed instead. The fix is to ALWAYS run the
+// text search as a safety net so the caller still gets the correct release.
+func TestSearch_IndexerIgnoresTMDBID(t *testing.T) {
+	const garbageFeed = `<?xml version="1.0"?>
+<rss version="2.0">
+<channel>
+<item>
+<title>Uncommon.Valor.1983.1080p.BluRay.x264-GROUP</title>
+<guid>https://nzb.example.com/release/garbage1</guid>
+<link>https://nzb.example.com/getnzb/garbage1.nzb</link>
+<enclosure url="https://nzb.example.com/getnzb/garbage1.nzb" length="1000000" type="application/x-nzb"/>
+</item>
+</channel>
+</rss>`
+
+	const arrivalFeed = `<?xml version="1.0"?>
+<rss version="2.0">
+<channel>
+<item>
+<title>Arrival.2016.1080p.BluRay.x264-SPARKS</title>
+<guid>https://nzb.example.com/release/arrival1</guid>
+<link>https://nzb.example.com/getnzb/arrival1.nzb</link>
+<enclosure url="https://nzb.example.com/getnzb/arrival1.nzb" length="2000000" type="application/x-nzb"/>
+</item>
+</channel>
+</rss>`
+
+	var capturedURLs []string
+	idx, srv := newTestIndexer(t, func(w http.ResponseWriter, r *http.Request) {
+		capturedURLs = append(capturedURLs, r.URL.String())
+		w.Header().Set("Content-Type", "application/rss+xml")
+		w.WriteHeader(http.StatusOK)
+		if r.URL.Query().Get("t") == "movie" {
+			_, _ = w.Write([]byte(garbageFeed))
+		} else {
+			_, _ = w.Write([]byte(arrivalFeed))
+		}
+	})
+	defer srv.Close()
+
+	releases, err := idx.Search(context.Background(), plugin.SearchQuery{
+		TMDBID: 329865,
+		Query:  "Arrival",
+		Year:   2016,
+	})
+	if err != nil {
+		t.Fatalf("Search returned error: %v", err)
+	}
+
+	if len(capturedURLs) != 2 {
+		t.Fatalf("expected 2 requests, got %d", len(capturedURLs))
+	}
+
+	if len(releases) != 2 {
+		t.Fatalf("expected 2 releases (garbage + arrival), got %d", len(releases))
+	}
+
+	foundArrival := false
+	for _, r := range releases {
+		if strings.Contains(r.Title, "Arrival") {
+			foundArrival = true
+			break
+		}
+	}
+	if !foundArrival {
+		t.Errorf("expected an Arrival release in results, got %+v", releases)
 	}
 }
 

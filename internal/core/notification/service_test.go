@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/beacon-stack/prism/internal/core/notification"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/internal/testutil"
 	"github.com/beacon-stack/prism/pkg/plugin"
@@ -35,7 +35,7 @@ func newTestReg(mock *mockNotifier) *registry.Registry {
 }
 
 func newServiceFromSQL(sqlDB *sql.DB, mock *mockNotifier) *notification.Service {
-	q := dbsqlite.New(sqlDB)
+	q := dbgen.New(sqlDB)
 	return notification.NewService(q, newTestReg(mock))
 }
 

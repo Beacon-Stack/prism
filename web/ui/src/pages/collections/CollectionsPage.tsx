@@ -7,7 +7,7 @@ import {
   useSearchAll,
 } from "@/api/collections";
 import type { EntitySearchResult } from "@/types";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 
 const TMDB_IMG_BASE = "https://image.tmdb.org/t/p/w45";
 

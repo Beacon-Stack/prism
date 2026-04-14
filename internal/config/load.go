@@ -78,6 +78,8 @@ func Load(cfgFile string) (*Config, error) {
 	_ = v.BindEnv("ai.api_key", "PRISM_AI_API_KEY")
 	_ = v.BindEnv("database.path", "PRISM_DATABASE_PATH")
 	_ = v.BindEnv("database.dsn", "PRISM_DATABASE_DSN")
+	_ = v.BindEnv("pulse.url", "PRISM_PULSE_URL")
+	_ = v.BindEnv("pulse.api_key", "PRISM_PULSE_API_KEY")
 	_ = v.BindEnv("ai.match_model", "PRISM_AI_MATCH_MODEL")
 	_ = v.BindEnv("ai.score_model", "PRISM_AI_SCORE_MODEL")
 	_ = v.BindEnv("ai.filter_model", "PRISM_AI_FILTER_MODEL")

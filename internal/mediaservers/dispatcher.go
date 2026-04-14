@@ -7,7 +7,7 @@ import (
 	"context"
 	"log/slog"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/registry"
 )
@@ -15,14 +15,14 @@ import (
 // Dispatcher subscribes to the event bus and dispatches import_complete events
 // to all enabled media server plugins.
 type Dispatcher struct {
-	q      dbsqlite.Querier
+	q      dbgen.Querier
 	reg    *registry.Registry
 	bus    *events.Bus
 	logger *slog.Logger
 }
 
 // NewDispatcher creates a Dispatcher. Call Subscribe() to start receiving events.
-func NewDispatcher(q dbsqlite.Querier, reg *registry.Registry, bus *events.Bus, logger *slog.Logger) *Dispatcher {
+func NewDispatcher(q dbgen.Querier, reg *registry.Registry, bus *events.Bus, logger *slog.Logger) *Dispatcher {
 	return &Dispatcher{q: q, reg: reg, bus: bus, logger: logger}
 }
 

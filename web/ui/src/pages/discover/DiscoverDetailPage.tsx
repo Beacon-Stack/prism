@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Star, Clock, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { useDiscoverMovie, type DiscoverMovieDetail } from "@/api/discover";
+import { useDiscoverMovie } from "@/api/discover";
 import { useAddMovie } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import { Poster } from "@/components/Poster";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 
 function formatRuntime(minutes: number): string {
   if (!minutes) return "";

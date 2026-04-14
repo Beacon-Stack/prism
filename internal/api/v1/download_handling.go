@@ -13,7 +13,7 @@ import (
 
 type downloadHandlingBody struct {
 	EnableCompleted             bool  `json:"enable_completed"               doc:"Automatically import completed downloads"`
-	CheckIntervalMinutes        int64 `json:"check_interval_minutes"         doc:"How often to check for finished downloads (minutes)"`
+	CheckIntervalMinutes        int32 `json:"check_interval_minutes"         doc:"How often to check for finished downloads (minutes)"`
 	RedownloadFailed            bool  `json:"redownload_failed"              doc:"Automatically redownload failed downloads"`
 	RedownloadFailedInteractive bool  `json:"redownload_failed_interactive"  doc:"Redownload failed downloads found via interactive search"`
 }

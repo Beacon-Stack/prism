@@ -2,6 +2,7 @@ package seedenforcer_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log/slog"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/seedenforcer"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/testutil/mock"
 	"github.com/beacon-stack/prism/pkg/plugin"
@@ -37,27 +38,27 @@ func (m *mockClientProvider) ClientFor(_ context.Context, _ string) (plugin.Down
 
 // mockQuerier implements just GetGrabByID for the tests.
 type mockQuerier struct {
-	dbsqlite.Querier
-	grab dbsqlite.GrabHistory
+	dbgen.Querier
+	grab dbgen.GrabHistory
 	err  error
 }
 
-func (m *mockQuerier) GetGrabByID(_ context.Context, _ string) (dbsqlite.GrabHistory, error) {
+func (m *mockQuerier) GetGrabByID(_ context.Context, _ string) (dbgen.GrabHistory, error) {
 	return m.grab, m.err
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-func strPtr(s string) *string { return &s }
+func nullStr(s string) sql.NullString { return sql.NullString{String: s, Valid: true} }
 
-func torrentGrab() dbsqlite.GrabHistory {
-	return dbsqlite.GrabHistory{
+func torrentGrab() dbgen.GrabHistory {
+	return dbgen.GrabHistory{
 		ID:               "grab-1",
 		MovieID:          "movie-1",
-		IndexerID:        strPtr("indexer-1"),
+		IndexerID:        nullStr("indexer-1"),
 		Protocol:         string(plugin.ProtocolTorrent),
-		DownloadClientID: strPtr("client-1"),
-		ClientItemID:     strPtr("hash-abc123"),
+		DownloadClientID: nullStr("client-1"),
+		ClientItemID:     nullStr("hash-abc123"),
 	}
 }
 
@@ -146,7 +147,7 @@ func TestSeedEnforcer_NZBProtocolSkipped(t *testing.T) {
 func TestSeedEnforcer_MissingIDsSkipped(t *testing.T) {
 	dl := &mock.DownloadClient{}
 	grab := torrentGrab()
-	grab.IndexerID = nil // missing indexer ID
+	grab.IndexerID = sql.NullString{} // missing indexer ID
 
 	bus := events.New(slog.Default())
 	svc := seedenforcer.NewService(

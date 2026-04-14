@@ -15,7 +15,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/quality"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/ratelimit"
 	"github.com/beacon-stack/prism/internal/registry"
@@ -74,7 +74,7 @@ func (m *mockDownloader) Remove(_ context.Context, _ string, _ bool) error { ret
 // ── test helpers ─────────────────────────────────────────────────────────────
 
 type testEnv struct {
-	q       *dbsqlite.Queries
+	q       *dbgen.Queries
 	svc     *autosearch.Service
 	blSvc   *blocklist.Service
 	mockIdx *mockIndexer
@@ -122,11 +122,11 @@ func seedWithIndexerAndDownloader(t *testing.T, env *testEnv) {
 	ctx := context.Background()
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	_, err := env.q.CreateIndexerConfig(ctx, dbsqlite.CreateIndexerConfigParams{
+	_, err := env.q.CreateIndexerConfig(ctx, dbgen.CreateIndexerConfigParams{
 		ID:       uuid.New().String(),
 		Name:     "Test Indexer",
 		Kind:     "mock",
-		Enabled:  1,
+		Enabled:  true,
 		Priority: 1,
 		Settings: "{}",
 	})
@@ -134,11 +134,11 @@ func seedWithIndexerAndDownloader(t *testing.T, env *testEnv) {
 		t.Fatalf("seed indexer: %v", err)
 	}
 
-	_, err = env.q.CreateDownloadClientConfig(ctx, dbsqlite.CreateDownloadClientConfigParams{
+	_, err = env.q.CreateDownloadClientConfig(ctx, dbgen.CreateDownloadClientConfigParams{
 		ID:        uuid.New().String(),
 		Name:      "Test Downloader",
 		Kind:      "mock-dl",
-		Enabled:   1,
+		Enabled:   true,
 		Priority:  1,
 		Settings:  "{}",
 		CreatedAt: now,

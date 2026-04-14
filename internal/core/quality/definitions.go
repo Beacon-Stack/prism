@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // Definition describes a known quality level and the acceptable file-size
@@ -33,11 +33,11 @@ type DefinitionSizeUpdate struct {
 
 // DefinitionService manages quality definitions.
 type DefinitionService struct {
-	q dbsqlite.Querier
+	q dbgen.Querier
 }
 
 // NewDefinitionService returns a new DefinitionService backed by the querier.
-func NewDefinitionService(q dbsqlite.Querier) *DefinitionService {
+func NewDefinitionService(q dbgen.Querier) *DefinitionService {
 	return &DefinitionService{q: q}
 }
 
@@ -58,10 +58,10 @@ func (s *DefinitionService) List(ctx context.Context) ([]Definition, error) {
 // Unknown IDs are silently ignored (exec does nothing for missing rows).
 func (s *DefinitionService) BulkUpdate(ctx context.Context, updates []DefinitionSizeUpdate) error {
 	for _, u := range updates {
-		if err := s.q.UpdateQualityDefinitionSizes(ctx, dbsqlite.UpdateQualityDefinitionSizesParams{
-			MinSize:       u.MinSize,
-			MaxSize:       u.MaxSize,
-			PreferredSize: u.PreferredSize,
+		if err := s.q.UpdateQualityDefinitionSizes(ctx, dbgen.UpdateQualityDefinitionSizesParams{
+			MinSize:       float32(u.MinSize),
+			MaxSize:       float32(u.MaxSize),
+			PreferredSize: float32(u.PreferredSize),
 			ID:            u.ID,
 		}); err != nil {
 			return fmt.Errorf("update quality definition %q: %w", u.ID, err)
@@ -70,7 +70,7 @@ func (s *DefinitionService) BulkUpdate(ctx context.Context, updates []Definition
 	return nil
 }
 
-func rowToDefinition(r dbsqlite.QualityDefinition) Definition {
+func rowToDefinition(r dbgen.QualityDefinition) Definition {
 	return Definition{
 		ID:            r.ID,
 		Name:          r.Name,
@@ -78,9 +78,9 @@ func rowToDefinition(r dbsqlite.QualityDefinition) Definition {
 		Source:        r.Source,
 		Codec:         r.Codec,
 		HDR:           r.Hdr,
-		MinSize:       r.MinSize,
-		MaxSize:       r.MaxSize,
-		PreferredSize: r.PreferredSize,
+		MinSize:       float64(r.MinSize),
+		MaxSize:       float64(r.MaxSize),
+		PreferredSize: float64(r.PreferredSize),
 		SortOrder:     int(r.SortOrder),
 	}
 }

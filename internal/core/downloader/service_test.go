@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/beacon-stack/prism/internal/core/downloader"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/internal/testutil"
 	"github.com/beacon-stack/prism/pkg/plugin"
@@ -49,7 +49,7 @@ func newTestReg(mock *mockClient) *registry.Registry {
 }
 
 func newServiceFromSQL(sqlDB *sql.DB, mock *mockClient) *downloader.Service {
-	q := dbsqlite.New(sqlDB)
+	q := dbgen.New(sqlDB)
 	return downloader.NewService(q, newTestReg(mock), nil)
 }
 

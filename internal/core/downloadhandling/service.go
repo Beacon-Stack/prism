@@ -9,14 +9,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/beacon-stack/prism/internal/core/dbutil"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // Settings is the application-level view of the download_handling table.
 type Settings struct {
 	EnableCompleted             bool
-	CheckIntervalMinutes        int64
+	CheckIntervalMinutes        int32
 	RedownloadFailed            bool
 	RedownloadFailedInteractive bool
 }
@@ -32,11 +31,11 @@ type RemotePathMapping struct {
 // Service exposes read/write access to download handling settings and
 // remote path mapping CRUD.
 type Service struct {
-	q dbsqlite.Querier
+	q dbgen.Querier
 }
 
 // NewService creates a new Service backed by the given Querier.
-func NewService(q dbsqlite.Querier) *Service {
+func NewService(q dbgen.Querier) *Service {
 	return &Service{q: q}
 }
 
@@ -51,11 +50,11 @@ func (s *Service) Get(ctx context.Context) (Settings, error) {
 
 // Update persists new settings and returns the saved values.
 func (s *Service) Update(ctx context.Context, settings Settings) (Settings, error) {
-	row, err := s.q.UpdateDownloadHandling(ctx, dbsqlite.UpdateDownloadHandlingParams{
-		EnableCompleted:             dbutil.BoolToInt(settings.EnableCompleted),
+	row, err := s.q.UpdateDownloadHandling(ctx, dbgen.UpdateDownloadHandlingParams{
+		EnableCompleted:             settings.EnableCompleted,
 		CheckIntervalMinutes:        settings.CheckIntervalMinutes,
-		RedownloadFailed:            dbutil.BoolToInt(settings.RedownloadFailed),
-		RedownloadFailedInteractive: dbutil.BoolToInt(settings.RedownloadFailedInteractive),
+		RedownloadFailed:            settings.RedownloadFailed,
+		RedownloadFailedInteractive: settings.RedownloadFailedInteractive,
 	})
 	if err != nil {
 		return Settings{}, fmt.Errorf("download_handling: update: %w", err)
@@ -91,7 +90,7 @@ func (s *Service) ListRemotePathMappings(ctx context.Context) ([]RemotePathMappi
 
 // CreateRemotePathMapping inserts a new remote path mapping and returns it.
 func (s *Service) CreateRemotePathMapping(ctx context.Context, host, remotePath, localPath string) (RemotePathMapping, error) {
-	row, err := s.q.CreateRemotePathMapping(ctx, dbsqlite.CreateRemotePathMappingParams{
+	row, err := s.q.CreateRemotePathMapping(ctx, dbgen.CreateRemotePathMappingParams{
 		ID:         uuid.New().String(),
 		Host:       host,
 		RemotePath: remotePath,
@@ -112,17 +111,17 @@ func (s *Service) DeleteRemotePathMapping(ctx context.Context, id string) error 
 }
 
 // fromRow converts a DB row to a Settings value.
-func fromRow(row dbsqlite.DownloadHandling) Settings {
+func fromRow(row dbgen.DownloadHandling) Settings {
 	return Settings{
-		EnableCompleted:             row.EnableCompleted != 0,
+		EnableCompleted:             row.EnableCompleted,
 		CheckIntervalMinutes:        row.CheckIntervalMinutes,
-		RedownloadFailed:            row.RedownloadFailed != 0,
-		RedownloadFailedInteractive: row.RedownloadFailedInteractive != 0,
+		RedownloadFailed:            row.RedownloadFailed,
+		RedownloadFailedInteractive: row.RedownloadFailedInteractive,
 	}
 }
 
 // mappingFromRow converts a DB row to a RemotePathMapping value.
-func mappingFromRow(row dbsqlite.RemotePathMapping) RemotePathMapping {
+func mappingFromRow(row dbgen.RemotePathMapping) RemotePathMapping {
 	return RemotePathMapping{
 		ID:         row.ID,
 		Host:       row.Host,

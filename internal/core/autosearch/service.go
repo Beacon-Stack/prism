@@ -18,12 +18,14 @@ import (
 	"github.com/beacon-stack/prism/internal/core/blocklist"
 	"github.com/beacon-stack/prism/internal/core/conflict"
 	"github.com/beacon-stack/prism/internal/core/customformat"
+	"github.com/beacon-stack/prism/internal/core/dbutil"
 	"github.com/beacon-stack/prism/internal/core/downloader"
 	"github.com/beacon-stack/prism/internal/core/edition"
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/tag"
+	"github.com/beacon-stack/prism/internal/core/titlematch"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -143,6 +145,29 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 			MovieID: movieID,
 			Status:  StatusNoMatch,
 			Reason:  "no releases found from any indexer",
+		}, nil
+	}
+
+	// 3a. Filter out releases whose title/year do not match the target movie.
+	// Indexers sometimes return unrelated results (e.g. "The Firm 1993" for
+	// a query of "Big" 1988). The filter rejects anything that doesn't
+	// contain both the movie title and year as word-aligned tokens.
+	beforeMatch := len(results)
+	results = filterByTitle(results, mov.Title, mov.Year)
+	if n := beforeMatch - len(results); n > 0 {
+		s.logger.Info("auto-search: filtered unrelated releases",
+			"movie_id", movieID,
+			"movie_title", mov.Title,
+			"movie_year", mov.Year,
+			"dropped", n,
+			"remaining", len(results),
+		)
+	}
+	if len(results) == 0 {
+		return &Result{
+			MovieID: movieID,
+			Status:  StatusNoMatch,
+			Reason:  "no releases matched movie title and year",
 		}, nil
 	}
 
@@ -366,6 +391,7 @@ func (s *Service) SearchMovieExplain(ctx context.Context, movieID string) (*Expl
 		Query: mov.Title, Year: mov.Year,
 	}
 	results, _ := s.indexerSvc.Search(ctx, query, allowedIndexerIDs)
+	results = filterByTitle(results, mov.Title, mov.Year)
 
 	prof, err := s.qualitySvc.Get(ctx, mov.QualityProfileID)
 	if err != nil {
@@ -634,9 +660,22 @@ func bestFileEdition(files []movie.FileInfo) string {
 	return bestEdition
 }
 
-// isUniqueViolation reports whether err is a SQLite UNIQUE constraint violation.
+// isUniqueViolation reports whether err is a Postgres UNIQUE constraint violation.
 func isUniqueViolation(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
+	return dbutil.IsUniqueViolation(err)
+}
+
+// filterByTitle drops results whose title/year don't plausibly match the
+// target movie. See titlematch.Matches for the matching rules. The function
+// preserves order so downstream scoring/sort logic is unaffected.
+func filterByTitle(results []indexer.SearchResult, movieTitle string, year int) []indexer.SearchResult {
+	filtered := results[:0:0]
+	for _, r := range results {
+		if titlematch.Matches(r.Title, movieTitle, year) {
+			filtered = append(filtered, r)
+		}
+	}
+	return filtered
 }
 
 // buildCFReleaseInfo constructs a customformat.ReleaseInfo from a plugin.Release

@@ -105,16 +105,50 @@ func (idx *Indexer) Capabilities(ctx context.Context) (plugin.Capabilities, erro
 }
 
 // Search queries the indexer for releases matching q.
-// If q.TMDBID is non-zero, uses the movie search endpoint with tmdbid.
-// Otherwise falls back to a free-text search using q.Query and q.Year.
+//
+// Strategy: run BOTH the tmdbid lookup and the free-text search, then dedupe
+// by GUID. Some Newznab indexers silently ignore the `tmdbid` parameter and
+// return the recent-uploads feed instead (since `?t=movie` with no params
+// IS the recent feed). Doing both queries means indexers that honour tmdbid
+// contribute precise hits, while indexers that return the recent feed
+// contribute noise that's filtered downstream by the title-match guard.
 func (idx *Indexer) Search(ctx context.Context, q plugin.SearchQuery) ([]plugin.Release, error) {
-	var u string
+	seen := make(map[string]bool)
+	var all []plugin.Release
+	var firstErr error
+
+	addAll := func(rels []plugin.Release) {
+		for _, r := range rels {
+			key := r.GUID
+			if key == "" {
+				key = r.Title
+			}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			all = append(all, r)
+		}
+	}
+
+	// 1. TMDB movie search — runs when we have a TMDB ID.
 	if q.TMDBID != 0 {
 		params := url.Values{}
 		params.Set("tmdbid", strconv.Itoa(q.TMDBID))
 		params.Set("cat", "2000")
-		u = idx.buildURL("movie", params)
-	} else {
+		u := idx.buildURL("movie", params)
+		releases, err := idx.fetchReleases(ctx, u)
+		if err != nil {
+			firstErr = err
+		} else {
+			addAll(releases)
+		}
+	}
+
+	// 2. Free-text search — always runs, both as the primary path for
+	// indexers that don't support tmdbid and as a safety net for indexers
+	// that return the recent feed instead.
+	if q.Query != "" {
 		query := q.Query
 		if q.Year != 0 {
 			query = fmt.Sprintf("%s %d", query, q.Year)
@@ -122,10 +156,21 @@ func (idx *Indexer) Search(ctx context.Context, q plugin.SearchQuery) ([]plugin.
 		params := url.Values{}
 		params.Set("q", query)
 		params.Set("cat", "2000")
-		u = idx.buildURL("search", params)
+		u := idx.buildURL("search", params)
+		releases, err := idx.fetchReleases(ctx, u)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+		} else {
+			addAll(releases)
+		}
 	}
 
-	return idx.fetchReleases(ctx, u)
+	if len(all) == 0 && firstErr != nil {
+		return nil, firstErr
+	}
+	return all, nil
 }
 
 // GetRecent returns the most recent releases from the indexer's RSS feed.

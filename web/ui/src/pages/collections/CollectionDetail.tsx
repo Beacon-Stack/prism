@@ -4,7 +4,7 @@ import { useCollection, useAddMissing, useAddSelected } from "@/api/collections"
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import type { CollectionItem } from "@/types";
-import Modal from "@/components/Modal";
+import Modal from "@beacon-shared/Modal";
 
 const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w185";
 

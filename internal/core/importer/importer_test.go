@@ -11,7 +11,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/core/importer"
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/logging"
 )
@@ -19,70 +19,70 @@ import (
 // ── Fake DB querier ────────────────────────────────────────────────────────
 
 type fakeQuerier struct {
-	dbsqlite.Querier // embed to satisfy interface; unused methods panic
+	dbgen.Querier // embed to satisfy interface; unused methods panic
 
-	grab  dbsqlite.GrabHistory
-	movie dbsqlite.Movie
-	lib   dbsqlite.Library
+	grab  dbgen.GrabHistory
+	movie dbgen.Movie
+	lib   dbgen.Library
 
 	mu            sync.Mutex
-	createdFile   *dbsqlite.CreateMovieFileParams
-	updatedPath   *dbsqlite.UpdateMoviePathParams
-	updatedStatus *dbsqlite.UpdateMovieStatusParams
+	createdFile   *dbgen.CreateMovieFileParams
+	updatedPath   *dbgen.UpdateMoviePathParams
+	updatedStatus *dbgen.UpdateMovieStatusParams
 
 	// fileDone is closed when CreateMovieFile is called (if non-nil).
 	fileDone chan struct{}
 }
 
-func (f *fakeQuerier) GetGrabByID(_ context.Context, id string) (dbsqlite.GrabHistory, error) {
+func (f *fakeQuerier) GetGrabByID(_ context.Context, id string) (dbgen.GrabHistory, error) {
 	return f.grab, nil
 }
-func (f *fakeQuerier) GetMovie(_ context.Context, id string) (dbsqlite.Movie, error) {
+func (f *fakeQuerier) GetMovie(_ context.Context, id string) (dbgen.Movie, error) {
 	return f.movie, nil
 }
-func (f *fakeQuerier) GetLibrary(_ context.Context, id string) (dbsqlite.Library, error) {
+func (f *fakeQuerier) GetLibrary(_ context.Context, id string) (dbgen.Library, error) {
 	return f.lib, nil
 }
-func (f *fakeQuerier) CreateMovieFile(_ context.Context, p dbsqlite.CreateMovieFileParams) (dbsqlite.MovieFile, error) {
+func (f *fakeQuerier) CreateMovieFile(_ context.Context, p dbgen.CreateMovieFileParams) (dbgen.MovieFile, error) {
 	f.mu.Lock()
 	f.createdFile = &p
 	f.mu.Unlock()
 	if f.fileDone != nil {
 		close(f.fileDone)
 	}
-	return dbsqlite.MovieFile{}, nil
+	return dbgen.MovieFile{}, nil
 }
-func (f *fakeQuerier) UpdateMoviePath(_ context.Context, p dbsqlite.UpdateMoviePathParams) (dbsqlite.Movie, error) {
+func (f *fakeQuerier) UpdateMoviePath(_ context.Context, p dbgen.UpdateMoviePathParams) (dbgen.Movie, error) {
 	f.mu.Lock()
 	f.updatedPath = &p
 	f.mu.Unlock()
 	return f.movie, nil
 }
-func (f *fakeQuerier) UpdateMovieStatus(_ context.Context, p dbsqlite.UpdateMovieStatusParams) (dbsqlite.Movie, error) {
+func (f *fakeQuerier) UpdateMovieStatus(_ context.Context, p dbgen.UpdateMovieStatusParams) (dbgen.Movie, error) {
 	f.mu.Lock()
 	f.updatedStatus = &p
 	f.mu.Unlock()
 	return f.movie, nil
 }
 
-func (f *fakeQuerier) GetMediaManagement(_ context.Context) (dbsqlite.MediaManagement, error) {
-	return dbsqlite.MediaManagement{
+func (f *fakeQuerier) GetMediaManagement(_ context.Context) (dbgen.MediaManagement, error) {
+	return dbgen.MediaManagement{
 		ID:                  1,
-		RenameMovies:        1,
+		RenameMovies:        true,
 		StandardMovieFormat: "{Movie Title} ({Release Year}) {Quality Full}",
 		MovieFolderFormat:   "{Movie Title} ({Release Year})",
 		ColonReplacement:    "space-dash",
-		ImportExtraFiles:    0,
+		ImportExtraFiles:    false,
 		ExtraFileExtensions: "srt,nfo",
 	}, nil
 }
 
-func (f *fakeQuerier) getCreatedFile() *dbsqlite.CreateMovieFileParams {
+func (f *fakeQuerier) getCreatedFile() *dbgen.CreateMovieFileParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.createdFile
 }
-func (f *fakeQuerier) getUpdatedStatus() *dbsqlite.UpdateMovieStatusParams {
+func (f *fakeQuerier) getUpdatedStatus() *dbgen.UpdateMovieStatusParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.updatedStatus
@@ -90,8 +90,8 @@ func (f *fakeQuerier) getUpdatedStatus() *dbsqlite.UpdateMovieStatusParams {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-func newTestGrab(movieID string) dbsqlite.GrabHistory {
-	return dbsqlite.GrabHistory{
+func newTestGrab(movieID string) dbgen.GrabHistory {
+	return dbgen.GrabHistory{
 		ID:                "grab-1",
 		MovieID:           movieID,
 		ReleaseTitle:      "Inception.2010.1080p.BluRay.x264",
@@ -106,8 +106,8 @@ func newTestGrab(movieID string) dbsqlite.GrabHistory {
 	}
 }
 
-func newTestMovie(movieID, libID string) dbsqlite.Movie {
-	return dbsqlite.Movie{
+func newTestMovie(movieID, libID string) dbgen.Movie {
+	return dbgen.Movie{
 		ID:            movieID,
 		Title:         "Inception",
 		OriginalTitle: "Inception",
@@ -117,8 +117,8 @@ func newTestMovie(movieID, libID string) dbsqlite.Movie {
 	}
 }
 
-func newTestLibrary(libID, rootPath string) dbsqlite.Library {
-	return dbsqlite.Library{
+func newTestLibrary(libID, rootPath string) dbgen.Library {
+	return dbgen.Library{
 		ID:                      libID,
 		Name:                    "Movies",
 		RootPath:                rootPath,

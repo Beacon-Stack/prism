@@ -46,7 +46,7 @@ FROM alpine:3.21
 
 # ffmpeg pulls in ffprobe. ca-certificates is needed for outbound HTTPS.
 # tzdata provides timezone data for correct time display.
-RUN apk add --no-cache ffmpeg ca-certificates tzdata && \
+RUN apk add --no-cache ffmpeg ca-certificates tzdata postgresql-client && \
     adduser -D -u 1000 luminarr
 
 # The binary

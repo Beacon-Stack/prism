@@ -9,7 +9,7 @@ import (
 	"log/slog"
 	"time"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -37,14 +37,14 @@ type DownloaderClient interface {
 
 // Service polls download clients and keeps grab_history status up to date.
 type Service struct {
-	q          dbsqlite.Querier
+	q          dbgen.Querier
 	downloader DownloaderClient
 	bus        *events.Bus
 	logger     *slog.Logger
 }
 
 // NewService creates a new queue Service.
-func NewService(q dbsqlite.Querier, downloader DownloaderClient, bus *events.Bus, logger *slog.Logger) *Service {
+func NewService(q dbgen.Querier, downloader DownloaderClient, bus *events.Bus, logger *slog.Logger) *Service {
 	return &Service{q: q, downloader: downloader, bus: bus, logger: logger}
 }
 
@@ -69,11 +69,11 @@ func (s *Service) GetQueue(ctx context.Context) ([]Item, error) {
 			Status:          g.DownloadStatus,
 			GrabbedAt:       grabbedAt,
 		}
-		if g.ClientItemID != nil {
-			item.ClientItemID = *g.ClientItemID
+		if g.ClientItemID.Valid {
+			item.ClientItemID = g.ClientItemID.String
 		}
-		if g.DownloadClientID != nil {
-			item.DownloadClientID = *g.DownloadClientID
+		if g.DownloadClientID.Valid {
+			item.DownloadClientID = g.DownloadClientID.String
 		}
 		items = append(items, item)
 	}
@@ -97,11 +97,11 @@ func (s *Service) GetQueueItem(ctx context.Context, grabID string) (Item, error)
 		Status:       g.DownloadStatus,
 		GrabbedAt:    grabbedAt,
 	}
-	if g.ClientItemID != nil {
-		item.ClientItemID = *g.ClientItemID
+	if g.ClientItemID.Valid {
+		item.ClientItemID = g.ClientItemID.String
 	}
-	if g.DownloadClientID != nil {
-		item.DownloadClientID = *g.DownloadClientID
+	if g.DownloadClientID.Valid {
+		item.DownloadClientID = g.DownloadClientID.String
 	}
 	return item, nil
 }
@@ -114,16 +114,16 @@ func (s *Service) RemoveFromQueue(ctx context.Context, grabID string, deleteFile
 		return fmt.Errorf("grab %q not found: %w", grabID, err)
 	}
 	target := &grab
-	if target.DownloadClientID == nil || target.ClientItemID == nil {
+	if !target.DownloadClientID.Valid || !target.ClientItemID.Valid {
 		return errors.New("grab has no associated download client")
 	}
 
-	client, err := s.downloader.ClientFor(ctx, *target.DownloadClientID)
+	client, err := s.downloader.ClientFor(ctx, target.DownloadClientID.String)
 	if err != nil {
 		return fmt.Errorf("getting download client for grab: %w", err)
 	}
 
-	if err := client.Remove(ctx, *target.ClientItemID, deleteFiles); err != nil {
+	if err := client.Remove(ctx, target.ClientItemID.String, deleteFiles); err != nil {
 		return fmt.Errorf("removing from download client: %w", err)
 	}
 
@@ -146,12 +146,12 @@ func (s *Service) PollAndUpdate(ctx context.Context) error {
 	}
 
 	// Group grabs by download client to minimize API calls.
-	byClient := make(map[string][]dbsqlite.GrabHistory)
+	byClient := make(map[string][]dbgen.GrabHistory)
 	for _, g := range grabs {
-		if g.DownloadClientID == nil || g.ClientItemID == nil {
+		if !g.DownloadClientID.Valid || !g.ClientItemID.Valid {
 			continue
 		}
-		byClient[*g.DownloadClientID] = append(byClient[*g.DownloadClientID], g)
+		byClient[g.DownloadClientID.String] = append(byClient[g.DownloadClientID.String], g)
 	}
 
 	for clientID, clientGrabs := range byClient {
@@ -165,22 +165,48 @@ func (s *Service) PollAndUpdate(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbsqlite.GrabHistory) error {
+func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbgen.GrabHistory) error {
 	client, err := s.downloader.ClientFor(ctx, clientID)
 	if err != nil {
 		return fmt.Errorf("getting client %q: %w", clientID, err)
 	}
 
 	for _, g := range grabs {
-		if g.ClientItemID == nil {
+		if !g.ClientItemID.Valid {
 			continue
 		}
 
-		item, err := client.Status(ctx, *g.ClientItemID)
+		item, err := client.Status(ctx, g.ClientItemID.String)
 		if err != nil {
+			// If the client says the item is definitively gone (not a
+			// transient network error), mark the grab as removed so the
+			// unique-active-grab index frees up and the user can grab
+			// another release for this movie. Without this, a user who
+			// removes a torrent directly in Haul would be permanently
+			// locked out of grabbing anything else for that movie until
+			// they also manually cleaned grab_history. See the
+			// ErrItemNotFound contract in pkg/plugin/downloader.go.
+			if errors.Is(err, plugin.ErrItemNotFound) {
+				s.logger.Info("queue: item gone from download client, marking grab removed",
+					"grab_id", g.ID,
+					"movie_id", g.MovieID,
+					"release", g.ReleaseTitle,
+					"client_id", clientID,
+					"client_item_id", g.ClientItemID.String,
+				)
+				if mErr := s.q.MarkGrabRemoved(ctx, g.ID); mErr != nil {
+					s.logger.Warn("queue: failed to mark grab removed",
+						"grab_id", g.ID,
+						"error", mErr,
+					)
+				}
+				continue
+			}
+			// Transient error — log at debug and retry next poll cycle.
+			// A brief haul restart or network blip must not clear the queue.
 			s.logger.Debug("could not get status for item",
 				"client_id", clientID,
-				"client_item_id", *g.ClientItemID,
+				"client_item_id", g.ClientItemID.String,
 				"error", err,
 			)
 			continue
@@ -191,7 +217,7 @@ func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbsql
 			continue // no change
 		}
 
-		if err := s.q.UpdateGrabStatus(ctx, dbsqlite.UpdateGrabStatusParams{
+		if err := s.q.UpdateGrabStatus(ctx, dbgen.UpdateGrabStatusParams{
 			ID:              g.ID,
 			DownloadStatus:  newStatus,
 			DownloadedBytes: item.Downloaded,
@@ -211,7 +237,7 @@ func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbsql
 	return nil
 }
 
-func (s *Service) fireTransitionEvent(ctx context.Context, g dbsqlite.GrabHistory, newStatus, contentPath string) {
+func (s *Service) fireTransitionEvent(ctx context.Context, g dbgen.GrabHistory, newStatus, contentPath string) {
 	if s.bus == nil {
 		return
 	}

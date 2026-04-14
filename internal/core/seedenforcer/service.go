@@ -9,7 +9,7 @@ import (
 	"log/slog"
 
 	"github.com/beacon-stack/prism/internal/core/indexer"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -26,7 +26,7 @@ type ClientProvider interface {
 
 // Service listens for import-complete events and applies per-indexer seed limits.
 type Service struct {
-	q          dbsqlite.Querier
+	q          dbgen.Querier
 	indexerSvc SeedCriteriaProvider
 	dlSvc      ClientProvider
 	bus        *events.Bus
@@ -34,7 +34,7 @@ type Service struct {
 }
 
 // NewService creates a new seed enforcer service.
-func NewService(q dbsqlite.Querier, indexerSvc SeedCriteriaProvider, dlSvc ClientProvider, bus *events.Bus, logger *slog.Logger) *Service {
+func NewService(q dbgen.Querier, indexerSvc SeedCriteriaProvider, dlSvc ClientProvider, bus *events.Bus, logger *slog.Logger) *Service {
 	return &Service{q: q, indexerSvc: indexerSvc, dlSvc: dlSvc, bus: bus, logger: logger}
 }
 
@@ -66,14 +66,14 @@ func (s *Service) handle(ctx context.Context, e events.Event) {
 	}
 
 	// Need indexer_id, download_client_id, and client_item_id.
-	if grab.IndexerID == nil || grab.DownloadClientID == nil || grab.ClientItemID == nil {
+	if !grab.IndexerID.Valid || !grab.DownloadClientID.Valid || !grab.ClientItemID.Valid {
 		return
 	}
 
-	criteria, err := s.indexerSvc.GetSeedCriteria(ctx, *grab.IndexerID)
+	criteria, err := s.indexerSvc.GetSeedCriteria(ctx, grab.IndexerID.String)
 	if err != nil {
 		s.logger.Debug("seedenforcer: could not load indexer seed criteria",
-			"indexer_id", *grab.IndexerID, "error", err)
+			"indexer_id", grab.IndexerID.String, "error", err)
 		return
 	}
 
@@ -82,24 +82,24 @@ func (s *Service) handle(ctx context.Context, e events.Event) {
 		return
 	}
 
-	client, err := s.dlSvc.ClientFor(ctx, *grab.DownloadClientID)
+	client, err := s.dlSvc.ClientFor(ctx, grab.DownloadClientID.String)
 	if err != nil {
 		s.logger.Warn("seedenforcer: could not get download client",
-			"client_id", *grab.DownloadClientID, "error", err)
+			"client_id", grab.DownloadClientID.String, "error", err)
 		return
 	}
 
 	limiter, ok := client.(plugin.SeedLimiter)
 	if !ok {
 		s.logger.Debug("seedenforcer: download client does not support seed limits",
-			"client_id", *grab.DownloadClientID)
+			"client_id", grab.DownloadClientID.String)
 		return
 	}
 
 	seedTimeSecs := criteria.SeedTimeMinutes * 60
-	if err := limiter.SetSeedLimits(ctx, *grab.ClientItemID, criteria.SeedRatio, seedTimeSecs); err != nil {
+	if err := limiter.SetSeedLimits(ctx, grab.ClientItemID.String, criteria.SeedRatio, seedTimeSecs); err != nil {
 		s.logger.Warn("seedenforcer: SetSeedLimits failed",
-			"client_item_id", *grab.ClientItemID,
+			"client_item_id", grab.ClientItemID.String,
 			"ratio", criteria.SeedRatio,
 			"time_minutes", criteria.SeedTimeMinutes,
 			"error", err,
@@ -108,7 +108,7 @@ func (s *Service) handle(ctx context.Context, e events.Event) {
 	}
 
 	s.logger.Info("seedenforcer: seed limits applied",
-		"client_item_id", *grab.ClientItemID,
+		"client_item_id", grab.ClientItemID.String,
 		"ratio", criteria.SeedRatio,
 		"time_minutes", criteria.SeedTimeMinutes,
 	)

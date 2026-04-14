@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/beacon-stack/prism/internal/core/customformat"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/testutil"
 )
 
@@ -15,7 +15,7 @@ func newTestService(t *testing.T) *customformat.Service {
 	return customformat.NewService(q)
 }
 
-func newTestServiceWithDB(t *testing.T) (*customformat.Service, *dbsqlite.Queries) {
+func newTestServiceWithDB(t *testing.T) (*customformat.Service, *dbgen.Queries) {
 	t.Helper()
 	q := testutil.NewTestDB(t)
 	return customformat.NewService(q), q
@@ -158,7 +158,7 @@ func TestService_Scores(t *testing.T) {
 
 	// Create a quality profile so FK constraints are satisfied.
 	profileID := "test-profile-id"
-	_, err = q.CreateQualityProfile(ctx, dbsqlite.CreateQualityProfileParams{
+	_, err = q.CreateQualityProfile(ctx, dbgen.CreateQualityProfileParams{
 		ID:            profileID,
 		Name:          "Test Profile",
 		CutoffJson:    `{"resolution":"1080p","source":"bluray","codec":"x264","hdr":"none","name":"Bluray-1080p"}`,

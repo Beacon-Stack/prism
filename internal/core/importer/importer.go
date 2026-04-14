@@ -24,7 +24,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/renamer"
 	"github.com/beacon-stack/prism/internal/db"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -43,7 +43,7 @@ var videoExtensions = map[string]bool{
 // Service subscribes to TypeDownloadDone events and imports completed files
 // into the library directory tree.
 type Service struct {
-	q        dbsqlite.Querier
+	q        dbgen.Querier
 	sqlDB    *sql.DB // for transactions; nil in tests
 	bus      *events.Bus
 	logger   *slog.Logger
@@ -53,7 +53,7 @@ type Service struct {
 }
 
 // NewService creates a new Service.
-func NewService(q dbsqlite.Querier, bus *events.Bus, logger *slog.Logger, mm *mediamanagement.Service, dh *downloadhandling.Service, mediaSvc *mediainfo.Service, sqlDB ...*sql.DB) *Service {
+func NewService(q dbgen.Querier, bus *events.Bus, logger *slog.Logger, mm *mediamanagement.Service, dh *downloadhandling.Service, mediaSvc *mediainfo.Service, sqlDB ...*sql.DB) *Service {
 	s := &Service{q: q, bus: bus, logger: logger, mm: mm, dh: dh, mediaSvc: mediaSvc}
 	if len(sqlDB) > 0 {
 		s.sqlDB = sqlDB[0]
@@ -142,17 +142,17 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	q := qualityFromGrab(grab)
 
 	fileFormat := mm.StandardMovieFormat
-	if lib.NamingFormat != nil && *lib.NamingFormat != "" {
-		fileFormat = *lib.NamingFormat
+	if lib.NamingFormat.Valid && lib.NamingFormat.String != "" {
+		fileFormat = lib.NamingFormat.String
 	}
 	folderFormat := mm.MovieFolderFormat
-	if lib.FolderFormat != nil && *lib.FolderFormat != "" {
-		folderFormat = *lib.FolderFormat
+	if lib.FolderFormat.Valid && lib.FolderFormat.String != "" {
+		folderFormat = lib.FolderFormat.String
 	}
 
 	var fileEdition string
-	if grab.ReleaseEdition != nil {
-		fileEdition = *grab.ReleaseEdition
+	if grab.ReleaseEdition.Valid {
+		fileEdition = grab.ReleaseEdition.String
 	}
 	rm := renamer.Movie{
 		Title:         mov.Title,
@@ -203,8 +203,8 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	now := time.Now().UTC().Format(time.RFC3339)
 	fileID := uuid.New().String()
 
-	dbOps := func(dbq dbsqlite.Querier) error {
-		if _, err := dbq.CreateMovieFile(ctx, dbsqlite.CreateMovieFileParams{
+	dbOps := func(dbq dbgen.Querier) error {
+		if _, err := dbq.CreateMovieFile(ctx, dbgen.CreateMovieFileParams{
 			ID:          fileID,
 			MovieID:     grab.MovieID,
 			Path:        destPath,
@@ -216,15 +216,15 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 			return fmt.Errorf("creating movie_file record: %w", err)
 		}
 
-		if _, err := dbq.UpdateMoviePath(ctx, dbsqlite.UpdateMoviePathParams{
-			Path:      &destPath,
+		if _, err := dbq.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
+			Path:      sql.NullString{String: destPath, Valid: true},
 			UpdatedAt: now,
 			ID:        grab.MovieID,
 		}); err != nil {
 			return fmt.Errorf("updating movie path: %w", err)
 		}
 
-		if _, err := dbq.UpdateMovieStatus(ctx, dbsqlite.UpdateMovieStatusParams{
+		if _, err := dbq.UpdateMovieStatus(ctx, dbgen.UpdateMovieStatusParams{
 			Status:    "downloaded",
 			UpdatedAt: now,
 			ID:        grab.MovieID,
@@ -407,7 +407,7 @@ func copyExtraFiles(logger *slog.Logger, srcDir, destDir string, exts []string) 
 
 // qualityFromGrab reconstructs a plugin.Quality from the denormalized fields
 // stored in grab_history.
-func qualityFromGrab(g dbsqlite.GrabHistory) plugin.Quality {
+func qualityFromGrab(g dbgen.GrabHistory) plugin.Quality {
 	res := plugin.Resolution(g.ReleaseResolution)
 	src := plugin.Source(g.ReleaseSource)
 	codec := plugin.Codec(g.ReleaseCodec)

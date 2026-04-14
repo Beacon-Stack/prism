@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import Modal from "@/components/Modal";
+import { useConfirm } from "@beacon-shared/ConfirmDialog";
+import Modal from "@beacon-shared/Modal";
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
 import {
@@ -1142,6 +1143,7 @@ export default function ImportListList() {
   const deleteMut = useDeleteImportList();
   const testMut = useTestImportList();
   const syncMut = useSyncAllImportLists();
+  const confirm = useConfirm();
   const previewMut = useImportListPreview();
 
   const [editId, setEditId] = useState<string | null>(null);
@@ -1308,7 +1310,7 @@ export default function ImportListList() {
               key={cfg.id}
               cfg={cfg}
               onEdit={() => openEdit(cfg)}
-              onDelete={() => { if (confirm(`Delete "${cfg.name}"?`)) deleteMut.mutate(cfg.id); }}
+              onDelete={async () => { if (await confirm({ title: "Delete Import List", message: `Delete "${cfg.name}"?` })) deleteMut.mutate(cfg.id); }}
               onTest={() => testMut.mutate(cfg.id)}
               testing={testMut.isPending && testMut.variables === cfg.id}
             />

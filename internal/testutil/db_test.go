@@ -4,19 +4,19 @@ import (
 	"context"
 	"testing"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 func TestNewTestDB_ReturnsWorkingQueries(t *testing.T) {
 	q := NewTestDB(t)
 
 	now := "2026-01-01T00:00:00Z"
-	params := dbsqlite.CreateQualityProfileParams{
+	params := dbgen.CreateQualityProfileParams{
 		ID:             "test-profile-id",
 		Name:           "HD Quality",
 		CutoffJson:     `{"id":4,"name":"HDTV-720p"}`,
 		QualitiesJson:  `[{"id":4,"name":"HDTV-720p","allowed":true}]`,
-		UpgradeAllowed: 1,
+		UpgradeAllowed: true,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
@@ -42,8 +42,8 @@ func TestNewTestDB_ReturnsWorkingQueries(t *testing.T) {
 	if fetched.Name != params.Name {
 		t.Errorf("fetched.Name = %q, want %q", fetched.Name, params.Name)
 	}
-	if fetched.UpgradeAllowed != 1 {
-		t.Errorf("fetched.UpgradeAllowed = %d, want 1", fetched.UpgradeAllowed)
+	if !fetched.UpgradeAllowed {
+		t.Errorf("fetched.UpgradeAllowed = %v, want true", fetched.UpgradeAllowed)
 	}
 }
 
@@ -53,7 +53,7 @@ func TestNewTestDBWithSQL_IsolatedFromNewTestDB(t *testing.T) {
 	q2, _ := NewTestDBWithSQL(t)
 
 	now := "2026-01-01T00:00:00Z"
-	params := dbsqlite.CreateQualityProfileParams{
+	params := dbgen.CreateQualityProfileParams{
 		ID:            "isolation-check",
 		Name:          "Test Profile",
 		CutoffJson:    `{}`,

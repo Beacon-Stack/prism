@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/beacon-stack/prism/internal/core/movie"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 	"github.com/beacon-stack/prism/internal/testutil"
@@ -33,7 +33,7 @@ func (m *mockTMDB) GetMovie(_ context.Context, _ int) (*tmdb.MovieDetail, error)
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
-func newTestService(t *testing.T, meta movie.MetadataProvider) (*movie.Service, *dbsqlite.Queries) {
+func newTestService(t *testing.T, meta movie.MetadataProvider) (*movie.Service, *dbgen.Queries) {
 	t.Helper()
 	q := testutil.NewTestDB(t)
 	bus := events.New(slog.New(slog.NewTextHandler(os.Stderr, nil)))
@@ -44,12 +44,12 @@ func newTestService(t *testing.T, meta movie.MetadataProvider) (*movie.Service, 
 // seedTestFixtures creates the FK prerequisites (quality profile + library)
 // required by the movies table since migration 00010 added REFERENCES constraints.
 // Returns the libraryID and profileID to use when adding movies.
-func seedTestFixtures(t *testing.T, q *dbsqlite.Queries) (libraryID, profileID string) {
+func seedTestFixtures(t *testing.T, q *dbgen.Queries) (libraryID, profileID string) {
 	t.Helper()
 	ctx := context.Background()
 	now := time.Now().UTC().Format(time.RFC3339)
 
-	qp, err := q.CreateQualityProfile(ctx, dbsqlite.CreateQualityProfileParams{
+	qp, err := q.CreateQualityProfile(ctx, dbgen.CreateQualityProfileParams{
 		ID:            "qp-test",
 		Name:          "Test Profile",
 		CutoffJson:    `{}`,
@@ -61,7 +61,7 @@ func seedTestFixtures(t *testing.T, q *dbsqlite.Queries) (libraryID, profileID s
 		t.Fatalf("seedTestFixtures: CreateQualityProfile: %v", err)
 	}
 
-	lib, err := q.CreateLibrary(ctx, dbsqlite.CreateLibraryParams{
+	lib, err := q.CreateLibrary(ctx, dbgen.CreateLibraryParams{
 		ID:                      "lib-test",
 		Name:                    "Test Library",
 		RootPath:                "/test",

@@ -4,6 +4,7 @@ package activity
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -11,7 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/core/dbutil"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 )
 
@@ -54,12 +56,12 @@ type ListResult struct {
 
 // Service records and queries activity log entries.
 type Service struct {
-	q      dbsqlite.Querier
+	q      dbgen.Querier
 	logger *slog.Logger
 }
 
 // NewService creates a new activity service.
-func NewService(q dbsqlite.Querier, logger *slog.Logger) *Service {
+func NewService(q dbgen.Querier, logger *slog.Logger) *Service {
 	return &Service{q: q, logger: logger}
 }
 
@@ -76,25 +78,19 @@ func (s *Service) handleEvent(ctx context.Context, e events.Event) {
 		return // unknown event type — skip
 	}
 
-	var detailStr *string
+	var detailStr sql.NullString
 	if len(e.Data) > 0 {
 		b, err := json.Marshal(e.Data)
 		if err == nil {
-			str := string(b)
-			detailStr = &str
+			detailStr = sql.NullString{String: string(b), Valid: true}
 		}
 	}
 
-	var movieID *string
-	if e.MovieID != "" {
-		movieID = &e.MovieID
-	}
-
-	err := s.q.InsertActivity(ctx, dbsqlite.InsertActivityParams{
+	err := s.q.InsertActivity(ctx, dbgen.InsertActivityParams{
 		ID:        uuid.New().String(),
 		Type:      string(e.Type),
 		Category:  string(cat),
-		MovieID:   movieID,
+		MovieID:   dbutil.NullStringFromString(e.MovieID),
 		Title:     title,
 		Detail:    detailStr,
 		CreatedAt: e.Timestamp.UTC().Format(time.RFC3339),
@@ -194,25 +190,19 @@ func (s *Service) List(ctx context.Context, category *string, since *string, lim
 		limit = 100
 	}
 
-	var catFilter interface{}
-	if category != nil {
-		catFilter = *category
-	}
-	var sinceFilter interface{}
-	if since != nil {
-		sinceFilter = *since
-	}
+	catFilter := dbutil.NullString(category)
+	sinceFilter := dbutil.NullString(since)
 
-	rows, err := s.q.ListActivities(ctx, dbsqlite.ListActivitiesParams{
+	rows, err := s.q.ListActivities(ctx, dbgen.ListActivitiesParams{
 		Category: catFilter,
 		Since:    sinceFilter,
-		Limit:    limit,
+		Limit:    int32(limit),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing activities: %w", err)
 	}
 
-	total, err := s.q.CountActivities(ctx, dbsqlite.CountActivitiesParams{
+	total, err := s.q.CountActivities(ctx, dbgen.CountActivitiesParams{
 		Category: catFilter,
 		Since:    sinceFilter,
 	})
@@ -226,12 +216,12 @@ func (s *Service) List(ctx context.Context, category *string, since *string, lim
 			ID:        r.ID,
 			Type:      r.Type,
 			Category:  r.Category,
-			MovieID:   r.MovieID,
+			MovieID:   dbutil.NullStringPtr(r.MovieID),
 			Title:     r.Title,
 			CreatedAt: r.CreatedAt,
 		}
-		if r.Detail != nil {
-			_ = json.Unmarshal([]byte(*r.Detail), &a.Detail)
+		if r.Detail.Valid {
+			_ = json.Unmarshal([]byte(r.Detail.String), &a.Detail)
 		}
 		activities = append(activities, a)
 	}

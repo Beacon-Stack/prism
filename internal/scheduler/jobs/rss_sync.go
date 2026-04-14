@@ -6,15 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 	"time"
-	"unicode"
 
 	"github.com/beacon-stack/prism/internal/core/downloader"
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/quality"
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	"github.com/beacon-stack/prism/internal/core/titlematch"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/scheduler"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -26,7 +24,7 @@ func RSSSync(
 	idxSvc *indexer.Service,
 	dlSvc *downloader.Service,
 	qualSvc *quality.Service,
-	q dbsqlite.Querier,
+	q dbgen.Querier,
 	logger *slog.Logger,
 ) scheduler.Job {
 	return scheduler.Job{
@@ -60,7 +58,7 @@ func runRSSSync(
 	idxSvc *indexer.Service,
 	dlSvc *downloader.Service,
 	qualSvc *quality.Service,
-	q dbsqlite.Querier,
+	q dbgen.Querier,
 	logger *slog.Logger,
 ) (int, error) {
 	// 1. Fetch recent releases from all enabled indexers.
@@ -184,7 +182,7 @@ func bestMatchingRelease(
 	currentQuality *plugin.Quality,
 ) (indexer.SearchResult, bool) {
 	for _, r := range rs {
-		if !releaseMatchesMovie(r.Title, title, year) {
+		if !titlematch.Matches(r.Title, title, year) {
 			continue
 		}
 		if prof.WantRelease(r.Quality, currentQuality) {
@@ -195,7 +193,7 @@ func bestMatchingRelease(
 }
 
 // bestFileQuality returns the highest-scoring quality among the given files.
-func bestFileQuality(files []dbsqlite.MovieFile) plugin.Quality {
+func bestFileQuality(files []dbgen.MovieFile) plugin.Quality {
 	var best plugin.Quality
 	for _, f := range files {
 		var q plugin.Quality
@@ -207,42 +205,6 @@ func bestFileQuality(files []dbsqlite.MovieFile) plugin.Quality {
 		}
 	}
 	return best
-}
-
-// releaseMatchesMovie reports whether a release title is a plausible match for
-// a movie. The normalised movie title must appear as a word-boundary-aligned
-// substring and the release year must also appear in the normalised release.
-func releaseMatchesMovie(releaseTitle, movieTitle string, year int) bool {
-	normRelease := normalizeTitle(releaseTitle)
-	normMovie := normalizeTitle(movieTitle)
-	if normMovie == "" {
-		return false
-	}
-	if !containsWordAligned(normRelease, normMovie) {
-		return false
-	}
-	return containsWordAligned(normRelease, strconv.Itoa(year))
-}
-
-// containsWordAligned reports whether haystack contains needle aligned on word
-// (space) boundaries. This prevents a movie titled "it" from matching every
-// release that incidentally contains the substring "it".
-func containsWordAligned(haystack, needle string) bool {
-	idx := 0
-	for {
-		pos := strings.Index(haystack[idx:], needle)
-		if pos < 0 {
-			return false
-		}
-		abs := idx + pos
-		atStart := abs == 0 || haystack[abs-1] == ' '
-		end := abs + len(needle)
-		atEnd := end == len(haystack) || haystack[end] == ' '
-		if atStart && atEnd {
-			return true
-		}
-		idx = abs + 1
-	}
 }
 
 // movieEligibleForGrab reports whether a movie's TMDB status has reached the
@@ -267,21 +229,4 @@ func movieEligibleForGrab(minAvail, tmdbStatus string) bool {
 	default:
 		return true
 	}
-}
-
-// normalizeTitle lowercases a string, converts common separators (dots,
-// underscores, hyphens) to spaces, strips other non-alphanumeric characters,
-// and collapses whitespace.
-func normalizeTitle(s string) string {
-	s = strings.ToLower(s)
-	var b strings.Builder
-	for _, r := range s {
-		switch {
-		case r == '.' || r == '_' || r == '-':
-			b.WriteRune(' ')
-		case unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ':
-			b.WriteRune(r)
-		}
-	}
-	return strings.Join(strings.Fields(b.String()), " ")
 }

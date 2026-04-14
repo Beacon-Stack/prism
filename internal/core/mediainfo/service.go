@@ -2,24 +2,25 @@ package mediainfo
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
-	dbsqlite "github.com/beacon-stack/prism/internal/db/generated/sqlite"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 )
 
 // Service provides mediainfo scanning backed by the database.
 type Service struct {
 	scanner *Scanner
-	q       dbsqlite.Querier
+	q       dbgen.Querier
 	logger  *slog.Logger
 }
 
 // NewService creates a Service. scanner may be a disabled Scanner (Available()
 // returns false); in that case ScanFile and ScanAll are no-ops.
-func NewService(scanner *Scanner, q dbsqlite.Querier, logger *slog.Logger) *Service {
+func NewService(scanner *Scanner, q dbgen.Querier, logger *slog.Logger) *Service {
 	return &Service{scanner: scanner, q: q, logger: logger}
 }
 
@@ -51,9 +52,9 @@ func (s *Service) ScanFile(ctx context.Context, fileID, filePath string) error {
 	}
 
 	now := time.Now().UTC()
-	return s.q.UpdateMovieFileMediainfo(ctx, dbsqlite.UpdateMovieFileMediainfoParams{
+	return s.q.UpdateMovieFileMediainfo(ctx, dbgen.UpdateMovieFileMediainfoParams{
 		MediainfoJson:      string(b),
-		MediainfoScannedAt: &now,
+		MediainfoScannedAt: sql.NullTime{Time: now, Valid: true},
 		ID:                 fileID,
 	})
 }

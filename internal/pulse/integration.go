@@ -52,7 +52,9 @@ func New(cfg config.PulseConfig, serverHost string, serverPort int, logger *slog
 	// back to localhost (works for local dev).
 	if serverHost == "0.0.0.0" || serverHost == "" {
 		host := "localhost"
-		if h, err := os.Hostname(); err == nil && h != "" {
+		if h := os.Getenv("ADVERTISE_HOST"); h != "" {
+			host = h
+		} else if h, err := os.Hostname(); err == nil && h != "" {
 			host = h
 		}
 		apiURL = fmt.Sprintf("http://%s:%d", host, serverPort)
@@ -100,16 +102,6 @@ func (i *Integration) DiscoverDownloadClients(ctx context.Context) ([]sdk.Servic
 // DiscoverIndexers returns indexers assigned to this service in Pulse.
 func (i *Integration) DiscoverIndexers(ctx context.Context) ([]sdk.Indexer, error) {
 	return i.Client.MyIndexers(ctx)
-}
-
-// GetQualityConfig returns all quality-related shared config.
-func (i *Integration) GetQualityConfig(ctx context.Context) ([]sdk.ConfigEntry, error) {
-	return i.Client.GetConfigNamespace(ctx, "quality")
-}
-
-// SubscribeToConfig subscribes to config namespace updates.
-func (i *Integration) SubscribeToConfig(ctx context.Context, namespace string) error {
-	return i.Client.Subscribe(ctx, namespace)
 }
 
 // discoverAPIKey attempts to read Pulse's API key from its local config file.

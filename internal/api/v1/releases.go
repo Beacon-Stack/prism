@@ -14,10 +14,12 @@ import (
 	"github.com/beacon-stack/prism/internal/core/autosearch"
 	"github.com/beacon-stack/prism/internal/core/blocklist"
 	"github.com/beacon-stack/prism/internal/core/conflict"
+	"github.com/beacon-stack/prism/internal/core/dbutil"
 	"github.com/beacon-stack/prism/internal/core/downloader"
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/quality"
+	"github.com/beacon-stack/prism/internal/core/titlematch"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
@@ -187,6 +189,18 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 
 		results, searchErr := indexerSvc.Search(ctx, query, nil)
 
+		// Filter out releases whose title/year don't match the target movie.
+		// Indexers sometimes return unrelated results (e.g. "The Firm 1993"
+		// for "Big" 1988). Applying the same filter as the auto-search path
+		// keeps the manual search modal from showing obviously wrong hits.
+		filtered := results[:0:0]
+		for _, r := range results {
+			if titlematch.Matches(r.Title, m.Title, m.Year) {
+				filtered = append(filtered, r)
+			}
+		}
+		results = filtered
+
 		// Load quality profile once so we can compute breakdown per release.
 		var prof *quality.Profile
 		if qualitySvc != nil {
@@ -263,6 +277,21 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			}
 		}
 
+		// Precheck: refuse to grab if there's already an active download for
+		// this movie. Without this, we would submit the new release to the
+		// download client and THEN fail at the grab_history insert because of
+		// the unique partial index idx_grab_history_active_movie — leaving an
+		// orphan download in the client with no Prism record. Returning 409
+		// here gives the user a clear error and keeps the download client in
+		// a known state.
+		if existing, ageErr := indexerSvc.ActiveGrabForMovie(ctx, input.MovieID); ageErr != nil {
+			logger.Warn("grab: active-grab precheck failed", "movie_id", input.MovieID, "error", ageErr)
+		} else if existing != nil {
+			return nil, huma.NewError(http.StatusConflict,
+				"already downloading another release for this movie ("+existing.ReleaseTitle+
+					"). Remove it from the queue first if you want to grab a different one.")
+		}
+
 		// Submit to download client when one is configured.
 		var dcID, itemID string
 		if downloaderSvc != nil {
@@ -300,6 +329,23 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 
 		history, err := indexerSvc.Grab(ctx, input.MovieID, input.Body.IndexerID, release, dcID, itemID, breakdownJSON)
 		if err != nil {
+			// Race-window safety net: another grab for this movie raced ahead
+			// of us between the precheck above and this insert, hitting the
+			// idx_grab_history_active_movie unique index. We've already
+			// submitted to the download client at this point, so a successful
+			// grab is now ALSO orphaned in the client — log loudly so the
+			// operator can clean up. (Prevention is the precheck; this is the
+			// belt-and-braces.)
+			if dbutil.IsUniqueViolation(err) {
+				logger.Error("grab: race lost on active-grab unique index — download client may have an orphan",
+					"movie_id", input.MovieID,
+					"release_title", input.Body.Title,
+					"dc_id", dcID,
+					"item_id", itemID,
+				)
+				return nil, huma.NewError(http.StatusConflict,
+					"another grab for this movie was recorded just now. The new release was sent to the download client but has no Prism record — remove it manually if you don't want it.")
+			}
 			logger.Error("grab: failed to record grab history",
 				"movie_id", input.MovieID,
 				"indexer_id", input.Body.IndexerID,
@@ -314,13 +360,13 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 		out := &grabHistoryBody{
 			ID:               history.ID,
 			MovieID:          history.MovieID,
-			IndexerID:        history.IndexerID,
+			IndexerID:        dbutil.NullStringPtr(history.IndexerID),
 			ReleaseGUID:      history.ReleaseGuid,
 			ReleaseTitle:     history.ReleaseTitle,
 			Protocol:         history.Protocol,
 			Size:             history.Size,
-			DownloadClientID: history.DownloadClientID,
-			ClientItemID:     history.ClientItemID,
+			DownloadClientID: dbutil.NullStringPtr(history.DownloadClientID),
+			ClientItemID:     dbutil.NullStringPtr(history.ClientItemID),
 			DownloadStatus:   history.DownloadStatus,
 			GrabbedAt:        grabbedAt,
 		}

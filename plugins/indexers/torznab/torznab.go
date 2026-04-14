@@ -107,36 +107,77 @@ func (idx *Indexer) Capabilities(ctx context.Context) (plugin.Capabilities, erro
 
 // Search queries the indexer for releases matching q.
 //
-// Strategy:
-//  1. If q.TMDBID is set, try the movie search endpoint (?t=movie&tmdbid=…).
-//     Not all indexers or Prowlarr-backed indexers support this endpoint, so
-//     if it returns zero results we fall through to step 2.
-//  2. Fall back to free-text search (?t=search&q=title+year) which is
-//     universally supported.
+// Strategy: run BOTH the tmdbid lookup and the free-text search, then dedupe
+// by GUID. Doing both is necessary because some Torznab/Prowlarr indexers
+// silently ignore the `tmdbid=` parameter and return the recent-uploads feed
+// instead (since `?t=movie` with no params IS the recent feed). The old
+// "try tmdbid first, fall back if zero results" strategy was fooled by
+// these indexers — the recent feed is non-empty so the fall-through never
+// triggered, and search results were polluted with random recent uploads.
+//
+// Indexers that properly honour `tmdbid` contribute precise hits; indexers
+// that return the recent feed contribute noise that's filtered downstream
+// by the title-match guard in autosearch/releases. The text search is the
+// safety net that always runs.
 func (idx *Indexer) Search(ctx context.Context, q plugin.SearchQuery) ([]plugin.Release, error) {
-	// 1. TMDB movie search — most specific, not universally supported.
+	seen := make(map[string]bool)
+	var all []plugin.Release
+	var firstErr error
+
+	addAll := func(rels []plugin.Release) {
+		for _, r := range rels {
+			key := r.GUID
+			if key == "" {
+				key = r.Title // fall back when GUID missing
+			}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			all = append(all, r)
+		}
+	}
+
+	// 1. TMDB movie search — runs unconditionally when we have a TMDB ID.
 	if q.TMDBID != 0 {
 		params := url.Values{}
 		params.Set("tmdbid", strconv.Itoa(q.TMDBID))
 		u := idx.buildURL("movie", params)
 		releases, err := idx.fetchReleases(ctx, u)
-		if err == nil && len(releases) > 0 {
-			return releases, nil
+		if err != nil {
+			firstErr = err
+		} else {
+			addAll(releases)
 		}
-		// err is non-nil or zero results — fall through to text search.
 	}
 
-	// 2. Free-text search — universally supported. No category filter: many
-	// indexers return empty when cat=2000 is specified, and the title+year
-	// query is specific enough without it.
-	query := q.Query
-	if q.Year != 0 {
-		query = fmt.Sprintf("%s %d", query, q.Year)
+	// 2. Free-text search — always runs, both as the primary path for
+	// indexers that don't support tmdbid and as a safety net for indexers
+	// that return the recent feed instead. No category filter: many indexers
+	// return empty when cat=2000 is specified, and the title+year query is
+	// specific enough without it.
+	if q.Query != "" {
+		query := q.Query
+		if q.Year != 0 {
+			query = fmt.Sprintf("%s %d", query, q.Year)
+		}
+		params := url.Values{}
+		params.Set("q", query)
+		u := idx.buildURL("search", params)
+		releases, err := idx.fetchReleases(ctx, u)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+		} else {
+			addAll(releases)
+		}
 	}
-	params := url.Values{}
-	params.Set("q", query)
-	u := idx.buildURL("search", params)
-	return idx.fetchReleases(ctx, u)
+
+	if len(all) == 0 && firstErr != nil {
+		return nil, firstErr
+	}
+	return all, nil
 }
 
 // GetRecent returns the most recent releases from the indexer's RSS feed.
