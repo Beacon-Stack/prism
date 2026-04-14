@@ -1,6 +1,6 @@
 <p align="center">
   <h1 align="center">Prism</h1>
-  <p align="center">A self-hosted movie collection manager built for simplicity.</p>
+  <p align="center">A self-hosted movie collection manager for home servers and the Beacon media stack.</p>
 </p>
 <p align="center">
   <a href="https://github.com/beacon-stack/prism/blob/main/LICENSE"><img src="https://img.shields.io/github/license/beacon-stack/prism" alt="License"></a>
@@ -13,11 +13,20 @@
 
 ---
 
-**Prism** monitors your movie library, searches indexers, and automatically grabs the best available release. It is written in Go and React, starts in under a second, and idles under 60 MB of RAM.
+Prism is a self-hosted movie collection manager with a React web UI and a REST API. It does what Radarr does — monitors a library, searches indexers, grabs the best available release, imports completed downloads, talks to your media server — but in a single Go binary with a modern UI and sensible defaults. It runs standalone or slots into the Beacon stack alongside [Pilot](https://github.com/beacon-stack/pilot) (TV), [Haul](https://github.com/beacon-stack/haul) (BitTorrent), and [Pulse](https://github.com/beacon-stack/pulse) (control plane).
 
-Prism is part of the [Beacon](https://beaconstack.io) media stack — it runs alongside [Pilot](https://github.com/beacon-stack/pilot) (TV), [Haul](https://github.com/beacon-stack/haul) (BitTorrent downloader), and [Pulse](https://github.com/beacon-stack/pulse) (control plane) — but it also runs standalone if you only want a movie manager.
+Prism also speaks the Radarr v3 API, so Overseerr, Jellyseerr, Homepage, Home Assistant, and anything else with a "Radarr" integration can point at Prism without modification.
 
-If you are coming from Radarr, Prism can import your quality profiles, libraries, indexers, download clients, and movie list in one step.
+## Is this for you?
+
+Prism is built to be approachable by default and capable when you want it to be. The out-of-the-box defaults take you from `docker run` to a fully monitored library in a few minutes: sensible quality profiles, automatic RSS sync, reliable rename-on-import, and a one-click migration from an existing Radarr install. The deeper features — custom format regex with TRaSH Guides presets built in, edition-aware scoring, release decision explainability, per-movie indexer routing, and Pulse-managed shared config — are all there when you want them, and stay out of your way until you do.
+
+You'll probably like Prism if you:
+
+- Run a home media server and want a movie manager with a modern, fast UI
+- Already use Radarr and want something lighter, faster, and in active development
+- Use tools like Overseerr, Jellyseerr, or Homepage and want them to keep working through a drop-in Radarr API replacement
+- Appreciate sensible defaults now and the option to grow into advanced features later
 
 ## Features
 
@@ -27,64 +36,47 @@ If you are coming from Radarr, Prism can import your quality profiles, libraries
 - Per-movie monitoring with automatic grab on missing
 - Wanted page with missing, cutoff-unmet, and upgrade recommendations in one view
 - Calendar view of upcoming releases by month
-- Library statistics with breakdown by quality tier, genre, decade, storage trends, and indexer performance
+- Library stats with breakdowns by quality tier, genre, decade, storage trends, and indexer performance (with clickable drill-down)
 - Collections browsing and tracking from TMDB
 
-**Quality and release handling**
+**Release handling**
 
 - Quality profiles with resolution, source, codec, and HDR dimensions
-- Custom formats with regex matching and weighted scoring, TRaSH Guides presets built in
+- Custom formats with regex matching and weighted scoring — TRaSH Guides presets built in
 - Edition support — 15 canonical editions parsed, with per-movie preferred-edition scoring
-- Release decision explainability — "why was this grabbed or skipped?" surfaced on every row
+- Release decision explainability — every release shows exactly why it was grabbed or skipped
 - Import conflict detection — warns about dimension regressions (HDR lost, audio downgrade) before grabbing
 - Manual search across all indexers with full scoring breakdown
+- Strict title matching in the release filter, so "The Dark Knight" won't accidentally grab "The Dark Knight Rises"
 
 **Automation**
 
 - Automatic RSS sync on a configurable schedule
 - Auto-search that scores every candidate against your profile and custom formats before grabbing
-- Auto-import of completed downloads with rename + hardlink support
+- Auto-import of completed downloads with rename and hardlink support
 - Import lists from TMDB, Trakt, Plex watchlists, MDBList, and custom URL lists
-- Library sync — compare your media server against Prism and import the delta
+- Library Sync — compare your media server library against Prism and import the delta
 - Activity log pruning
 
 **Integrations**
 
-Indexers:
-- Newznab (NZBgeek, NZBFinder, etc.)
-- Torznab (Prowlarr, Jackett)
-- [Pulse](https://github.com/beacon-stack/pulse) — centrally managed indexers pushed from the Pulse control plane
-
-Download clients:
-- [Haul](https://github.com/beacon-stack/haul) — first-class integration with the Beacon torrent client
-- qBittorrent, Deluge, Transmission
-- SABnzbd, NZBGet
-
-Media servers:
-- Plex, Jellyfin, Emby
-
-Notifications:
-- Discord, Slack, Telegram, Pushover, Gotify, ntfy
-- Email (SMTP with STARTTLS/TLS)
-- Webhook (generic HTTP)
-- Custom command/script execution
-
-**Compatibility**
-
-- **Radarr v3 API** — Prism exposes a Radarr v3-compatible API at `/api/v3/`, so Overseerr, Jellyseerr, Homepage, Home Assistant, LunaSea and other tools that speak Radarr can talk to Prism without changes.
+- **Radarr v3 API compatibility** — point Overseerr, Jellyseerr, Homepage, Home Assistant, LunaSea, and any other Radarr-aware tool directly at Prism with no changes
+- **Indexers:** Newznab (NZBgeek, NZBFinder), Torznab (Prowlarr, Jackett), Pulse-managed indexers
+- **Download clients:** [Haul](https://github.com/beacon-stack/haul), qBittorrent, Deluge, Transmission, SABnzbd, NZBGet
+- **Media servers:** Plex, Jellyfin, Emby
+- **Notifications:** Discord, Slack, Telegram, Pushover, Gotify, ntfy, email, webhook, custom command
 
 **UI**
 
 - Command palette (Cmd/Ctrl+K) with fuzzy search for pages, movies, and actions
-- Interactive release search modal with pack-type filters, quality badges, and per-row scoring
-- Theme system with dark and light modes, 10+ presets shared across the Beacon services
-- Directory browser for selecting library root paths
-- WebSocket live updates for queue progress
+- Interactive release search modal with pack-type filters, quality badges, seed-count column, and per-row scoring
+- Dark and light themes with 10+ presets shared across the Beacon services
+- Live queue updates over WebSocket — no polling
 - OpenAPI documentation at `/api/docs`
 
 **Operations**
 
-- Single static binary, no runtime dependencies
+- Single static Go binary, no runtime dependencies
 - Postgres backend
 - Zero telemetry, no analytics, no crash reporting, no phoning home
 - Auto-generated API key on first run
@@ -92,11 +84,7 @@ Notifications:
 
 ## Getting started
 
-### Docker Compose (recommended, as part of the Beacon stack)
-
-The easiest way to run Prism is as part of the full Beacon stack — see [`beacon-stack/stack`](https://github.com/beacon-stack/stack) for the full docker-compose setup with Postgres, Pulse, Pilot, Prism, and Haul behind a VPN container.
-
-### Standalone Docker
+### Docker
 
 ```bash
 docker run -d \
@@ -107,11 +95,15 @@ docker run -d \
   ghcr.io/beacon-stack/prism:latest
 ```
 
-Open `http://localhost:8282`. No configuration required to get started.
+Open `http://localhost:8282`. Prism generates an API key on first run — find it in Settings → App Settings.
+
+### Docker Compose (with the rest of the stack)
+
+The full Beacon stack — Postgres, Pulse, Pilot, Prism, Haul, and a VPN container — is wired up in [`beacon-stack/stack`](https://github.com/beacon-stack/stack). Point it at a media directory and go.
 
 ### Build from source
 
-Requires Go 1.25+ and Node.js 22+.
+Requires Go 1.25+ and Node 22+. The default Docker image includes ffmpeg/ffprobe for media scanning; install it separately if you build locally and want that feature.
 
 ```bash
 git clone https://github.com/beacon-stack/prism
@@ -121,52 +113,48 @@ make build
 ./bin/prism
 ```
 
-> **Running Radarr too?** Prism uses port 8282 so you can run both side by side during migration.
+> **Running Radarr too?** Prism uses port 8282, so you can run both side by side during migration.
 
 ## Configuration
 
-Prism works with zero configuration. All settings are editable through the web UI or via environment variables.
-
-### Key environment variables
+Most settings live in the web UI. For the ones you'll want at container-start time, use environment variables or a YAML config file at `/config/config.yaml` (also searched at `~/.config/prism/config.yaml` and `./config.yaml`).
 
 | Variable | Default | Description |
 |---|---|---|
-| `PRISM_SERVER_HOST` | `0.0.0.0` | Bind address |
-| `PRISM_SERVER_PORT` | `8282` | HTTP port |
-| `PRISM_DATABASE_DSN` | | Postgres connection string |
-| `PRISM_AUTH_API_KEY` | auto-generated | API key for external access |
-| `PRISM_PULSE_URL` | | Pulse control-plane URL (optional) |
+| `PRISM_SERVER_PORT` | `8282` | Web UI and API port |
+| `PRISM_DATABASE_DSN` | — | Postgres DSN (required) |
+| `PRISM_AUTH_API_KEY` | auto | API key; autogenerated on first run if unset |
+| `PRISM_PULSE_URL` | — | Pulse control-plane URL (optional) |
 | `PRISM_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
-
-### Config file
-
-Prism looks for `config.yaml` in `/config/config.yaml`, `~/.config/prism/config.yaml`, `/etc/prism/config.yaml`, or `./config.yaml` (in that order).
+| `PRISM_LOG_FORMAT` | `json` | `json` or `text` |
 
 ## Radarr API compatibility
 
-Prism exposes a Radarr v3 compatible API at `/api/v3/`. External tools with a "Radarr" integration — Overseerr, Jellyseerr, Homepage, Home Assistant, LunaSea — point directly at Prism with no changes on their side.
+Prism exposes a Radarr v3 compatible API at `/api/v3/`. External tools with a "Radarr" integration point directly at Prism with no changes on their side.
 
 | Field | Value |
 |---|---|
 | **URL** | `http://<prism-host>:8282` |
 | **API Key** | Your Prism API key (Settings → App Settings) |
 
+Tested against Overseerr, Jellyseerr, Homepage, and Home Assistant. If you hit something that doesn't work, please file an issue with the tool name and the request path that's failing.
+
 ## Radarr migration
 
-Prism can import from a running Radarr instance. Go to Settings → Import, enter your Radarr URL and API key, preview what will be imported, and select which categories to bring over. Supported imports:
+Prism imports from a running Radarr instance in one step. Open Settings → Import, enter your Radarr URL and API key, preview what will be brought over, and pick which categories to import. Supported:
 
 - Quality profiles
 - Libraries (root folders)
 - Indexers
 - Download clients
-- Movies (with monitoring state)
+- Movies with monitoring state
 
 ## Where Prism fits in the Beacon stack
 
 ```
 ┌─────────────┐     registers      ┌──────────┐
 │    Pulse    │◄───────────────────┤  Prism   │
-│ (control    │────managed─────────►(Movies)  │
+│ (control    │────managed─────────►(movies)  │
 │   plane)    │  indexers + profiles│          │
 └─────────────┘                    └────┬─────┘
                                         │
@@ -178,48 +166,43 @@ Prism can import from a running Radarr instance. Go to Settings → Import, ente
                                    └─────────┘
 ```
 
-Prism is fine standalone — Pulse and Haul are optional dependencies. If you run the full stack, Prism pulls its indexers and quality profiles from Pulse, and sends torrent grabs through Haul.
+Prism runs fine standalone — Pulse and Haul are optional. If you run the full stack, Prism pulls shared indexers and quality profiles from Pulse and sends torrent grabs through Haul.
+
+## Power user notes
+
+**Custom formats with TRaSH presets.** Prism ships with the commonly-used TRaSH Guides custom format presets preinstalled and scored according to their recommendations, so a fresh install already gets solid 1080p and 2160p releases without any manual configuration. Editing, disabling, and adding new formats all work the same as Radarr — the format engine is compatible. If you're coming from a Radarr install with a heavily tuned setup, the migration tool will bring your custom formats with it.
+
+**Edition support.** Prism's parser recognizes 15 canonical editions (Theatrical, Director's Cut, Extended, Ultimate, IMAX, Criterion, 4K Remaster, and others). Set a preferred edition per movie and Prism scores matching releases higher during the decision pass. Useful when you care about a specific cut of a film.
+
+**Release decision explainability.** Every release on the manual search page shows exactly why it was grabbed or skipped — which custom formats matched, which quality tier it landed in, and whether it was blocked by a title mismatch or the quality profile floor. Makes debugging "why didn't it grab this" trivial instead of mysterious.
+
+**Radarr v3 API adapter.** Lives in `internal/api/v3/`. It's a compatibility shim over Prism's native API that maps Radarr's endpoint shapes onto Prism's internal types. When a field doesn't have a direct equivalent, the adapter either returns a sensible default or omits it. If you're building or maintaining an external tool that targets Prism through this adapter, file issues against endpoint shapes that aren't behaving.
+
+**API surface.** Everything the UI does is available through the native `/api/v1/` REST API — OpenAPI docs at `/api/docs`.
 
 ## Privacy
 
-Prism makes outbound connections only to services you explicitly configure: TMDB (for metadata), your indexers, your download clients, your media servers, your notification targets, and optionally the Anthropic API for AI features. No telemetry, no analytics, no crash reporting, no update checks. Credentials are stored locally and never written to logs.
+Prism makes outbound connections only to services you explicitly configure: TMDB for metadata, your indexers, your download clients, your media servers, and your notification targets. No telemetry, no analytics, no crash reporting, no update checks. Credentials are stored locally and never written to logs.
 
-## Project structure
+## Built with Claude
 
-```
-cmd/prism/          Entry point
-internal/
-  api/              HTTP router, middleware, v1 handlers, v3 Radarr adapter
-  config/           Configuration loading
-  core/             Domain services (movie, quality, library, queue, etc.)
-  db/               Database migrations and generated query code (sqlc)
-  parser/           Release title parser (quality, edition, language)
-  pulse/            Pulse control-plane integration
-  scheduler/        Background job scheduler
-plugins/
-  downloaders/      Haul, qBittorrent, Deluge, Transmission, SABnzbd, NZBGet
-  importlists/      TMDB, Trakt, Plex watchlist, MDBList, custom list
-  indexers/         Newznab, Torznab
-  mediaservers/     Plex, Jellyfin, Emby
-  notifications/    Discord, Slack, Telegram, Pushover, Gotify, ntfy, email, webhook, command
-web/ui/             React 19 + TypeScript + Vite frontend
-```
+Prism was built by one person with extensive help from [Claude](https://claude.ai) (Anthropic). Architecture, design decisions, bug triage, and this README are mine. Many of the keystrokes are not. If something in the code or the docs doesn't make sense, that's a bug worth reporting — [open an issue](https://github.com/beacon-stack/prism/issues).
 
 ## Development
 
 ```bash
-make build         # compile binary to bin/prism
-make run           # build + run
-make dev           # hot reload with air
-make test          # go test ./...
-make check         # golangci-lint + tsc --noEmit
-make sqlc          # regenerate SQLC code
+make build    # compile to bin/prism
+make run      # build + run
+make dev      # hot reload (requires air)
+make test     # go test ./...
+make check    # golangci-lint + tsc --noEmit
+make sqlc     # regenerate sqlc code
 ```
 
 ## Contributing
 
-Bug reports, feature requests, and pull requests are welcome. Please open an issue before starting large changes.
+Bug reports, feature requests, and pull requests are welcome. Please open an issue before starting anything large.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
