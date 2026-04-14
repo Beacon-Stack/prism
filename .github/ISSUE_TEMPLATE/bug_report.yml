@@ -39,7 +39,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Luminarr version
+      label: Prism version
       placeholder: "e.g. 0.1.0 or git commit hash"
     validations:
       required: true
@@ -69,7 +69,7 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-      description: Run with `log.level = debug` (or `LUMINARR_LOG_LEVEL=debug`) and paste relevant lines. Logs are safe to share — credentials are redacted as `***`.
+      description: Run with `log.level = debug` (or `PRISM_LOG_LEVEL=debug`) and paste relevant lines. Logs are safe to share — credentials are redacted as `***`.
       render: text
 
   - type: textarea
