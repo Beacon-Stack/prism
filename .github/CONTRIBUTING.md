@@ -1,4 +1,4 @@
-# Contributing to Luminarr
+# Contributing to Prism
 
 Thanks for your interest. Here's what you need to know before opening a PR.
 
@@ -15,9 +15,9 @@ See [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md#development) for the full set
 The short version:
 
 ```bash
-git clone https://github.com/luminarr/luminarr
-cd luminarr
-go build ./...          # confirm Go build is clean
+git clone https://github.com/beacon-stack/prism
+cd prism
+go build ./...              # confirm Go build is clean
 cd web/ui && npm run build  # confirm TypeScript build is clean
 ```
 
