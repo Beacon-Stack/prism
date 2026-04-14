@@ -1,146 +1,225 @@
 <p align="center">
-  <img src="web/ui/public/luminarr-512.png" alt="Luminarr" width="120">
+  <h1 align="center">Prism</h1>
+  <p align="center">A self-hosted movie collection manager built for simplicity.</p>
 </p>
-<h1 align="center">Luminarr</h1>
-<p align="center">A self-hosted movie collection manager built for simplicity.</p>
 <p align="center">
-  <img src="https://github.com/luminarr/luminarr/actions/workflows/ci.yml/badge.svg" alt="CI">
-  <a href="https://github.com/luminarr/luminarr/releases/latest"><img src="https://img.shields.io/github/v/release/luminarr/luminarr" alt="Release"></a>
-  <a href="https://github.com/luminarr/luminarr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/luminarr/luminarr" alt="License"></a>
+  <a href="https://github.com/beacon-stack/prism/blob/main/LICENSE"><img src="https://img.shields.io/github/license/beacon-stack/prism" alt="License"></a>
   <img src="https://img.shields.io/badge/go-1.25-00ADD8?logo=go&logoColor=white" alt="Go 1.25">
 </p>
 <p align="center">
-  <a href="https://luminarr.video">Website</a> ·
-  <a href="https://github.com/luminarr/luminarr/wiki">Documentation</a> ·
-  <a href="https://github.com/luminarr/luminarr/issues">Bug Reports</a> ·
-  <a href="https://github.com/luminarr/luminarr/wiki/Getting-Started">Getting Started</a>
+  <a href="https://beaconstack.io">Website</a> ·
+  <a href="https://github.com/beacon-stack/prism/issues">Bug Reports</a>
 </p>
 
 ---
 
-**Luminarr** monitors your movie library, searches indexers, and automatically grabs the best available release. It's written in Go and React, starts in under a second, and idles under 60 MB of RAM.
+**Prism** monitors your movie library, searches indexers, and automatically grabs the best available release. It is written in Go and React, starts in under a second, and idles under 60 MB of RAM.
 
-If you're coming from Radarr, Luminarr can import your entire setup — quality profiles, libraries, indexers, download clients, and movie list — in one click.
+Prism is part of the [Beacon](https://beaconstack.io) media stack — it runs alongside [Pilot](https://github.com/beacon-stack/pilot) (TV), [Haul](https://github.com/beacon-stack/haul) (BitTorrent downloader), and [Pulse](https://github.com/beacon-stack/pulse) (control plane) — but it also runs standalone if you only want a movie manager.
 
-<p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="Luminarr Dashboard" width="800">
-</p>
+If you are coming from Radarr, Prism can import your quality profiles, libraries, indexers, download clients, and movie list in one step.
 
 ## Features
 
-- **Quality profiles** with explicit codec + HDR dimensions — no Custom Formats to configure
-- **Custom formats** — regex-based release matching with weighted scoring, TRaSH Guides presets built in
-- **TMDB integration** — search, add, and manage movies with full metadata
-- **Torznab & Newznab indexers** — compatible with Prowlarr and Jackett
-- **qBittorrent, Deluge, Transmission, SABnzbd, NZBGet** download clients
-- **Automatic RSS sync** — checks indexers on a schedule and grabs matching releases
-- **Auto-search** — searches all indexers, scores against your quality profile and custom formats, grabs the best release automatically
-- **Auto-import** — moves or hardlinks completed downloads into your library
-- **Release decision explainability** — "Why?" button on every release shows exactly why it was grabbed or skipped
-- **Import conflict detection** — warns about dimension-by-dimension regressions (HDR lost, audio downgrade) before grabbing
-- **Radarr import** — one-click migration from a running Radarr instance
-- **Radarr v3 API compatibility** — use Overseerr, Homepage, Home Assistant, and other tools without changes
-- **Import lists** — auto-add movies from TMDB, Trakt, Plex watchlists, MDBList, and custom lists
-- **Media server integration** — Plex, Emby, and Jellyfin library sync with auto-refresh
-- **Library Sync** — compare your media server library against Luminarr and import the difference
-- **Wanted page** — missing movies, cutoff-unmet, and upgrade recommendations in one view
-- **Calendar** — monthly grid of movies by release date
-- **Statistics** — library breakdown by quality tier, genre, decade, storage trends, and indexer performance with clickable drill-down
-- **Manual search** — search all indexers for a specific movie and pick a release
-- **Edition support** — parse 15 canonical editions, set preferred edition per movie with score bonus
-- **File management** — view, rename, and delete files per movie
-- **Media scanning** — optional ffprobe integration to verify actual codec, resolution, and HDR
-- **Notifications** — Discord, Slack, Telegram, Pushover, Gotify, ntfy, webhook, email, and custom scripts
-- **Health monitoring** — disk space, download client connectivity, indexer reachability
-- **AI command palette** — optional Claude-powered natural language commands (Cmd+K): "grab Dune in 4K", "how many movies am I missing?", "go to quality profiles". State-modifying actions require explicit confirmation
-- **Collections** — TMDB collection browsing and tracking
-- **Tags** — organize movies for filtering and per-tag indexer/notification routing
-- **WebSocket live updates** — real-time queue updates without polling
-- **Backup & restore** — download/upload database snapshots from the UI
-- **OpenAPI docs** — interactive API at `/api/docs`
-- **Zero telemetry** — no analytics, no crash reporting, no phoning home
+**Library management**
 
-## Preview
+- Full TMDB integration for search, metadata, posters, and collection tracking
+- Per-movie monitoring with automatic grab on missing
+- Wanted page with missing, cutoff-unmet, and upgrade recommendations in one view
+- Calendar view of upcoming releases by month
+- Library statistics with breakdown by quality tier, genre, decade, storage trends, and indexer performance
+- Collections browsing and tracking from TMDB
 
-| Library | Quality Profiles |
-|:-:|:-:|
-| ![Library](docs/screenshots/dashboard.png) | ![Quality Profiles](docs/screenshots/quality-profiles.png) |
+**Quality and release handling**
 
-## Getting Started
+- Quality profiles with resolution, source, codec, and HDR dimensions
+- Custom formats with regex matching and weighted scoring, TRaSH Guides presets built in
+- Edition support — 15 canonical editions parsed, with per-movie preferred-edition scoring
+- Release decision explainability — "why was this grabbed or skipped?" surfaced on every row
+- Import conflict detection — warns about dimension regressions (HDR lost, audio downgrade) before grabbing
+- Manual search across all indexers with full scoring breakdown
 
-### Docker (recommended)
+**Automation**
+
+- Automatic RSS sync on a configurable schedule
+- Auto-search that scores every candidate against your profile and custom formats before grabbing
+- Auto-import of completed downloads with rename + hardlink support
+- Import lists from TMDB, Trakt, Plex watchlists, MDBList, and custom URL lists
+- Library sync — compare your media server against Prism and import the delta
+- Activity log pruning
+
+**Integrations**
+
+Indexers:
+- Newznab (NZBgeek, NZBFinder, etc.)
+- Torznab (Prowlarr, Jackett)
+- [Pulse](https://github.com/beacon-stack/pulse) — centrally managed indexers pushed from the Pulse control plane
+
+Download clients:
+- [Haul](https://github.com/beacon-stack/haul) — first-class integration with the Beacon torrent client
+- qBittorrent, Deluge, Transmission
+- SABnzbd, NZBGet
+
+Media servers:
+- Plex, Jellyfin, Emby
+
+Notifications:
+- Discord, Slack, Telegram, Pushover, Gotify, ntfy
+- Email (SMTP with STARTTLS/TLS)
+- Webhook (generic HTTP)
+- Custom command/script execution
+
+**Compatibility**
+
+- **Radarr v3 API** — Prism exposes a Radarr v3-compatible API at `/api/v3/`, so Overseerr, Jellyseerr, Homepage, Home Assistant, LunaSea and other tools that speak Radarr can talk to Prism without changes.
+
+**UI**
+
+- Command palette (Cmd/Ctrl+K) with fuzzy search for pages, movies, and actions
+- Interactive release search modal with pack-type filters, quality badges, and per-row scoring
+- Theme system with dark and light modes, 10+ presets shared across the Beacon services
+- Directory browser for selecting library root paths
+- WebSocket live updates for queue progress
+- OpenAPI documentation at `/api/docs`
+
+**Operations**
+
+- Single static binary, no runtime dependencies
+- Postgres backend
+- Zero telemetry, no analytics, no crash reporting, no phoning home
+- Auto-generated API key on first run
+- Graceful shutdown with drain timeout
+
+## Getting started
+
+### Docker Compose (recommended, as part of the Beacon stack)
+
+The easiest way to run Prism is as part of the full Beacon stack — see [`beacon-stack/stack`](https://github.com/beacon-stack/stack) for the full docker-compose setup with Postgres, Pulse, Pilot, Prism, and Haul behind a VPN container.
+
+### Standalone Docker
 
 ```bash
 docker run -d \
-  --name luminarr \
+  --name prism \
   -p 8282:8282 \
   -v /path/to/config:/config \
   -v /path/to/movies:/movies \
-  ghcr.io/luminarr/luminarr:latest
+  ghcr.io/beacon-stack/prism:latest
 ```
 
-Open `http://localhost:8282`. That's it.
-
-### Docker Compose
-
-```yaml
-services:
-  luminarr:
-    image: ghcr.io/luminarr/luminarr:latest
-    ports:
-      - "8282:8282"
-    volumes:
-      - /path/to/config:/config
-      - /path/to/movies:/movies
-    restart: unless-stopped
-```
+Open `http://localhost:8282`. No configuration required to get started.
 
 ### Build from source
 
+Requires Go 1.25+ and Node.js 22+.
+
 ```bash
-git clone https://github.com/luminarr/luminarr
-cd luminarr
+git clone https://github.com/beacon-stack/prism
+cd prism
+cd web/ui && npm ci && npm run build && cd ../..
 make build
-./bin/luminarr
+./bin/prism
 ```
 
-> **Running Radarr too?** Luminarr uses port 8282 so you can run both side by side during migration.
+> **Running Radarr too?** Prism uses port 8282 so you can run both side by side during migration.
 
-> **Media scanning** works out of the box — the default Docker image includes ffprobe. A `latest-minimal` tag (scratch-based, no ffprobe) is also available.
+## Configuration
 
-For full setup instructions, see the **[Getting Started guide](https://github.com/luminarr/luminarr/wiki/Getting-Started)**.
+Prism works with zero configuration. All settings are editable through the web UI or via environment variables.
 
-## Radarr API Compatibility
+### Key environment variables
 
-Luminarr exposes a Radarr v3 compatible API at `/api/v3/`. External tools with a "Radarr" integration — Overseerr, Jellyseerr, Homepage, Home Assistant, LunaSea, and others — can point directly at Luminarr with no changes on their side.
+| Variable | Default | Description |
+|---|---|---|
+| `PRISM_SERVER_HOST` | `0.0.0.0` | Bind address |
+| `PRISM_SERVER_PORT` | `8282` | HTTP port |
+| `PRISM_DATABASE_DSN` | | Postgres connection string |
+| `PRISM_AUTH_API_KEY` | auto-generated | API key for external access |
+| `PRISM_PULSE_URL` | | Pulse control-plane URL (optional) |
+| `PRISM_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
+
+### Config file
+
+Prism looks for `config.yaml` in `/config/config.yaml`, `~/.config/prism/config.yaml`, `/etc/prism/config.yaml`, or `./config.yaml` (in that order).
+
+## Radarr API compatibility
+
+Prism exposes a Radarr v3 compatible API at `/api/v3/`. External tools with a "Radarr" integration — Overseerr, Jellyseerr, Homepage, Home Assistant, LunaSea — point directly at Prism with no changes on their side.
 
 | Field | Value |
-|-------|-------|
-| **URL** | `http://<luminarr-host>:8282` |
-| **API Key** | Your Luminarr API key (Settings → App Settings) |
+|---|---|
+| **URL** | `http://<prism-host>:8282` |
+| **API Key** | Your Prism API key (Settings → App Settings) |
 
-Full details: [Radarr API Compatibility](https://github.com/luminarr/luminarr/wiki/Radarr-API-Compatibility)
+## Radarr migration
+
+Prism can import from a running Radarr instance. Go to Settings → Import, enter your Radarr URL and API key, preview what will be imported, and select which categories to bring over. Supported imports:
+
+- Quality profiles
+- Libraries (root folders)
+- Indexers
+- Download clients
+- Movies (with monitoring state)
+
+## Where Prism fits in the Beacon stack
+
+```
+┌─────────────┐     registers      ┌──────────┐
+│    Pulse    │◄───────────────────┤  Prism   │
+│ (control    │────managed─────────►(Movies)  │
+│   plane)    │  indexers + profiles│          │
+└─────────────┘                    └────┬─────┘
+                                        │
+                                 grab torrent
+                                        ▼
+                                   ┌─────────┐
+                                   │  Haul   │
+                                   │  (BT)   │
+                                   └─────────┘
+```
+
+Prism is fine standalone — Pulse and Haul are optional dependencies. If you run the full stack, Prism pulls its indexers and quality profiles from Pulse, and sends torrent grabs through Haul.
 
 ## Privacy
 
-Luminarr makes outbound connections **only** to services you explicitly configure (TMDB, your indexers, your download clients, your media servers, your notification targets, and optionally the Anthropic API for AI features). No telemetry, no analytics, no crash reporting, no update checks.
+Prism makes outbound connections only to services you explicitly configure: TMDB (for metadata), your indexers, your download clients, your media servers, your notification targets, and optionally the Anthropic API for AI features. No telemetry, no analytics, no crash reporting, no update checks. Credentials are stored locally and never written to logs.
 
-Credentials are stored in your local `config.yaml` only and never written to logs. When AI features are enabled, only your command text and aggregate library stats are sent to Claude — no movie titles, file paths, or personal data.
+## Project structure
 
-Full details: [Privacy](https://github.com/luminarr/luminarr/wiki/Privacy)
+```
+cmd/prism/          Entry point
+internal/
+  api/              HTTP router, middleware, v1 handlers, v3 Radarr adapter
+  config/           Configuration loading
+  core/             Domain services (movie, quality, library, queue, etc.)
+  db/               Database migrations and generated query code (sqlc)
+  parser/           Release title parser (quality, edition, language)
+  pulse/            Pulse control-plane integration
+  scheduler/        Background job scheduler
+plugins/
+  downloaders/      Haul, qBittorrent, Deluge, Transmission, SABnzbd, NZBGet
+  importlists/      TMDB, Trakt, Plex watchlist, MDBList, custom list
+  indexers/         Newznab, Torznab
+  mediaservers/     Plex, Jellyfin, Emby
+  notifications/    Discord, Slack, Telegram, Pushover, Gotify, ntfy, email, webhook, command
+web/ui/             React 19 + TypeScript + Vite frontend
+```
 
-## How This Was Built
+## Development
 
-Luminarr was built with AI assistance — specifically [Claude](https://claude.ai) (Anthropic) as the primary code generator, with human design and review throughout. Every architectural decision was made by a human. The code is readable and tested. If something doesn't make sense, that's a bug — [open an issue](https://github.com/luminarr/luminarr/issues).
+```bash
+make build         # compile binary to bin/prism
+make run           # build + run
+make dev           # hot reload with air
+make test          # go test ./...
+make check         # golangci-lint + tsc --noEmit
+make sqlc          # regenerate SQLC code
+```
 
 ## Contributing
 
-Bug reports, feature requests, and pull requests are welcome.
-
-- **Bug reports:** [bug report template](.github/ISSUE_TEMPLATE/bug_report.yml)
-- **Feature requests:** [feature request template](.github/ISSUE_TEMPLATE/feature_request.yml)
-- **Code:** read [CONTRIBUTING.md](.github/CONTRIBUTING.md) before opening a PR
+Bug reports, feature requests, and pull requests are welcome. Please open an issue before starting large changes.
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT
