@@ -19,14 +19,14 @@ Prism also speaks the Radarr v3 API, so Overseerr, Jellyseerr, Homepage, Home As
 
 ## Is this for you?
 
-Prism is built to be approachable by default and capable when you want it to be. The out-of-the-box defaults take you from `docker run` to a fully monitored library in a few minutes: sensible quality profiles, automatic RSS sync, reliable rename-on-import, and a one-click migration from an existing Radarr install. The deeper features — custom format regex with TRaSH Guides presets built in, edition-aware scoring, release decision explainability, per-movie indexer routing, and Pulse-managed shared config — are all there when you want them, and stay out of your way until you do.
+Prism exists for people who love the Radarr ecosystem — Overseerr or Jellyseerr for requests, Homepage or Home Assistant for at-a-glance status, TRaSH Guides for quality tuning — but want a movie manager that's evolving faster than the upstream. Every one of those tools already works with Prism because Prism implements the Radarr v3 API verbatim: point Overseerr's URL at Prism's port, paste in the API key, and it just works. The migration itself is one click — Settings → Import, paste your Radarr URL and API key, and thirty seconds later your quality profiles, libraries, indexers, download clients, and movies are all in Prism with monitoring state intact. Nothing to rebuild, no integrations to relearn.
 
 You'll probably like Prism if you:
 
-- Run a home media server and want a movie manager with a modern, fast UI
-- Already use Radarr and want something lighter, faster, and in active development
-- Use tools like Overseerr, Jellyseerr, or Homepage and want them to keep working through a drop-in Radarr API replacement
-- Appreciate sensible defaults now and the option to grow into advanced features later
+- Use Overseerr, Jellyseerr, Homepage, or anything else with a Radarr integration and want to keep using it
+- Want TRaSH Guides–grade custom formats preinstalled instead of hand-configuring them
+- Care about editions (Theatrical vs Director's Cut vs IMAX) and want Prism to score them rather than ignore them
+- Want collection tracking and library analytics that aren't afterthoughts
 
 ## Features
 
