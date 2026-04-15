@@ -1,0 +1,118 @@
+# GoReleaser config for Prism
+# https://goreleaser.com
+#
+# Triggered from .github/workflows/release.yml on `v*` tag pushes.
+# Builds cross-platform binaries, archives them, publishes a GitHub
+# Release, and pushes multi-tag docker images to ghcr.io.
+
+version: 2
+
+project_name: prism
+
+before:
+  hooks:
+    - go mod download
+    - sh -c "cd web/ui && npm ci && npm run build"
+
+builds:
+  - id: prism
+    main: ./cmd/prism
+    binary: prism
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/beacon-stack/prism/internal/version.Version={{.Version}}
+      - -X github.com/beacon-stack/prism/internal/version.BuildTime={{.Date}}
+      - -X github.com/beacon-stack/prism/internal/version.Commit={{.FullCommit}}
+      - -X github.com/beacon-stack/prism/internal/config.DefaultTMDBKey={{.Env.TMDB_API_KEY}}
+      - -X github.com/beacon-stack/prism/internal/config.DefaultTraktClientID={{.Env.TRAKT_CLIENT_ID}}
+
+archives:
+  - id: prism
+    ids: [prism]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - config.example.yaml
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^chore:'
+      - '^test:'
+      - '^ci:'
+      - '(?i)merge pull request'
+
+dockers:
+  - id: prism-latest
+    image_templates:
+      - 'ghcr.io/beacon-stack/prism:{{ .Version }}'
+      - 'ghcr.io/beacon-stack/prism:v{{ .Major }}.{{ .Minor }}'
+      - 'ghcr.io/beacon-stack/prism:v{{ .Major }}'
+      - 'ghcr.io/beacon-stack/prism:latest'
+    dockerfile: docker/Dockerfile
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - '--pull'
+      - '--platform=linux/amd64'
+      - '--label=org.opencontainers.image.title=prism'
+      - '--label=org.opencontainers.image.description=Self-hosted movie collection manager for the Beacon media stack'
+      - '--label=org.opencontainers.image.source=https://github.com/beacon-stack/prism'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+      - '--label=org.opencontainers.image.licenses=MIT'
+
+  - id: prism-minimal
+    image_templates:
+      - 'ghcr.io/beacon-stack/prism:{{ .Version }}-minimal'
+      - 'ghcr.io/beacon-stack/prism:v{{ .Major }}.{{ .Minor }}-minimal'
+      - 'ghcr.io/beacon-stack/prism:latest-minimal'
+    dockerfile: docker/Dockerfile.minimal
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - '--pull'
+      - '--platform=linux/amd64'
+      - '--label=org.opencontainers.image.title=prism-minimal'
+      - '--label=org.opencontainers.image.description=Prism on scratch base (no ffprobe)'
+      - '--label=org.opencontainers.image.source=https://github.com/beacon-stack/prism'
+      - '--label=org.opencontainers.image.version={{ .Version }}'
+      - '--label=org.opencontainers.image.revision={{ .FullCommit }}'
+      - '--label=org.opencontainers.image.licenses=MIT'
+
+release:
+  github:
+    owner: beacon-stack
+    name: prism
+  draft: false
+  prerelease: auto
+  name_template: 'v{{ .Version }}'
