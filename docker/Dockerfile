@@ -33,12 +33,12 @@ COPY --from=frontend /app/web/static/ ./web/static/
 
 # modernc/sqlite is pure Go — CGO_ENABLED=0 produces a fully static binary.
 RUN CGO_ENABLED=0 GOOS=linux go build \
-      -ldflags "-X github.com/luminarr/luminarr/internal/version.Version=${VERSION} \
-                -X github.com/luminarr/luminarr/internal/version.BuildTime=${BUILD_TIME} \
-                -X github.com/luminarr/luminarr/internal/config.DefaultTMDBKey=${TMDB_API_KEY} \
-                -X github.com/luminarr/luminarr/internal/config.DefaultTraktClientID=${TRAKT_CLIENT_ID} \
+      -ldflags "-X github.com/prism/prism/internal/version.Version=${VERSION} \
+                -X github.com/prism/prism/internal/version.BuildTime=${BUILD_TIME} \
+                -X github.com/prism/prism/internal/config.DefaultTMDBKey=${TMDB_API_KEY} \
+                -X github.com/prism/prism/internal/config.DefaultTraktClientID=${TRAKT_CLIENT_ID} \
                 -s -w" \
-      -o /luminarr ./cmd/luminarr
+      -o /prism ./cmd/prism
 
 # ── Final stage ───────────────────────────────────────────────────────────────
 # Alpine with ffmpeg (includes ffprobe) for media scanning out of the box.
@@ -47,16 +47,16 @@ FROM alpine:3.21
 # ffmpeg pulls in ffprobe. ca-certificates is needed for outbound HTTPS.
 # tzdata provides timezone data for correct time display.
 RUN apk add --no-cache ffmpeg ca-certificates tzdata postgresql-client && \
-    adduser -D -u 1000 luminarr
+    adduser -D -u 1000 prism
 
 # The binary
-COPY --from=builder /luminarr /luminarr
+COPY --from=builder /prism /prism
 
 # Default data directory (mount a volume here in production)
 VOLUME ["/config"]
 
 EXPOSE 8282
 
-USER luminarr
+USER prism
 
-ENTRYPOINT ["/luminarr"]
+ENTRYPOINT ["/prism"]

@@ -16,17 +16,17 @@ COPY . .
 
 # modernc/sqlite is pure Go — CGO_ENABLED=0 produces a fully static binary.
 RUN CGO_ENABLED=0 GOOS=linux go build \
-      -ldflags "-X github.com/luminarr/luminarr/internal/version.Version=${VERSION} \
-                -X github.com/luminarr/luminarr/internal/version.BuildTime=${BUILD_TIME} \
-                -X github.com/luminarr/luminarr/internal/config.DefaultTMDBKey=${TMDB_API_KEY} \
-                -X github.com/luminarr/luminarr/internal/config.DefaultTraktClientID=${TRAKT_CLIENT_ID} \
+      -ldflags "-X github.com/prism/prism/internal/version.Version=${VERSION} \
+                -X github.com/prism/prism/internal/version.BuildTime=${BUILD_TIME} \
+                -X github.com/prism/prism/internal/config.DefaultTMDBKey=${TMDB_API_KEY} \
+                -X github.com/prism/prism/internal/config.DefaultTraktClientID=${TRAKT_CLIENT_ID} \
                 -s -w" \
-      -o /luminarr ./cmd/luminarr
+      -o /prism ./cmd/prism
 
 # Create a minimal /etc/passwd so the scratch image has a non-root user.
 # UID/GID 65532 matches the distroless "nonroot" convention.
-RUN echo "nonroot:x:65532:65532:nonroot:/:/sbin/nologin" > /etc/passwd.luminarr && \
-    echo "nonroot:x:65532:" > /etc/group.luminarr
+RUN echo "nonroot:x:65532:65532:nonroot:/:/sbin/nologin" > /etc/passwd.prism && \
+    echo "nonroot:x:65532:" > /etc/group.prism
 
 # ── Final stage ───────────────────────────────────────────────────────────────
 # scratch: zero OS footprint. No ffprobe — media scanning requires host-side
@@ -37,11 +37,11 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Minimal passwd/group so the process can run as a named non-root user.
-COPY --from=builder /etc/passwd.luminarr /etc/passwd
-COPY --from=builder /etc/group.luminarr /etc/group
+COPY --from=builder /etc/passwd.prism /etc/passwd
+COPY --from=builder /etc/group.prism /etc/group
 
 # The binary
-COPY --from=builder /luminarr /luminarr
+COPY --from=builder /prism /prism
 
 # Default data directory (mount a volume here in production)
 VOLUME ["/config"]
@@ -52,4 +52,4 @@ EXPOSE 8282
 # or mounted with appropriate permissions, for the process to write to it.
 USER nonroot:nonroot
 
-ENTRYPOINT ["/luminarr"]
+ENTRYPOINT ["/prism"]
