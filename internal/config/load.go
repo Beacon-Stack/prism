@@ -11,6 +11,8 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
+
+	"github.com/beacon-stack/pulse/pkg/secretfile"
 )
 
 const (
@@ -78,6 +80,7 @@ func Load(cfgFile string) (*Config, error) {
 	_ = v.BindEnv("ai.api_key", "PRISM_AI_API_KEY")
 	_ = v.BindEnv("database.path", "PRISM_DATABASE_PATH")
 	_ = v.BindEnv("database.dsn", "PRISM_DATABASE_DSN")
+	_ = v.BindEnv("database.password_file", "PRISM_DATABASE_PASSWORD_FILE")
 	_ = v.BindEnv("pulse.url", "PRISM_PULSE_URL")
 	_ = v.BindEnv("pulse.api_key", "PRISM_PULSE_API_KEY")
 	_ = v.BindEnv("ai.match_model", "PRISM_AI_MATCH_MODEL")
@@ -101,6 +104,14 @@ func Load(cfgFile string) (*Config, error) {
 		),
 	)); err != nil {
 		return nil, fmt.Errorf("parsing config: %w", err)
+	}
+
+	if cfg.Database.PasswordFile != "" {
+		merged, err := secretfile.OverrideDSNPassword(cfg.Database.DSN.Value(), cfg.Database.PasswordFile)
+		if err != nil {
+			return nil, fmt.Errorf("applying database password file: %w", err)
+		}
+		cfg.Database.DSN = Secret(merged)
 	}
 
 	// Default SQLite path: if /config exists (Docker volume), use it;

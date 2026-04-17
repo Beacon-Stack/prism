@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/beacon-stack/prism/internal/config"
@@ -114,6 +115,76 @@ func TestEnsureAPIKey_Generates(t *testing.T) {
 	}
 	if len(cfg.Auth.APIKey.Value()) != 64 { // 32 bytes hex-encoded
 		t.Errorf("generated key length = %d, want 64", len(cfg.Auth.APIKey.Value()))
+	}
+}
+
+func TestLoad_PasswordFileOverridesDSN(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(cfgPath, []byte(`
+database:
+  driver: postgres
+  dsn: "postgres://user:plain@host:5432/db"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pwFile := filepath.Join(dir, "pw.txt")
+	if err := os.WriteFile(pwFile, []byte("secretpw\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("PRISM_DATABASE_PASSWORD_FILE", pwFile)
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	want := "postgres://user:secretpw@host:5432/db"
+	if got := cfg.Database.DSN.Value(); got != want {
+		t.Fatalf("DSN = %q; want %q", got, want)
+	}
+}
+
+func TestLoad_NoPasswordFile_LeavesDSNIntact(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(cfgPath, []byte(`
+database:
+  driver: postgres
+  dsn: "postgres://user:plain@host:5432/db"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("PRISM_DATABASE_PASSWORD_FILE", "")
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	want := "postgres://user:plain@host:5432/db"
+	if got := cfg.Database.DSN.Value(); got != want {
+		t.Fatalf("DSN = %q; want %q", got, want)
+	}
+}
+
+func TestLoad_InvalidPasswordFilePath_Errors(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(cfgPath, []byte(`
+database:
+  driver: postgres
+  dsn: "postgres://user:plain@host:5432/db"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("PRISM_DATABASE_PASSWORD_FILE", "/nonexistent/secret")
+
+	if _, err := config.Load(cfgPath); err == nil {
+		t.Fatal("expected error when password file path is invalid")
 	}
 }
 
