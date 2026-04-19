@@ -170,6 +170,52 @@ database:
 	}
 }
 
+func TestLoad_PulseAPIKeyFileOverridesInlineKey(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(cfgPath, []byte(`
+database:
+  driver: postgres
+  dsn: "postgres://user:plain@host:5432/db"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	keyFile := filepath.Join(dir, "pulse.txt")
+	if err := os.WriteFile(keyFile, []byte("secret-key\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("PRISM_PULSE_API_KEY", "inline-loses")
+	t.Setenv("PRISM_PULSE_API_KEY_FILE", keyFile)
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	if got := cfg.Pulse.APIKey.Value(); got != "secret-key" {
+		t.Fatalf("Pulse.APIKey = %q; want secret-key (file must override inline env)", got)
+	}
+}
+
+func TestLoad_InvalidPulseAPIKeyFilePath_Errors(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "config.yaml")
+	if err := os.WriteFile(cfgPath, []byte(`
+database:
+  driver: postgres
+  dsn: "postgres://user:plain@host:5432/db"
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("PRISM_PULSE_API_KEY_FILE", "/nonexistent/pulse-api-key")
+
+	if _, err := config.Load(cfgPath); err == nil {
+		t.Fatal("expected error when pulse api_key_file path is invalid")
+	}
+}
+
 func TestLoad_InvalidPasswordFilePath_Errors(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.yaml")

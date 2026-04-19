@@ -83,6 +83,7 @@ func Load(cfgFile string) (*Config, error) {
 	_ = v.BindEnv("database.password_file", "PRISM_DATABASE_PASSWORD_FILE")
 	_ = v.BindEnv("pulse.url", "PRISM_PULSE_URL")
 	_ = v.BindEnv("pulse.api_key", "PRISM_PULSE_API_KEY")
+	_ = v.BindEnv("pulse.api_key_file", "PRISM_PULSE_API_KEY_FILE")
 	_ = v.BindEnv("ai.match_model", "PRISM_AI_MATCH_MODEL")
 	_ = v.BindEnv("ai.score_model", "PRISM_AI_SCORE_MODEL")
 	_ = v.BindEnv("ai.filter_model", "PRISM_AI_FILTER_MODEL")
@@ -112,6 +113,14 @@ func Load(cfgFile string) (*Config, error) {
 			return nil, fmt.Errorf("applying database password file: %w", err)
 		}
 		cfg.Database.DSN = Secret(merged)
+	}
+
+	if cfg.Pulse.APIKeyFile != "" {
+		contents, err := secretfile.Read(cfg.Pulse.APIKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading Pulse API key file: %w", err)
+		}
+		cfg.Pulse.APIKey = Secret(contents)
 	}
 
 	// Default SQLite path: if /config exists (Docker volume), use it;
