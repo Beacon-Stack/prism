@@ -23,6 +23,7 @@ import BlocklistPage from "@/pages/settings/blocklist/BlocklistPage";
 import MediaManagementPage from "@/pages/settings/media-management/MediaManagementPage";
 import MediaScanningPage from "@/pages/settings/media-scanning/MediaScanningPage";
 import AppSettingsPage from "@/pages/settings/app/AppSettingsPage";
+import ProvidersSettings from "@/pages/settings/providers/ProvidersSettings";
 import ActivityPage from "@/pages/activity/ActivityPage";
 import DiscoverPage from "@/pages/discover/DiscoverPage";
 import DiscoverDetailPage from "@/pages/discover/DiscoverDetailPage";
@@ -88,6 +89,7 @@ export default function App() {
                 <Route path="media-management" element={<RouteEB><MediaManagementPage /></RouteEB>} />
                 <Route path="media-scanning" element={<RouteEB><MediaScanningPage /></RouteEB>} />
                 <Route path="system" element={<RouteEB><SystemPage /></RouteEB>} />
+                <Route path="providers" element={<RouteEB><ProvidersSettings /></RouteEB>} />
                 <Route path="import" element={<RouteEB><ImportPage /></RouteEB>} />
               </Route>
             </Route>

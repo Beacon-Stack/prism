@@ -31,6 +31,7 @@ import {
   ShieldOff,
   Layers,
   BookOpen,
+  KeyRound,
 } from "lucide-react";
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
@@ -71,6 +72,7 @@ const settingsNav: NavItem[] = [
   { to: "/settings/import-exclusions", icon: ShieldOff,      label: "Import Exclusions" },
   { to: "/settings/blocklist",         icon: Ban,              label: "Blocklist" },
   { to: "/settings/import",            icon: ArrowDownToLine,  label: "Import" },
+  { to: "/settings/providers",         icon: KeyRound,         label: "Providers" },
   { to: "/settings/system",            icon: Server,           label: "System" },
   { to: "/settings/app",               icon: Paintbrush,       label: "App Settings" },
 ];
