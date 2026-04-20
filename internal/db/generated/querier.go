@@ -66,6 +66,7 @@ type Querier interface {
 	DeleteNotificationConfig(ctx context.Context, id string) error
 	DeleteQualityProfile(ctx context.Context, id string) error
 	DeleteRemotePathMapping(ctx context.Context, id string) error
+	DeleteSetting(ctx context.Context, key string) error
 	DeleteTag(ctx context.Context, id string) error
 	DetachQualityProfileFromPulse(ctx context.Context, id string) error
 	GetCollection(ctx context.Context, id string) (Collection, error)
@@ -91,6 +92,7 @@ type Querier interface {
 	GetMoviesAddedByMonth(ctx context.Context) ([]GetMoviesAddedByMonthRow, error)
 	GetNotificationConfig(ctx context.Context, id string) (NotificationConfig, error)
 	GetQualityProfile(ctx context.Context, id string) (QualityProfile, error)
+	GetSetting(ctx context.Context, key string) (string, error)
 	GetStorageTotals(ctx context.Context) (GetStorageTotalsRow, error)
 	GetSyncState(ctx context.Context, mediaServerID string) (string, error)
 	GetTag(ctx context.Context, id string) (Tag, error)
@@ -169,6 +171,7 @@ type Querier interface {
 	SetMovieTags(ctx context.Context, movieID string) error
 	// Notification tag operations.
 	SetNotificationTags(ctx context.Context, notificationID string) error
+	SetSetting(ctx context.Context, arg SetSettingParams) error
 	SumMovieFileSizesByLibrary(ctx context.Context, libraryID string) (interface{}, error)
 	UpdateCollectionCounts(ctx context.Context, arg UpdateCollectionCountsParams) error
 	UpdateCustomFormat(ctx context.Context, arg UpdateCustomFormatParams) (CustomFormat, error)

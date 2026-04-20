@@ -290,6 +290,12 @@ type RemotePathMapping struct {
 	LocalPath  string `json:"localPath"`
 }
 
+type Setting struct {
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
 type StorageSnapshot struct {
 	ID         string    `json:"id"`
 	CapturedAt time.Time `json:"capturedAt"`

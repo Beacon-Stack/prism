@@ -34,6 +34,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/notification"
+	"github.com/beacon-stack/prism/internal/core/provider"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/queue"
 	"github.com/beacon-stack/prism/internal/core/stats"
@@ -87,6 +88,7 @@ type RouterConfig struct {
 	ActivityService          *activity.Service
 	WatchSyncService         *watchsync.Service
 	ImportListService        *importlist.Service
+	ProviderResolver         *provider.Resolver
 	LogBuffer                *logging.RingBuffer
 	WSHub                    *ws.Hub
 	Bus                      *events.Bus
@@ -313,6 +315,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.WatchSyncService != nil {
 		v1.RegisterWatchSyncRoutes(humaAPI, cfg.WatchSyncService)
+	}
+
+	if cfg.ProviderResolver != nil {
+		v1.RegisterProviderRoutes(humaAPI, cfg.ProviderResolver)
 	}
 
 	// ── Radarr v3 API compatibility layer ────────────────────────────────

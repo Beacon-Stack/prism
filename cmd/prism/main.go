@@ -34,6 +34,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/notification"
+	"github.com/beacon-stack/prism/internal/core/provider"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/queue"
 	"github.com/beacon-stack/prism/internal/core/seedenforcer"
@@ -255,9 +256,31 @@ func run() error {
 	qualitySvc := quality.NewService(queries, bus)
 	qualityDefSvc := quality.NewDefinitionService(queries)
 
+	// Resolve the effective TMDB key: Settings-UI override wins over the
+	// baked default. Changes made in the UI take effect at next Prism
+	// restart (the tmdb client caches the key at construction).
+	providerResolver := provider.NewResolver(queries)
+	effectiveTMDBKey, tmdbSource, err := providerResolver.EffectiveKey(context.Background(), provider.TMDB)
+	if err != nil {
+		return fmt.Errorf("resolving TMDB key: %w", err)
+	}
+	effectiveTraktID, traktSource, err := providerResolver.EffectiveKey(context.Background(), provider.Trakt)
+	if err != nil {
+		return fmt.Errorf("resolving Trakt client ID: %w", err)
+	}
+	if effectiveTraktID != "" {
+		cfg.Trakt.ClientID = config.Secret(effectiveTraktID)
+		logger.Info("Trakt client ID configured", "source", traktSource)
+	}
+
 	var rawTMDB *tmdb.Client
-	if !cfg.TMDB.APIKey.IsEmpty() {
-		rawTMDB = tmdb.New(cfg.TMDB.APIKey.Value(), logger)
+	if effectiveTMDBKey != "" {
+		rawTMDB = tmdb.New(effectiveTMDBKey, logger)
+		logger.Info("TMDB metadata client configured", "source", tmdbSource)
+	} else {
+		logger.Warn("TMDB metadata client disabled — no baked default and no Settings override",
+			"hint", "set one in Settings \u2192 Providers or rebuild the image with TMDB_API_KEY",
+		)
 	}
 	// tmdbClient is the interface used by movie and library services.
 	// Declared separately to keep the nil-interface semantics correct.
@@ -420,6 +443,7 @@ func run() error {
 		ActivityService:          activitySvc,
 		WatchSyncService:         watchSyncSvc,
 		ImportListService:        importListSvc,
+		ProviderResolver:         providerResolver,
 		LogBuffer:                logBuffer,
 		WSHub:                    wsHub,
 		Bus:                      bus,
