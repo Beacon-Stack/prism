@@ -136,14 +136,14 @@ func Load(cfgFile string) (*Config, error) {
 	}
 
 	// Apply build-time default TMDB key if no key was configured.
-	if cfg.TMDB.APIKey.IsEmpty() && DefaultTMDBKey != "" {
-		cfg.TMDB.APIKey = Secret(DefaultTMDBKey)
+	if baked := DefaultTMDBKey(); cfg.TMDB.APIKey.IsEmpty() && baked != "" {
+		cfg.TMDB.APIKey = Secret(baked)
 		cfg.TMDBKeyIsDefault = true
 	}
 
 	// Apply build-time default Trakt client ID if no key was configured.
-	if cfg.Trakt.ClientID.IsEmpty() && DefaultTraktClientID != "" {
-		cfg.Trakt.ClientID = Secret(DefaultTraktClientID)
+	if baked := DefaultTraktClientID(); cfg.Trakt.ClientID.IsEmpty() && baked != "" {
+		cfg.Trakt.ClientID = Secret(baked)
 	}
 
 	cfg.ConfigFile = configFileUsed

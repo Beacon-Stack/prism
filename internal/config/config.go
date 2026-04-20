@@ -99,10 +99,7 @@ type PulseConfig struct {
 	APIKeyFile string `mapstructure:"api_key_file"`
 }
 
-// DefaultTMDBKey is set at build time via ldflags. Users can override
-// via config file or PRISM_TMDB_API_KEY env var.
-var DefaultTMDBKey string
-
-// DefaultTraktClientID is set at build time via ldflags. Users can override
-// via config file or PRISM_TRAKT_CLIENT_ID env var.
-var DefaultTraktClientID string
+// DefaultTMDBKey and DefaultTraktClientID are implemented as accessor
+// functions (see defaults.go) that de-obfuscate XOR-masked ldflag
+// values at call time. The raw bytes are never accessible by name;
+// the public surface is the getter functions only.

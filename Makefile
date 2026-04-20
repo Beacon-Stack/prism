@@ -7,11 +7,13 @@ CMD     := ./cmd/prism
 
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+TMDB_LDFLAGS  := $(shell go run ./tools/obfuscate obfuscatedTMDBKey tmdbKeyXORKey "$(LUMINARR_TMDB_API_KEY)")
+TRAKT_LDFLAGS := $(shell go run ./tools/obfuscate obfuscatedTraktClientID traktClientIDXORKey "$(LUMINARR_TRAKT_CLIENT_ID)")
 LDFLAGS   := -ldflags "\
   -X $(MODULE)/internal/version.Version=$(VERSION) \
   -X $(MODULE)/internal/version.BuildTime=$(BUILD_TIME) \
-  -X $(MODULE)/internal/config.DefaultTMDBKey=$(LUMINARR_TMDB_API_KEY) \
-  -X $(MODULE)/internal/config.DefaultTraktClientID=$(LUMINARR_TRAKT_CLIENT_ID)"
+  $(TMDB_LDFLAGS) \
+  $(TRAKT_LDFLAGS)"
 
 IMAGE ?= ghcr.io/prism/prism
 
