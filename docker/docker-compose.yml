@@ -1,16 +1,63 @@
+# ============================================================================
+# Prism — standalone deployment
+#
+# Runs Prism on its own with a dedicated Postgres. No Pulse — indexers,
+# download clients, and quality profiles are managed inside Prism's own
+# Settings UI rather than synced from Pulse.
+#
+# For the full Beacon Stack (Pulse + Pilot + Prism + Haul + VPN), see
+# https://github.com/beacon-stack/deploy
+#
+# Quick start:
+#   1. Edit the /path/to/... lines and the password below.
+#   2. docker compose -f docker/docker-compose.yml up -d
+#   3. Visit http://localhost:8282. Find your API key in Settings → System.
+# ============================================================================
+
 services:
-  luminarr:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    image: luminarr:local
-    container_name: luminarr
+
+  prism-postgres:
+    image: postgres:17-alpine
+    container_name: prism-postgres
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: prism
+      POSTGRES_PASSWORD: change-me-please
+      POSTGRES_DB: prism_db
+    volumes:
+      - prism-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prism"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  prism:
+    image: ghcr.io/beacon-stack/prism:latest
+    container_name: prism
+    restart: unless-stopped
+    depends_on:
+      prism-postgres:
+        condition: service_healthy
+    environment:
+      # Override the beacon-stack defaults baked into the image.
+      PRISM_DATABASE_DSN: "postgres://prism:change-me-please@prism-postgres:5432/prism_db?sslmode=disable"
+      PRISM_DATABASE_PASSWORD_FILE: ""
+      PRISM_PULSE_URL: ""
+      PRISM_PULSE_API_KEY_FILE: ""
+    volumes:
+      - /path/to/config:/config
+      - /path/to/movies:/movies
+      - /path/to/downloads:/downloads
     ports:
       - "8282:8282"
-    volumes:
-      - ${HOME}/.config/luminarr:/config
-      # Mount your movies directory. The container path (/movies) must match
-      # the root path you configure in Settings > Libraries.
-      # Add additional lines for each root folder you want accessible.
-      - /path/to/movies:/movies
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8282/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  prism-pgdata:

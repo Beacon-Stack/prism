@@ -17,7 +17,7 @@ Prism is a self-hosted movie collection manager with a React web UI and a REST A
 
 Prism also speaks the Radarr v3 API, so tools like Overseerr, Jellyseerr, Homepage, Home Assistant, and anything else with a "Radarr" integration can connect to it without modification.
 
-Prism is part of the Beacon media stack and runs alongside [Pilot](https://github.com/beacon-stack/pilot) (TV), [Haul](https://github.com/beacon-stack/haul) (BitTorrent), and [Pulse](https://github.com/beacon-stack/pulse) (control plane). Each of those is optional — Prism works on its own too.
+Prism stands on its own as a Radarr alternative. It comes into its own as part of the [Beacon Stack](https://beaconstack.io) — alongside [Pulse](https://github.com/beacon-stack/pulse) (centralized indexers + quality profiles), [Pilot](https://github.com/beacon-stack/pilot) (TV), and [Haul](https://github.com/beacon-stack/haul) (BitTorrent client) — where Pulse-managed indexers, cross-service quality profiles, and stall-aware torrent blocklisting all light up.
 
 ## Features
 
@@ -76,22 +76,19 @@ Prism is part of the Beacon media stack and runs alongside [Pilot](https://githu
 
 ## Getting started
 
-### Docker
+### Standalone
+
+A single-service compose that runs Prism with its own dedicated Postgres lives at [`docker/docker-compose.yml`](docker/docker-compose.yml). Edit the `/path/to/...` lines and the placeholder password, then:
 
 ```bash
-docker run -d \
-  --name prism \
-  -p 8282:8282 \
-  -v /path/to/config:/config \
-  -v /path/to/movies:/movies \
-  ghcr.io/beacon-stack/prism:latest
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-Open `http://localhost:8282`. Prism generates an API key on first run — find it in Settings → App Settings.
+The web UI is at `http://localhost:8282`. Prism generates an API key on first run; find it in Settings → App Settings.
 
-### Docker Compose (with the rest of the stack)
+### As part of the Beacon Stack
 
-The full Beacon stack — Postgres, Pulse, Pilot, Prism, Haul, and a VPN container — is wired up in [`beacon-stack/deploy`](https://github.com/beacon-stack/deploy). Point it at a media directory and go.
+For the full setup — Pulse + Pilot + Prism + Haul + VPN — see [`beacon-stack/deploy`](https://github.com/beacon-stack/deploy). Standalone Prism works on its own; running with the stack adds shared indexers, cross-service quality profiles, and stall-aware torrent blocklisting through Haul.
 
 ### Build from source
 

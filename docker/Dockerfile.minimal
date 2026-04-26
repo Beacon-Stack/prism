@@ -45,6 +45,15 @@ COPY --from=builder /etc/group.prism /etc/group
 # The binary
 COPY --from=builder /prism /prism
 
+# Beacon-stack-shaped defaults (see docker/Dockerfile for rationale).
+ENV PRISM_DATABASE_DRIVER=postgres \
+    PRISM_DATABASE_DSN="postgres://prism@postgres:5432/prism_db?sslmode=disable" \
+    PRISM_DATABASE_PASSWORD_FILE=/run/secrets/prism.txt \
+    PRISM_PULSE_URL=http://pulse:9696 \
+    PRISM_PULSE_API_KEY_FILE=/run/secrets/pulse-api-key.txt \
+    PRISM_LOG_LEVEL=info \
+    TZ=UTC
+
 # Default data directory (mount a volume here in production)
 VOLUME ["/config"]
 

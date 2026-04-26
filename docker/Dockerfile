@@ -58,6 +58,19 @@ RUN apk add --no-cache ffmpeg ca-certificates tzdata postgresql-client && \
 # The binary
 COPY --from=builder /prism /prism
 
+# Beacon-stack-shaped defaults — the published image expects to land in a
+# compose with services named `postgres` and (optionally) `pulse`. For
+# standalone use, override these via the container's `environment:` block;
+# env always beats Dockerfile ENV. See docker/docker-compose.yml for the
+# standalone recipe.
+ENV PRISM_DATABASE_DRIVER=postgres \
+    PRISM_DATABASE_DSN="postgres://prism@postgres:5432/prism_db?sslmode=disable" \
+    PRISM_DATABASE_PASSWORD_FILE=/run/secrets/prism.txt \
+    PRISM_PULSE_URL=http://pulse:9696 \
+    PRISM_PULSE_API_KEY_FILE=/run/secrets/pulse-api-key.txt \
+    PRISM_LOG_LEVEL=info \
+    TZ=UTC
+
 # Default data directory (mount a volume here in production)
 VOLUME ["/config"]
 
