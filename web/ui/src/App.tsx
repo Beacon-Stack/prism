@@ -97,6 +97,7 @@ export default function App() {
         </ErrorBoundary>
         <Toaster
           position="bottom-right"
+          expand
           toastOptions={{
             style: {
               background: "var(--color-bg-elevated)",
