@@ -92,6 +92,7 @@ interface FormState {
   kind: string;
   enabled: boolean;
   priority: string;
+  min_seeders: string;
   url: string;
   api_key: string;
   rate_limit: string;
@@ -100,7 +101,7 @@ interface FormState {
 }
 
 function emptyForm(): FormState {
-  return { name: "", kind: "torznab", enabled: true, priority: "1", url: "", api_key: "", rate_limit: "0", seed_ratio: "0", seed_time_minutes: "0" };
+  return { name: "", kind: "torznab", enabled: true, priority: "1", min_seeders: "5", url: "", api_key: "", rate_limit: "0", seed_ratio: "0", seed_time_minutes: "0" };
 }
 
 function indexerToForm(cfg: IndexerConfig): FormState {
@@ -109,6 +110,7 @@ function indexerToForm(cfg: IndexerConfig): FormState {
     kind: cfg.kind,
     enabled: cfg.enabled,
     priority: String(cfg.priority),
+    min_seeders: String(cfg.min_seeders ?? 5),
     url: strSetting(cfg.settings, "url"),
     api_key: "",  // never pre-fill; server preserves existing key when omitted
     rate_limit: String(numSetting(cfg.settings, "rate_limit")),
@@ -126,12 +128,14 @@ function formToRequest(f: FormState): IndexerRequest {
   if (seedRatio > 0) settings.seed_ratio = seedRatio;
   const seedTime = parseInt(f.seed_time_minutes, 10) || 0;
   if (seedTime > 0) settings.seed_time_minutes = seedTime;
+  const minSeeders = parseInt(f.min_seeders, 10);
   return {
     name: f.name.trim(),
     kind: f.kind,
     enabled: f.enabled,
     priority: parseInt(f.priority, 10) || 1,
     settings,
+    min_seeders: Number.isFinite(minSeeders) && minSeeders > 0 ? minSeeders : 5,
   };
 }
 
@@ -339,7 +343,7 @@ function IndexerModal({ editing, onClose }: ModalProps) {
           )}
 
           {/* Misc */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16 }}>
             <div style={fieldStyle}>
               <label style={labelStyle}>Priority</label>
               <input
@@ -351,6 +355,22 @@ function IndexerModal({ editing, onClose }: ModalProps) {
                 onFocus={focusBorder}
                 onBlur={blurBorder}
               />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Min Seeders</label>
+              <input
+                style={inputStyle}
+                type="number"
+                min="1"
+                value={form.min_seeders}
+                onChange={(e) => set("min_seeders", e.currentTarget.value)}
+                onFocus={focusBorder}
+                onBlur={blurBorder}
+                placeholder="5"
+              />
+              <p style={{ margin: "4px 0 0", fontSize: 11, color: "var(--color-text-muted)" }}>
+                Releases below this are flagged & skipped by auto-grab
+              </p>
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>Rate Limit</label>
@@ -447,6 +467,22 @@ function RowActions({ indexer, onEdit }: RowActionsProps) {
 
   const del = useDeleteIndexer();
   const test = useTestIndexer();
+  const update = useUpdateIndexer();
+
+  // Toggling enabled is "soft disable" — keeps the row, just stops it
+  // from being queried by searches. Backed by the existing PUT endpoint
+  // which requires the full body, so we splat the current indexer's
+  // fields and flip just the enabled flag.
+  function handleToggleEnabled() {
+    update.mutate({
+      id: indexer.id,
+      name: indexer.name,
+      kind: indexer.kind,
+      priority: indexer.priority,
+      settings: indexer.settings,
+      enabled: !indexer.enabled,
+    });
+  }
 
   function handleTest() {
     setTestResult(null);
@@ -505,6 +541,18 @@ function RowActions({ indexer, onEdit }: RowActionsProps) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+      <button
+        onClick={handleToggleEnabled}
+        disabled={update.isPending}
+        title={indexer.enabled ? "Stop using this indexer for searches" : "Re-enable this indexer for searches"}
+        style={
+          indexer.enabled
+            ? actionBtn("var(--color-text-secondary)", "var(--color-bg-elevated)")
+            : actionBtn("var(--color-success)", "color-mix(in srgb, var(--color-success) 14%, transparent)")
+        }
+      >
+        {update.isPending ? "…" : indexer.enabled ? "Disable" : "Enable"}
+      </button>
       <button
         onClick={handleTest}
         disabled={test.isPending}

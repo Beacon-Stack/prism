@@ -151,6 +151,10 @@ export interface Release {
   // and whose seed/peer counts were folded into the median shown above.
   // Empty/undefined when only one indexer covered this release.
   other_sources?: string[];
+  // Reasons this release was flagged by safety filters (min seeders,
+  // blocklist, etc.). Auto-grab skips flagged rows; the manual-search
+  // dialog renders them grayed-out with an override-and-grab button.
+  filter_reasons?: string[];
 }
 
 export interface GrabHistory {
@@ -365,6 +369,7 @@ export interface IndexerConfig {
   enabled: boolean;
   priority: number;
   settings: Record<string, unknown>;
+  min_seeders: number;
   created_at: string;
   updated_at: string;
 }
@@ -375,6 +380,7 @@ export interface IndexerRequest {
   enabled?: boolean;
   priority?: number;
   settings: Record<string, unknown>;
+  min_seeders?: number;
 }
 
 // ── Download Clients ───────────────────────────────────────────────────────

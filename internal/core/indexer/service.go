@@ -27,23 +27,25 @@ var ErrNotFound = errors.New("indexer not found")
 
 // Config is the domain representation of a stored indexer configuration.
 type Config struct {
-	ID        string
-	Name      string
-	Kind      string // "torznab", "newznab"
-	Enabled   bool
-	Priority  int
-	Settings  json.RawMessage
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID         string
+	Name       string
+	Kind       string // "torznab", "newznab"
+	Enabled    bool
+	Priority   int
+	Settings   json.RawMessage
+	MinSeeders int // releases below this threshold get tagged with a filter reason
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // CreateRequest carries the fields needed to create an indexer config.
 type CreateRequest struct {
-	Name     string
-	Kind     string
-	Enabled  bool
-	Priority int
-	Settings json.RawMessage
+	Name       string
+	Kind       string
+	Enabled    bool
+	Priority   int
+	Settings   json.RawMessage
+	MinSeeders int // 0 means "use the sensible default (5)"
 }
 
 // UpdateRequest carries the fields needed to update an indexer config.
@@ -62,6 +64,13 @@ type SearchResult struct {
 	// from a single indexer or the info_hash couldn't be determined. See
 	// dedupeByInfoHash for the merge logic.
 	OtherSources []string
+	// FilterReasons accumulates one human-readable string per safety
+	// filter that flagged this release ("below minimum seeders (3 < 5)",
+	// "blocklisted", etc.). The manual-search UI renders flagged rows
+	// grayed-with-an-override-button so the user keeps agency; auto-grab
+	// skips any row with non-empty FilterReasons. Hiding rows outright
+	// creates content-loss traps, which is why we tag instead of drop.
+	FilterReasons []string
 }
 
 // Service manages indexer configuration and search orchestration.
@@ -111,17 +120,22 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Config, error)
 	if priority <= 0 {
 		priority = 25
 	}
+	minSeeders := req.MinSeeders
+	if minSeeders <= 0 {
+		minSeeders = 5 // matches the migration default; rejects 0–4 dead-band releases.
+	}
 
 	now := time.Now().UTC()
 	row, err := s.q.CreateIndexerConfig(ctx, dbgen.CreateIndexerConfigParams{
-		ID:        uuid.New().String(),
-		Name:      req.Name,
-		Kind:      req.Kind,
-		Enabled:   req.Enabled,
-		Priority:  int32(priority),
-		Settings:  string(settings),
-		CreatedAt: now.Format(time.RFC3339),
-		UpdatedAt: now.Format(time.RFC3339),
+		ID:         uuid.New().String(),
+		Name:       req.Name,
+		Kind:       req.Kind,
+		Enabled:    req.Enabled,
+		Priority:   int32(priority),
+		Settings:   string(settings),
+		MinSeeders: int32(minSeeders),
+		CreatedAt:  now.Format(time.RFC3339),
+		UpdatedAt:  now.Format(time.RFC3339),
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("inserting indexer config: %w", err)
@@ -181,15 +195,25 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Con
 	if priority <= 0 {
 		priority = 25
 	}
+	// 0 from the client means "don't change", since UpdateIndexerConfig
+	// sets every column unconditionally. Preserve the existing value.
+	minSeeders := req.MinSeeders
+	if minSeeders <= 0 {
+		minSeeders = int(existing.MinSeeders)
+	}
+	if minSeeders <= 0 {
+		minSeeders = 5
+	}
 
 	row, err := s.q.UpdateIndexerConfig(ctx, dbgen.UpdateIndexerConfigParams{
-		ID:        id,
-		Name:      req.Name,
-		Kind:      req.Kind,
-		Enabled:   req.Enabled,
-		Priority:  int32(priority),
-		Settings:  string(settings),
-		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+		ID:         id,
+		Name:       req.Name,
+		Kind:       req.Kind,
+		Enabled:    req.Enabled,
+		Priority:   int32(priority),
+		Settings:   string(settings),
+		MinSeeders: int32(minSeeders),
+		UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
 	})
 	if err != nil {
 		return Config{}, fmt.Errorf("updating indexer %q: %w", id, err)
@@ -329,6 +353,18 @@ func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedI
 		}
 	}
 
+	// Tag low-seed releases per the per-indexer min_seeders threshold.
+	// Tagging (not dropping) preserves user agency — see filter.go.
+	// MUST run before dedup so the merged "winning" row inherits any
+	// FilterReasons accumulated by its constituents (we don't want a
+	// release to silently survive merge just because the highest-quality
+	// representative happened to be the only one above threshold).
+	minByIndexer := make(map[string]int, len(rows))
+	for _, r := range rows {
+		minByIndexer[r.ID] = int(r.MinSeeders)
+	}
+	applyMinSeedersFilter(allResults, minByIndexer)
+
 	// Sort by quality score descending, then by seeds descending.
 	sort.Slice(allResults, func(i, j int) bool {
 		si, sj := allResults[i].QualityScore, allResults[j].QualityScore
@@ -436,6 +472,13 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 			})
 		}
 	}
+
+	// Same min-seeders pass as Search.
+	minByIndexer := make(map[string]int, len(rows))
+	for _, r := range rows {
+		minByIndexer[r.ID] = int(r.MinSeeders)
+	}
+	applyMinSeedersFilter(allResults, minByIndexer)
 
 	sort.Slice(allResults, func(i, j int) bool {
 		si, sj := allResults[i].QualityScore, allResults[j].QualityScore
@@ -564,14 +607,15 @@ func rowToConfig(row dbgen.IndexerConfig) (Config, error) {
 		updatedAt = time.Time{}
 	}
 	return Config{
-		ID:        row.ID,
-		Name:      row.Name,
-		Kind:      row.Kind,
-		Enabled:   row.Enabled,
-		Priority:  int(row.Priority),
-		Settings:  json.RawMessage(row.Settings),
-		CreatedAt: createdAt,
-		UpdatedAt: updatedAt,
+		ID:         row.ID,
+		Name:       row.Name,
+		Kind:       row.Kind,
+		Enabled:    row.Enabled,
+		Priority:   int(row.Priority),
+		Settings:   json.RawMessage(row.Settings),
+		MinSeeders: int(row.MinSeeders),
+		CreatedAt:  createdAt,
+		UpdatedAt:  updatedAt,
 	}, nil
 }
 

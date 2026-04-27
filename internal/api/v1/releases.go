@@ -41,6 +41,7 @@ type releaseBody struct {
 	QualityScore   int                   `json:"quality_score"`
 	ScoreBreakdown plugin.ScoreBreakdown `json:"score_breakdown"`
 	OtherSources   []string              `json:"other_sources,omitempty" doc:"Other indexer names that reported this same torrent (matched by info_hash); seed/peer counts above are the median across all sources"`
+	FilterReasons  []string              `json:"filter_reasons,omitempty" doc:"Reasons this release was flagged by safety filters (min seeders, blocklist, etc.). Auto-grab skips flagged rows; manual-search shows them grayed-out with an override option."`
 	Conflicts      []conflict.Conflict   `json:"conflicts,omitempty" doc:"Regressions compared to current file on disk"`
 }
 
@@ -154,6 +155,7 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 		QualityScore:   r.QualityScore,
 		ScoreBreakdown: r.ScoreBreakdown,
 		OtherSources:   r.OtherSources,
+		FilterReasons:  r.FilterReasons,
 	}
 }
 

@@ -138,6 +138,7 @@ export const indexerFixture = {
   enabled: true,
   priority: 25,
   settings: { url: "http://localhost:9696", api_key: "abc123" },
+  min_seeders: 5,
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-01T00:00:00Z",
 } satisfies IndexerConfig;

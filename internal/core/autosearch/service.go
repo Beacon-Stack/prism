@@ -221,6 +221,13 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 
 	// 6. Iterate candidates (sorted best→worst), try each.
 	for _, r := range results {
+		// Skip releases tagged by safety filters (min seeders, etc.).
+		// The manual-search UI lets users override these; auto-grab does
+		// not — it picks the next viable candidate instead.
+		if len(r.FilterReasons) > 0 {
+			continue
+		}
+
 		// Skip blocklisted releases.
 		if s.blocklistSvc != nil {
 			blocked, blErr := s.blocklistSvc.IsBlocklisted(ctx, r.GUID)

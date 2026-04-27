@@ -130,14 +130,15 @@ type ImportListTag struct {
 }
 
 type IndexerConfig struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Enabled   bool   `json:"enabled"`
-	Priority  int32  `json:"priority"`
-	Settings  string `json:"settings"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Kind       string `json:"kind"`
+	Enabled    bool   `json:"enabled"`
+	Priority   int32  `json:"priority"`
+	Settings   string `json:"settings"`
+	CreatedAt  string `json:"createdAt"`
+	UpdatedAt  string `json:"updatedAt"`
+	MinSeeders int32  `json:"minSeeders"`
 }
 
 type IndexerTag struct {

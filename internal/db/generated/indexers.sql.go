@@ -92,20 +92,21 @@ func (q *Queries) CreateGrabHistory(ctx context.Context, arg CreateGrabHistoryPa
 }
 
 const createIndexerConfig = `-- name: CreateIndexerConfig :one
-INSERT INTO indexer_configs (id, name, kind, enabled, priority, settings, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, name, kind, enabled, priority, settings, created_at, updated_at
+INSERT INTO indexer_configs (id, name, kind, enabled, priority, settings, min_seeders, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders
 `
 
 type CreateIndexerConfigParams struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Enabled   bool   `json:"enabled"`
-	Priority  int32  `json:"priority"`
-	Settings  string `json:"settings"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Kind       string `json:"kind"`
+	Enabled    bool   `json:"enabled"`
+	Priority   int32  `json:"priority"`
+	Settings   string `json:"settings"`
+	MinSeeders int32  `json:"minSeeders"`
+	CreatedAt  string `json:"createdAt"`
+	UpdatedAt  string `json:"updatedAt"`
 }
 
 func (q *Queries) CreateIndexerConfig(ctx context.Context, arg CreateIndexerConfigParams) (IndexerConfig, error) {
@@ -116,6 +117,7 @@ func (q *Queries) CreateIndexerConfig(ctx context.Context, arg CreateIndexerConf
 		arg.Enabled,
 		arg.Priority,
 		arg.Settings,
+		arg.MinSeeders,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -129,6 +131,7 @@ func (q *Queries) CreateIndexerConfig(ctx context.Context, arg CreateIndexerConf
 		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.MinSeeders,
 	)
 	return i, err
 }
@@ -210,7 +213,7 @@ func (q *Queries) GetGrabByID(ctx context.Context, id string) (GrabHistory, erro
 }
 
 const getIndexerConfig = `-- name: GetIndexerConfig :one
-SELECT id, name, kind, enabled, priority, settings, created_at, updated_at FROM indexer_configs WHERE id = $1
+SELECT id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders FROM indexer_configs WHERE id = $1
 `
 
 func (q *Queries) GetIndexerConfig(ctx context.Context, id string) (IndexerConfig, error) {
@@ -225,6 +228,7 @@ func (q *Queries) GetIndexerConfig(ctx context.Context, id string) (IndexerConfi
 		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.MinSeeders,
 	)
 	return i, err
 }
@@ -279,7 +283,7 @@ func (q *Queries) ListActiveGrabs(ctx context.Context) ([]GrabHistory, error) {
 }
 
 const listEnabledIndexers = `-- name: ListEnabledIndexers :many
-SELECT id, name, kind, enabled, priority, settings, created_at, updated_at FROM indexer_configs WHERE enabled = TRUE ORDER BY priority ASC, name ASC
+SELECT id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders FROM indexer_configs WHERE enabled = TRUE ORDER BY priority ASC, name ASC
 `
 
 func (q *Queries) ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, error) {
@@ -300,6 +304,7 @@ func (q *Queries) ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, err
 			&i.Settings,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.MinSeeders,
 		); err != nil {
 			return nil, err
 		}
@@ -561,7 +566,7 @@ func (q *Queries) ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg Li
 }
 
 const listIndexerConfigs = `-- name: ListIndexerConfigs :many
-SELECT id, name, kind, enabled, priority, settings, created_at, updated_at FROM indexer_configs ORDER BY priority ASC, name ASC
+SELECT id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders FROM indexer_configs ORDER BY priority ASC, name ASC
 `
 
 func (q *Queries) ListIndexerConfigs(ctx context.Context) ([]IndexerConfig, error) {
@@ -582,6 +587,7 @@ func (q *Queries) ListIndexerConfigs(ctx context.Context) ([]IndexerConfig, erro
 			&i.Settings,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.MinSeeders,
 		); err != nil {
 			return nil, err
 		}
@@ -641,24 +647,26 @@ func (q *Queries) UpdateGrabStatus(ctx context.Context, arg UpdateGrabStatusPara
 
 const updateIndexerConfig = `-- name: UpdateIndexerConfig :one
 UPDATE indexer_configs SET
-    name       = $1,
-    kind       = $2,
-    enabled    = $3,
-    priority   = $4,
-    settings   = $5,
-    updated_at = $6
-WHERE id = $7
-RETURNING id, name, kind, enabled, priority, settings, created_at, updated_at
+    name        = $1,
+    kind        = $2,
+    enabled     = $3,
+    priority    = $4,
+    settings    = $5,
+    min_seeders = $6,
+    updated_at  = $7
+WHERE id = $8
+RETURNING id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders
 `
 
 type UpdateIndexerConfigParams struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Enabled   bool   `json:"enabled"`
-	Priority  int32  `json:"priority"`
-	Settings  string `json:"settings"`
-	UpdatedAt string `json:"updatedAt"`
-	ID        string `json:"id"`
+	Name       string `json:"name"`
+	Kind       string `json:"kind"`
+	Enabled    bool   `json:"enabled"`
+	Priority   int32  `json:"priority"`
+	Settings   string `json:"settings"`
+	MinSeeders int32  `json:"minSeeders"`
+	UpdatedAt  string `json:"updatedAt"`
+	ID         string `json:"id"`
 }
 
 func (q *Queries) UpdateIndexerConfig(ctx context.Context, arg UpdateIndexerConfigParams) (IndexerConfig, error) {
@@ -668,6 +676,7 @@ func (q *Queries) UpdateIndexerConfig(ctx context.Context, arg UpdateIndexerConf
 		arg.Enabled,
 		arg.Priority,
 		arg.Settings,
+		arg.MinSeeders,
 		arg.UpdatedAt,
 		arg.ID,
 	)
@@ -681,6 +690,7 @@ func (q *Queries) UpdateIndexerConfig(ctx context.Context, arg UpdateIndexerConf
 		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.MinSeeders,
 	)
 	return i, err
 }

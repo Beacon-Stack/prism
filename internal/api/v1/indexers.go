@@ -17,24 +17,26 @@ import (
 // ── Request / response shapes ────────────────────────────────────────────────
 
 type indexerBody struct {
-	ID        string          `json:"id"        doc:"Indexer UUID"`
-	Name      string          `json:"name"      doc:"Display name"`
-	Kind      string          `json:"kind"      doc:"Plugin kind: torznab, newznab"`
-	Enabled   bool            `json:"enabled"   doc:"Whether this indexer is active"`
-	Priority  int             `json:"priority"  doc:"Search priority; lower = searched first"`
-	Settings  json.RawMessage `json:"settings"  doc:"Plugin-specific settings (URL, API key, etc.)"`
-	TagIDs    []string        `json:"tag_ids"   doc:"Assigned tag UUIDs"`
-	CreatedAt time.Time       `json:"created_at"`
-	UpdatedAt time.Time       `json:"updated_at"`
+	ID         string          `json:"id"          doc:"Indexer UUID"`
+	Name       string          `json:"name"        doc:"Display name"`
+	Kind       string          `json:"kind"        doc:"Plugin kind: torznab, newznab"`
+	Enabled    bool            `json:"enabled"     doc:"Whether this indexer is active"`
+	Priority   int             `json:"priority"    doc:"Search priority; lower = searched first"`
+	Settings   json.RawMessage `json:"settings"    doc:"Plugin-specific settings (URL, API key, etc.)"`
+	MinSeeders int             `json:"min_seeders" doc:"Releases below this seeder count are flagged in the search dialog and skipped by auto-search. Default 5."`
+	TagIDs     []string        `json:"tag_ids"     doc:"Assigned tag UUIDs"`
+	CreatedAt  time.Time       `json:"created_at"`
+	UpdatedAt  time.Time       `json:"updated_at"`
 }
 
 type indexerInput struct {
-	Name     string          `json:"name"               doc:"Display name"`
-	Kind     string          `json:"kind"               doc:"Plugin kind: torznab, newznab"`
-	Enabled  *bool           `json:"enabled,omitempty"  doc:"Whether this indexer is active (default: true)"`
-	Priority *int            `json:"priority,omitempty" doc:"Search priority; lower = searched first (default: 1)"`
-	Settings json.RawMessage `json:"settings"           doc:"Plugin-specific settings (URL, API key, etc.)"`
-	TagIDs   []string        `json:"tag_ids,omitempty"  doc:"Tag UUIDs to assign"`
+	Name       string          `json:"name"                  doc:"Display name"`
+	Kind       string          `json:"kind"                  doc:"Plugin kind: torznab, newznab"`
+	Enabled    *bool           `json:"enabled,omitempty"     doc:"Whether this indexer is active (default: true)"`
+	Priority   *int            `json:"priority,omitempty"    doc:"Search priority; lower = searched first (default: 1)"`
+	Settings   json.RawMessage `json:"settings"              doc:"Plugin-specific settings (URL, API key, etc.)"`
+	MinSeeders *int            `json:"min_seeders,omitempty" doc:"Releases below this seeder count are flagged in the search dialog and skipped by auto-search. Default 5."`
+	TagIDs     []string        `json:"tag_ids,omitempty"     doc:"Tag UUIDs to assign"`
 }
 
 type indexerOutput struct {
@@ -79,14 +81,15 @@ type indexerTestOutput struct {
 
 func indexerToBody(c indexer.Config) *indexerBody {
 	return &indexerBody{
-		ID:        c.ID,
-		Name:      c.Name,
-		Kind:      c.Kind,
-		Enabled:   c.Enabled,
-		Priority:  c.Priority,
-		Settings:  registry.Default.SanitizeIndexerSettings(c.Kind, c.Settings),
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
+		ID:         c.ID,
+		Name:       c.Name,
+		Kind:       c.Kind,
+		Enabled:    c.Enabled,
+		Priority:   c.Priority,
+		Settings:   registry.Default.SanitizeIndexerSettings(c.Kind, c.Settings),
+		MinSeeders: c.MinSeeders,
+		CreatedAt:  c.CreatedAt,
+		UpdatedAt:  c.UpdatedAt,
 	}
 }
 
@@ -99,12 +102,17 @@ func indexerInputToRequest(in indexerInput) indexer.CreateRequest {
 	if in.Priority != nil {
 		priority = *in.Priority
 	}
+	minSeeders := 0 // 0 → service applies default (5)
+	if in.MinSeeders != nil {
+		minSeeders = *in.MinSeeders
+	}
 	return indexer.CreateRequest{
-		Name:     in.Name,
-		Kind:     in.Kind,
-		Enabled:  enabled,
-		Priority: priority,
-		Settings: in.Settings,
+		Name:       in.Name,
+		Kind:       in.Kind,
+		Enabled:    enabled,
+		Priority:   priority,
+		Settings:   in.Settings,
+		MinSeeders: minSeeders,
 	}
 }
 

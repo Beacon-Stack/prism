@@ -105,12 +105,15 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
   const dead = (release.seeds ?? 0) === 0;
   const health = seedHealth(release.seeds);
   const hasConflicts = (release.conflicts?.length ?? 0) > 0;
+  const filtered = (release.filter_reasons?.length ?? 0) > 0;
 
   return (
     <tr
       style={{
         borderBottom: "1px solid var(--color-border-subtle)",
-        opacity: dead && !grabbed ? 0.55 : 1,
+        // Flagged-by-filter rows are gray. Dead-but-not-flagged still
+        // get the lighter dim. Both are still clickable.
+        opacity: filtered && !grabbed ? 0.45 : dead && !grabbed ? 0.55 : 1,
         background: hasConflicts
           ? "color-mix(in srgb, var(--color-warning) 5%, transparent)"
           : undefined,
@@ -177,6 +180,24 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
               }}
             >
               <TriangleAlert size={10} /> No seeders
+            </span>
+          )}
+          {filtered && (
+            <span
+              title={release.filter_reasons!.join("; ")}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                padding: "1px 6px",
+                borderRadius: 8,
+                background: "color-mix(in srgb, var(--color-warning) 15%, transparent)",
+                color: "var(--color-warning)",
+                fontSize: 10,
+                fontWeight: 600,
+              }}
+            >
+              Filtered
             </span>
           )}
         </div>
@@ -271,7 +292,13 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
           <button
             onClick={onGrab}
             disabled={isPending}
-            title={dead ? "No seeders — grab anyway?" : "Grab this release"}
+            title={
+              filtered
+                ? `Filtered: ${release.filter_reasons!.join("; ")} — grab anyway?`
+                : dead
+                ? "No seeders — grab anyway?"
+                : "Grab this release"
+            }
             style={{
               display: "flex",
               alignItems: "center",

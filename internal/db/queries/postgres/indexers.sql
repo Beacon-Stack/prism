@@ -1,6 +1,6 @@
 -- name: CreateIndexerConfig :one
-INSERT INTO indexer_configs (id, name, kind, enabled, priority, settings, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO indexer_configs (id, name, kind, enabled, priority, settings, min_seeders, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetIndexerConfig :one
@@ -14,13 +14,14 @@ SELECT * FROM indexer_configs WHERE enabled = TRUE ORDER BY priority ASC, name A
 
 -- name: UpdateIndexerConfig :one
 UPDATE indexer_configs SET
-    name       = $1,
-    kind       = $2,
-    enabled    = $3,
-    priority   = $4,
-    settings   = $5,
-    updated_at = $6
-WHERE id = $7
+    name        = $1,
+    kind        = $2,
+    enabled     = $3,
+    priority    = $4,
+    settings    = $5,
+    min_seeders = $6,
+    updated_at  = $7
+WHERE id = $8
 RETURNING *;
 
 -- name: DeleteIndexerConfig :exec
