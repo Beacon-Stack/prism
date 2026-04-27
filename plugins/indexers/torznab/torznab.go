@@ -289,6 +289,13 @@ func (idx *Indexer) toRelease(item rssItem) plugin.Release {
 			r.Seeds, _ = strconv.Atoi(attr.Value)
 		case "peers":
 			r.Peers, _ = strconv.Atoi(attr.Value)
+		case "infohash":
+			// BitTorrent v1 info hash. Most torznab indexers (Prowlarr,
+			// Jackett) populate this even when the download URL is an HTTP
+			// redirect that hides the underlying magnet — without it, our
+			// cross-indexer dedup falls back to URL parsing and misses
+			// most duplicates.
+			r.InfoHash = strings.ToLower(strings.TrimSpace(attr.Value))
 		case "size":
 			// Prefer the torznab size attribute over enclosure length when present.
 			if sz, err := strconv.ParseInt(attr.Value, 10, 64); err == nil && sz > 0 {

@@ -147,6 +147,10 @@ export interface Release {
   edition?: string;
   release_group?: string;
   conflicts?: QualityConflict[];
+  // Other indexers that reported this same torrent (matched by info_hash)
+  // and whose seed/peer counts were folded into the median shown above.
+  // Empty/undefined when only one indexer covered this release.
+  other_sources?: string[];
 }
 
 export interface GrabHistory {

@@ -40,6 +40,7 @@ type releaseBody struct {
 	Edition        string                `json:"edition,omitempty"      doc:"Detected edition (e.g. Director's Cut, Extended)"`
 	QualityScore   int                   `json:"quality_score"`
 	ScoreBreakdown plugin.ScoreBreakdown `json:"score_breakdown"`
+	OtherSources   []string              `json:"other_sources,omitempty" doc:"Other indexer names that reported this same torrent (matched by info_hash); seed/peer counts above are the median across all sources"`
 	Conflicts      []conflict.Conflict   `json:"conflicts,omitempty" doc:"Regressions compared to current file on disk"`
 }
 
@@ -152,6 +153,7 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 		Edition:        r.Edition,
 		QualityScore:   r.QualityScore,
 		ScoreBreakdown: r.ScoreBreakdown,
+		OtherSources:   r.OtherSources,
 	}
 }
 

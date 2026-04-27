@@ -56,6 +56,12 @@ type SearchResult struct {
 	IndexerID      string
 	QualityScore   int
 	ScoreBreakdown plugin.ScoreBreakdown
+	// OtherSources lists the OTHER indexer names that reported the same
+	// torrent (matched by info_hash) and whose seed/peer counts were folded
+	// into the median displayed on this row. Empty when the release came
+	// from a single indexer or the info_hash couldn't be determined. See
+	// dedupeByInfoHash for the merge logic.
+	OtherSources []string
 }
 
 // Service manages indexer configuration and search orchestration.
@@ -332,6 +338,14 @@ func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedI
 		return allResults[i].Seeds > allResults[j].Seeds
 	})
 
+	// Collapse cross-indexer duplicates of the same torrent (by info_hash)
+	// into a single row showing the MEDIAN seed count. Without this, an
+	// indexer that publishes inflated seed counts (e.g. TorrentGalaxyClone
+	// reporting 159 when the swarm has ~50) outranks the same release from
+	// indexers reporting accurate numbers, and the search dialog shows 4
+	// near-identical rows fighting for the top spot.
+	allResults = dedupeByInfoHash(allResults)
+
 	var combinedErr error
 	if len(errs) > 0 {
 		msgs := make([]string, len(errs))
@@ -430,6 +444,9 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 		}
 		return allResults[i].Seeds > allResults[j].Seeds
 	})
+
+	// Same dedup pass as Search — collapse cross-indexer duplicates by info_hash.
+	allResults = dedupeByInfoHash(allResults)
 
 	var combinedErr error
 	if len(errs) > 0 {

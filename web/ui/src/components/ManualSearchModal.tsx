@@ -148,6 +148,24 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
           }}
         >
           <span>{release.indexer}</span>
+          {release.other_sources && release.other_sources.length > 0 && (
+            <span
+              title={`Same torrent also reported by: ${release.other_sources.join(", ")}. Seed count shown is the median across all sources.`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                padding: "1px 6px",
+                borderRadius: 8,
+                background: "var(--color-bg-elevated)",
+                border: "1px solid var(--color-border-subtle)",
+                color: "var(--color-text-muted)",
+                fontSize: 10,
+              }}
+            >
+              +{release.other_sources.length} more
+            </span>
+          )}
           {dead && (
             <span
               style={{

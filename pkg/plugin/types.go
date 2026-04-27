@@ -221,4 +221,11 @@ type Release struct {
 	Edition      string // canonical edition name parsed from title; empty = untagged
 	ReleaseGroup string // scene group name parsed from title; empty = unknown
 	IndexerFlags []IndexerFlag
+	// InfoHash is the v1 BitTorrent info hash, lowercased 40-char hex.
+	// Populated when the indexer exposes it (torznab `infohash` attr, or
+	// extractable from a magnet DownloadURL). Empty when the URL is an
+	// HTTP redirect through a proxy and the indexer doesn't expose the
+	// hash separately. Used to dedupe cross-indexer copies of the same
+	// torrent in Prism's search dialog — see indexer.dedupeByInfoHash.
+	InfoHash string
 }
