@@ -160,9 +160,9 @@ func TestSearchMovie_GrabsBestRelease(t *testing.T) {
 
 	env.mockIdx.releases = []plugin.Release{
 		{GUID: "r1", Title: "Inception 2010 720p", Protocol: plugin.ProtocolTorrent, DownloadURL: "http://x/1",
-			Quality: plugin.Quality{Resolution: "720p", Source: "bluray"}},
+			Quality: plugin.Quality{Resolution: "720p", Source: "bluray"}, Seeds: 10},
 		{GUID: "r2", Title: "Inception 2010 1080p", Protocol: plugin.ProtocolTorrent, DownloadURL: "http://x/2",
-			Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}},
+			Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
 	}
 
 	result, err := env.svc.SearchMovie(context.Background(), mov.ID)
@@ -212,7 +212,7 @@ func TestSearchMovie_AllBlocklisted(t *testing.T) {
 	mov := testutil.SeedMovie(t, env.q)
 	env.mockIdx.releases = []plugin.Release{
 		{GUID: "blocked-1", Title: "Inception 2010 1080p", Protocol: plugin.ProtocolTorrent,
-			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}},
+			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
 	}
 
 	ctx := context.Background()
@@ -238,9 +238,9 @@ func TestSearchMovie_SkipsBlocklisted_GrabsNext(t *testing.T) {
 	mov := testutil.SeedMovie(t, env.q)
 	env.mockIdx.releases = []plugin.Release{
 		{GUID: "r-bad", Title: "Inception 2010 1080p Bad", Protocol: plugin.ProtocolTorrent,
-			DownloadURL: "http://x/bad", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}},
+			DownloadURL: "http://x/bad", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
 		{GUID: "r-good", Title: "Inception 2010 1080p Good", Protocol: plugin.ProtocolTorrent,
-			DownloadURL: "http://x/good", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}},
+			DownloadURL: "http://x/good", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
 	}
 
 	ctx := context.Background()
@@ -269,7 +269,7 @@ func TestSearchMovie_ActiveGrab_Skipped(t *testing.T) {
 	mov := testutil.SeedMovie(t, env.q)
 	env.mockIdx.releases = []plugin.Release{
 		{GUID: "r1", Title: "Inception 2010 1080p", Protocol: plugin.ProtocolTorrent,
-			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}},
+			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
 	}
 
 	ctx := context.Background()
@@ -301,7 +301,7 @@ func TestSearchMovies_BulkCounts(t *testing.T) {
 
 	env.mockIdx.releases = []plugin.Release{
 		{GUID: "r1", Title: "Inception 2010 1080p", Protocol: plugin.ProtocolTorrent,
-			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}},
+			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
 	}
 
 	ctx := context.Background()
@@ -341,7 +341,7 @@ func TestSearchMovie_ProfileRejectsQuality(t *testing.T) {
 	// Only 720p — test profile only allows 1080p bluray.
 	env.mockIdx.releases = []plugin.Release{
 		{GUID: "r720", Title: "Inception 2010 720p", Protocol: plugin.ProtocolTorrent,
-			DownloadURL: "http://x/720", Quality: plugin.Quality{Resolution: "720p", Source: "bluray"}},
+			DownloadURL: "http://x/720", Quality: plugin.Quality{Resolution: "720p", Source: "bluray"}, Seeds: 10},
 	}
 
 	result, err := env.svc.SearchMovie(context.Background(), mov.ID)
