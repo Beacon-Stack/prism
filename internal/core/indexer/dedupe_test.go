@@ -66,7 +66,7 @@ func TestExtractInfoHash_EmptyAndGarbage(t *testing.T) {
 		"not-a-url",
 		"magnet:?xt=urn:btih:tooshort",
 		"magnet:?xt=urn:btih:zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", // 40 chars but not hex
-		"magnet:?xt=urn:btmh:1220abcdef",                                // v2 multihash — different namespace, ignored
+		"magnet:?xt=urn:btmh:1220abcdef",                               // v2 multihash — different namespace, ignored
 		"magnet:?dn=no-xt-param",
 	}
 	for _, in := range cases {

@@ -33,7 +33,7 @@ func mkResult(title, indexerID string, seeds int, ageDays float64) SearchResult 
 
 func TestApplyMinSeedersFilter_BelowThresholdGetsTagged(t *testing.T) {
 	results := []SearchResult{
-		mkResult("Movie 2023", "tgc", 3, 5),  // below 5 → tagged
+		mkResult("Movie 2023", "tgc", 3, 5),   // below 5 → tagged
 		mkResult("Movie 2023", "1337x", 7, 5), // above 5 → clean
 	}
 	applyMinSeedersFilter(results, map[string]int{"tgc": 5, "1337x": 5})
