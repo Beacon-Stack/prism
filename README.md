@@ -61,7 +61,7 @@ Prism stands on its own as a Radarr alternative. It comes into its own as part o
 **UI**
 
 - Command palette (Cmd/Ctrl+K) with fuzzy search for pages, movies, and actions
-- Interactive release search modal with pack-type filters, quality badges, seed-count column, and per-row scoring
+- Interactive release search modal with pack-type filters, quality badges, click-to-sort columns (Size, Quality, Seeds, Age), and per-row scoring
 - Dark and light themes with 10+ presets shared across the Beacon services
 - Live queue updates over WebSocket
 - OpenAPI documentation at `/api/docs`
