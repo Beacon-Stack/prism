@@ -177,6 +177,68 @@ func TestSearchMovie_GrabsBestRelease(t *testing.T) {
 	}
 }
 
+// Regression for cc5ce18: auto-grab must skip releases tagged by the
+// per-indexer min_seeders filter and pick the next clean candidate.
+// Without this guard the filter would only matter for the manual-search
+// UI; auto-grab would happily download the dead release.
+func TestSearchMovie_SkipsBelowMinSeeders_GrabsNext(t *testing.T) {
+	t.Parallel()
+	env := setup(t)
+	seedWithIndexerAndDownloader(t, env)
+	mov := testutil.SeedMovie(t, env.q)
+
+	// r-dead has Seeds=0 → indexer.Service.Search will tag it
+	// "below minimum seeders (0 < 5)" and auto-grab must skip it.
+	// r-live has 50 seeders, well above the default-5 threshold.
+	env.mockIdx.releases = []plugin.Release{
+		{GUID: "r-dead", Title: "Inception 2010 1080p Dead", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/dead", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 0},
+		{GUID: "r-live", Title: "Inception 2010 1080p Live", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/live", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 50},
+	}
+
+	result, err := env.svc.SearchMovie(context.Background(), mov.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != autosearch.StatusGrabbed {
+		t.Fatalf("got %q, want %q (reason: %s)", result.Status, autosearch.StatusGrabbed, result.Reason)
+	}
+	if result.Grab == nil || result.Grab.ReleaseTitle != "Inception 2010 1080p Live" {
+		got := ""
+		if result.Grab != nil {
+			got = result.Grab.ReleaseTitle
+		}
+		t.Errorf("expected to grab the live release; got %q", got)
+	}
+}
+
+// When every candidate gets tagged by the min_seeders filter, auto-grab
+// must return no_match rather than ignoring the filter and grabbing
+// anyway. The user can still pick from the manual-search UI which
+// renders tagged rows greyed with an override button.
+func TestSearchMovie_AllBelowMinSeeders_NoMatch(t *testing.T) {
+	t.Parallel()
+	env := setup(t)
+	seedWithIndexerAndDownloader(t, env)
+	mov := testutil.SeedMovie(t, env.q)
+
+	env.mockIdx.releases = []plugin.Release{
+		{GUID: "r1", Title: "Inception 2010 1080p A", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/1", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 0},
+		{GUID: "r2", Title: "Inception 2010 1080p B", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/2", Quality: plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 1},
+	}
+
+	result, err := env.svc.SearchMovie(context.Background(), mov.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Status != autosearch.StatusNoMatch {
+		t.Fatalf("got %q, want %q (reason: %s)", result.Status, autosearch.StatusNoMatch, result.Reason)
+	}
+}
+
 func TestSearchMovie_NoReleases(t *testing.T) {
 	t.Parallel()
 	env := setup(t)
