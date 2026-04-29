@@ -59,6 +59,17 @@ RUN apk add --no-cache ffmpeg ca-certificates tzdata postgresql-client && \
 
 COPY --from=builder /prism /prism
 
+# Beacon-stack-shaped defaults — match docker/Dockerfile so the local
+# dev image is interchangeable with the published ghcr.io/beacon-stack
+# image. compose `environment:` overrides still win.
+ENV PRISM_DATABASE_DRIVER=postgres \
+    PRISM_DATABASE_DSN="postgres://prism@postgres:5432/prism_db?sslmode=disable" \
+    PRISM_DATABASE_PASSWORD_FILE=/run/secrets/prism.txt \
+    PRISM_PULSE_URL=http://pulse:9696 \
+    PRISM_PULSE_API_KEY_FILE=/run/secrets/pulse-api-key.txt \
+    PRISM_LOG_LEVEL=info \
+    TZ=UTC
+
 VOLUME ["/config"]
 EXPOSE 8282
 
