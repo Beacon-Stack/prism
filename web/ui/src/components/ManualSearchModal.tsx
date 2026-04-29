@@ -19,7 +19,7 @@ import Modal from "@beacon-shared/Modal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-type SortField = "seeds" | "size" | "age";
+type SortField = "seeds" | "size" | "age" | "quality";
 type SortDir = "asc" | "desc";
 
 function formatAge(days: number | undefined): string {
@@ -376,8 +376,17 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
           av = a.age_days ?? 0;
           bv = b.age_days ?? 0;
           break;
+        case "quality":
+          // Sort on quality_score (resolution*100 + source*10 + codec).
+          av = a.quality_score ?? 0;
+          bv = b.quality_score ?? 0;
+          break;
       }
-      return sort.dir === "desc" ? bv - av : av - bv;
+      const primary = sort.dir === "desc" ? bv - av : av - bv;
+      // Same-quality tiebreak: more seeds wins. Matches the auto-search
+      // ranking convention so the manual list mirrors it visually.
+      if (primary !== 0 || sort.field !== "quality") return primary;
+      return (b.seeds ?? 0) - (a.seeds ?? 0);
     });
     return arr;
   }, [releases, sort]);
@@ -642,7 +651,11 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
             <thead>
               <tr>
                 <th style={thStyle}>Release</th>
-                <th style={thStyle}>Quality</th>
+                <th style={sortableThStyle("quality")} onClick={() => toggleSort("quality")}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    Quality {sortIcon("quality")}
+                  </span>
+                </th>
                 <th style={sortableThStyle("size")} onClick={() => toggleSort("size")}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     Size {sortIcon("size")}
