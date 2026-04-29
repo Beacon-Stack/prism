@@ -237,10 +237,15 @@ func TestImport_Directory_PicksLargestVideo(t *testing.T) {
 	if err := os.MkdirAll(contentDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	// Subs (small) and main feature (large).
+	// Subs (small), a tiny .mkv decoy, and the main feature (large).
+	// Sizes are deliberately distinct so the assertion below can pin
+	// the picked source file by its size rather than its destination
+	// filename (the destination gets renamed via the rename template,
+	// so it never reflects the source name).
 	os.WriteFile(filepath.Join(contentDir, "sub.srt"), []byte("subtitle"), 0o644)
 	os.WriteFile(filepath.Join(contentDir, "small.mkv"), []byte("small"), 0o644)
-	os.WriteFile(filepath.Join(contentDir, "feature.mkv"), []byte("this is the large video file content"), 0o644)
+	const featureContent = "this is the large video file content"
+	os.WriteFile(filepath.Join(contentDir, "feature.mkv"), []byte(featureContent), 0o644)
 
 	const (
 		movieID = "movie-2"
@@ -278,11 +283,16 @@ func TestImport_Directory_PicksLargestVideo(t *testing.T) {
 	if cf == nil {
 		t.Fatal("expected CreateMovieFile to be called")
 	}
-	// The imported file should be the largest .mkv
-	if filepath.Base(cf.Path) != "Inception (2010) Bluray-1080p.mkv" {
-		t.Logf("dest path = %q", cf.Path)
+	// Assert on SizeBytes — the destination Path is template-rendered
+	// from the movie metadata, so it tells us nothing about which
+	// source file the importer actually picked. SizeBytes is recorded
+	// from the source (importer.go writes file.Size on CreateMovieFile).
+	// feature.mkv = 36 bytes; small.mkv = 5 bytes; sub.srt = 8 bytes.
+	wantSize := int64(len(featureContent))
+	if cf.SizeBytes != wantSize {
+		t.Errorf("imported wrong file: SizeBytes = %d, want %d (largest source was feature.mkv)", cf.SizeBytes, wantSize)
 	}
-	// Verify it's a .mkv
+	// Sanity: extension must be .mkv, not .srt.
 	if filepath.Ext(cf.Path) != ".mkv" {
 		t.Errorf("expected .mkv, got %q", filepath.Ext(cf.Path))
 	}
