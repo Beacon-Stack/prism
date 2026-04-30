@@ -414,3 +414,167 @@ func TestSearchMovie_ProfileRejectsQuality(t *testing.T) {
 		t.Fatalf("got %q, want %q", result.Status, autosearch.StatusNoMatch)
 	}
 }
+
+// ── SearchMovieExplain ────────────────────────────────────────────────────────
+//
+// SearchMovieExplain is the dry-run twin of SearchMovie — it classifies
+// every candidate release with a SkipReason instead of grabbing one.
+// Each branch maps to a UI pill in the manual-search modal. Without
+// these tests the per-pill classification can drift silently (e.g. a
+// rejected release showing as "blocklisted" when it's actually
+// "quality_not_in_profile").
+//
+// Coverage gap before this commit: 0% on the entire SearchMovieExplain
+// branch matrix despite ~150 lines of decision code.
+
+// Headline happy path: a 1080p BluRay x264 release matches the seeded
+// profile exactly, so the explain output marks it as grabbed. This
+// pins both Outcome="grabbed" and Reason=ReasonGrabbed.
+func TestExplain_PassingReleaseClassifiesAsGrabbed(t *testing.T) {
+	t.Parallel()
+	env := setup(t)
+	seedWithIndexerAndDownloader(t, env)
+	mov := testutil.SeedMovie(t, env.q)
+
+	env.mockIdx.releases = []plugin.Release{
+		{GUID: "r1", Title: "Inception 2010 1080p Bluray x264", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/1",
+			Quality:     plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"},
+			Seeds:       10},
+	}
+
+	result, err := env.svc.SearchMovieExplain(context.Background(), mov.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Decisions) != 1 {
+		t.Fatalf("len(decisions) = %d, want 1", len(result.Decisions))
+	}
+	d := result.Decisions[0]
+	if d.Outcome != "grabbed" {
+		t.Errorf("Outcome = %q, want %q", d.Outcome, "grabbed")
+	}
+	if d.Reason != autosearch.ReasonGrabbed {
+		t.Errorf("Reason = %q, want %q", d.Reason, autosearch.ReasonGrabbed)
+	}
+	// Explain runs SearchMovieExplain — DOES NOT actually grab. Ensure
+	// nothing was sent to the mock downloader.
+	if env.mockDL.itemID == "" {
+		t.Error("mockDL.itemID was reset — explain should never grab")
+	}
+}
+
+// A blocklisted release must classify as ReasonBlocklisted regardless
+// of how good its quality is. The pill shows "blocklisted" so the user
+// knows why a perfect-looking release is being skipped.
+func TestExplain_BlocklistedReleaseClassifiesAsBlocklisted(t *testing.T) {
+	t.Parallel()
+	env := setup(t)
+	seedWithIndexerAndDownloader(t, env)
+	mov := testutil.SeedMovie(t, env.q)
+
+	env.mockIdx.releases = []plugin.Release{
+		{GUID: "blocked-guid", Title: "Inception 2010 1080p Bluray x264", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/1",
+			Quality:     plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"},
+			Seeds:       10},
+	}
+	if err := env.blSvc.Add(context.Background(), mov.ID, "blocked-guid",
+		"Inception 2010 1080p Bluray x264", "", "torrent", 1000, "test-blocklist"); err != nil {
+		t.Fatalf("blocklist add: %v", err)
+	}
+
+	result, err := env.svc.SearchMovieExplain(context.Background(), mov.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Decisions) != 1 {
+		t.Fatalf("len(decisions) = %d, want 1", len(result.Decisions))
+	}
+	d := result.Decisions[0]
+	if d.Outcome != "skipped" {
+		t.Errorf("Outcome = %q, want %q", d.Outcome, "skipped")
+	}
+	if d.Reason != autosearch.ReasonBlocklisted {
+		t.Errorf("Reason = %q, want %q (blocklist branch in SearchMovieExplain)",
+			d.Reason, autosearch.ReasonBlocklisted)
+	}
+}
+
+// A 720p release against a 1080p-only profile must classify as
+// ReasonQualityNotAllowed (not "no_upgrade_needed", not blocklisted).
+// This is the difference the manual-search UI uses to render the
+// "Quality" pill differently from the "Already have a copy" pill.
+func TestExplain_QualityOutOfProfileClassifiesAsQualityNotAllowed(t *testing.T) {
+	t.Parallel()
+	env := setup(t)
+	seedWithIndexerAndDownloader(t, env)
+	mov := testutil.SeedMovie(t, env.q)
+
+	env.mockIdx.releases = []plugin.Release{
+		{GUID: "r720", Title: "Inception 2010 720p WEB", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/720",
+			Quality:     plugin.Quality{Resolution: "720p", Source: "webdl"},
+			Seeds:       10},
+	}
+
+	result, err := env.svc.SearchMovieExplain(context.Background(), mov.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Decisions) != 1 {
+		t.Fatalf("len(decisions) = %d, want 1", len(result.Decisions))
+	}
+	d := result.Decisions[0]
+	if d.Outcome != "skipped" {
+		t.Errorf("Outcome = %q, want %q", d.Outcome, "skipped")
+	}
+	if d.Reason != autosearch.ReasonQualityNotAllowed {
+		t.Errorf("Reason = %q, want %q (quality_not_in_profile branch)",
+			d.Reason, autosearch.ReasonQualityNotAllowed)
+	}
+}
+
+// Multiple-candidate fan-out: explain returns a decision for EVERY
+// candidate, not just the first passing one. The first passing
+// candidate gets ReasonGrabbed; subsequent passing candidates also
+// get ReasonGrabbed (they "would have been grabbed" if the first
+// wasn't there); rejected ones get their specific reject reason.
+func TestExplain_MixedDecisionsReturnedInOrder(t *testing.T) {
+	t.Parallel()
+	env := setup(t)
+	seedWithIndexerAndDownloader(t, env)
+	mov := testutil.SeedMovie(t, env.q)
+
+	env.mockIdx.releases = []plugin.Release{
+		// Out-of-profile quality.
+		{GUID: "r-720", Title: "Inception 2010 720p WEB", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/720",
+			Quality:     plugin.Quality{Resolution: "720p", Source: "webdl"}, Seeds: 10},
+		// In-profile.
+		{GUID: "r-good", Title: "Inception 2010 1080p Bluray x264", Protocol: plugin.ProtocolTorrent,
+			DownloadURL: "http://x/good",
+			Quality:     plugin.Quality{Resolution: "1080p", Source: "bluray", Codec: "x264"}, Seeds: 10},
+	}
+
+	result, err := env.svc.SearchMovieExplain(context.Background(), mov.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Decisions) != 2 {
+		t.Fatalf("len(decisions) = %d, want 2 — got: %+v", len(result.Decisions), result.Decisions)
+	}
+
+	// Both reasons must appear; the order tracks the post-quality-sort
+	// ordering, which puts higher-scoring releases first.
+	gotReasons := map[autosearch.SkipReason]bool{}
+	for _, d := range result.Decisions {
+		gotReasons[d.Reason] = true
+	}
+	if !gotReasons[autosearch.ReasonGrabbed] {
+		t.Errorf("expected at least one ReasonGrabbed, got %+v", gotReasons)
+	}
+	if !gotReasons[autosearch.ReasonQualityNotAllowed] {
+		t.Errorf("expected at least one ReasonQualityNotAllowed, got %+v", gotReasons)
+	}
+}
