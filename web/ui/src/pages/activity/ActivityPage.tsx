@@ -21,12 +21,16 @@ import {
 
 import PageHeader from "@/components/PageHeader";
 import { useQueue } from "@/api/queue";
-import { useHistory } from "@/api/history";
-import { useNeedsAttention, type AttentionItem } from "@/api/activity";
+import {
+  useActivity,
+  useNeedsAttention,
+  type Activity,
+  type AttentionItem,
+} from "@/api/activity";
 import { useMovies } from "@/api/movies";
 import { formatBytes } from "@/lib/utils";
 import { timeAgo } from "@beacon-shared/utils";
-import type { Movie, GrabHistory, QueueItem } from "@/types";
+import type { Movie, QueueItem } from "@/types";
 
 // ── Shared bits ──────────────────────────────────────────────────────────────
 
@@ -312,14 +316,29 @@ function DownloadingRail({ idx }: { idx: Map<string, Movie> }) {
 }
 
 // ── 2. Recently imported ─────────────────────────────────────────────────────
+//
+// Sourced from activity_log (category=import_succeeded, type=import_complete)
+// rather than grab_history. activity_log.created_at is the actual import-
+// completion time; grab_history.grabbed_at is the time the grab was
+// requested, which can be days earlier when the download is large
+// (Prism's 70 GB UHD remuxes can take 3+ days to finish). Filtering on
+// grabbed_at would hide imports that just landed but were grabbed
+// outside the 48h window.
 
 function RecentlyImportedRail({ idx }: { idx: Map<string, Movie> }) {
-  const { data, isLoading } = useHistory({ limit: 100, download_status: "completed" });
+  const { data, isLoading } = useActivity({
+    category: "import_succeeded",
+    limit: 100,
+  });
   const cutoff = useMemo(() => Date.now() - 48 * 3600 * 1000, []);
 
-  const items = useMemo<GrabHistory[]>(() => {
-    const list = data ?? [];
-    return list.filter((h) => new Date(h.grabbed_at).getTime() >= cutoff);
+  const items = useMemo<Activity[]>(() => {
+    const list = data?.activities ?? [];
+    return list.filter(
+      (a) =>
+        a.type === "import_complete" &&
+        new Date(a.created_at).getTime() >= cutoff,
+    );
   }, [data, cutoff]);
 
   return (
@@ -330,50 +349,70 @@ function RecentlyImportedRail({ idx }: { idx: Map<string, Movie> }) {
         <Empty>No imports in the last 48 hours.</Empty>
       ) : (
         <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-          {items.map((h, i) => (
-            <li
-              key={h.id}
-              style={{
-                padding: "10px 20px",
-                borderBottom:
-                  i === items.length - 1 ? "none" : "1px solid var(--color-border-subtle)",
-                display: "flex",
-                gap: 12,
-                alignItems: "flex-start",
-              }}
-            >
-              <CheckCircle2
-                size={15}
-                style={{ color: "var(--color-success)", flexShrink: 0, marginTop: 2 }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
+          {items.map((a, i) => {
+            const movie = a.movie_id ? idx.get(a.movie_id) : undefined;
+            const detail = (a.detail ?? {}) as Record<string, unknown>;
+            const quality =
+              typeof detail.quality === "string" ? detail.quality : "";
+            // Use the resolved movie title when we have it; fall back to
+            // whatever classify() wrote into the title column. Older
+            // activity rows pre-date the title fix and only have
+            // "Imported " — the idx lookup recovers from that.
+            const headline =
+              movie?.title ??
+              (a.title.replace(/^Imported\s*/, "") || "Imported");
+            return (
+              <li
+                key={a.id}
+                style={{
+                  padding: "10px 20px",
+                  borderBottom:
+                    i === items.length - 1
+                      ? "none"
+                      : "1px solid var(--color-border-subtle)",
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "flex-start",
+                }}
+              >
+                <CheckCircle2
+                  size={15}
                   style={{
-                    fontSize: 13,
-                    color: "var(--color-text-primary)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={h.release_title}
-                >
-                  {h.release_title}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--color-text-muted)",
+                    color: "var(--color-success)",
+                    flexShrink: 0,
                     marginTop: 2,
                   }}
-                >
-                  <MovieLabel id={h.movie_id} fallback="Unknown movie" idx={idx} />
-                  {h.release_resolution && <> · {h.release_resolution}</>}
-                  {h.size > 0 && <> · {formatBytes(h.size)}</>}
-                  <> · {timeAgo(h.grabbed_at)}</>
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--color-text-primary)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <MovieLabel
+                      id={a.movie_id}
+                      fallback={headline}
+                      idx={idx}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--color-text-muted)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {quality && <>{quality} · </>}
+                    {timeAgo(a.created_at)}
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </Rail>

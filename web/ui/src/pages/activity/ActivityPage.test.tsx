@@ -65,32 +65,78 @@ describe("ActivityPage", () => {
     );
   });
 
-  // The Recently Imported rail filters history to download_status =
-  // completed within 48h. A row outside the window must not appear.
-  it("shows recently-completed history items in the Recently Imported rail", async () => {
+  // The Recently Imported rail reads activity_log import_complete events
+  // (NOT grab_history) so completion-time bucketing works correctly.
+  // grab_history.grabbed_at is request time, which can be days before
+  // a large download finishes — using it for the 48h cutoff hides
+  // imports that just landed.
+  it("shows recently-completed import_complete events in the Recently Imported rail", async () => {
     server.use(
       http.get("/api/v1/movies", () =>
         HttpResponse.json({ movies: [movie], total: 1, page: 1, per_page: 500 })
       ),
-      http.get("/api/v1/history", () =>
-        HttpResponse.json([
-          {
-            id: "h1",
-            movie_id: "movie-1",
-            release_guid: "g1",
-            release_title: "Inception.2010.1080p.BluRay",
-            protocol: "torrent",
-            size: 10_000_000_000,
-            download_status: "completed",
-            grabbed_at: new Date(Date.now() - 3600_000).toISOString(),
-          },
-        ])
-      )
+      http.get("/api/v1/activity", ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get("category") !== "import_succeeded") {
+          return HttpResponse.json({ activities: [], total: 0 });
+        }
+        return HttpResponse.json({
+          activities: [
+            {
+              id: "a-import",
+              type: "import_complete",
+              category: "import_succeeded",
+              movie_id: "movie-1",
+              title: "Imported Inception — 1080p BluRay",
+              detail: { quality: "1080p BluRay" },
+              created_at: new Date(Date.now() - 3600_000).toISOString(),
+            },
+          ],
+          total: 1,
+        });
+      })
+    );
+
+    renderPage();
+    // The rail renders the resolved movie title (from useMovies idx),
+    // not the raw event title — so we look for "Inception".
+    await waitFor(() =>
+      expect(screen.getByText("Inception")).toBeInTheDocument()
+    );
+  });
+
+  // Pin the time-window contract: an import_complete event older than
+  // 48h must NOT render. Without this the rail would slowly drift into
+  // an "all imports ever" view.
+  it("filters out import_complete events older than 48h", async () => {
+    server.use(
+      http.get("/api/v1/movies", () =>
+        HttpResponse.json({ movies: [movie], total: 1, page: 1, per_page: 500 })
+      ),
+      http.get("/api/v1/activity", ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get("category") !== "import_succeeded") {
+          return HttpResponse.json({ activities: [], total: 0 });
+        }
+        return HttpResponse.json({
+          activities: [
+            {
+              id: "a-old",
+              type: "import_complete",
+              category: "import_succeeded",
+              movie_id: "movie-1",
+              title: "Imported Inception",
+              created_at: new Date(Date.now() - 72 * 3600_000).toISOString(), // 3 days ago
+            },
+          ],
+          total: 1,
+        });
+      })
     );
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText("Inception.2010.1080p.BluRay")).toBeInTheDocument()
+      expect(screen.getByText(/No imports in the last 48 hours/i)).toBeInTheDocument()
     );
   });
 
