@@ -255,16 +255,10 @@ func (s *Service) Add(ctx context.Context, r plugin.Release, allowedIDs []string
 			return "", "", fmt.Errorf("adding release to %q (%s): %w", cfg.Name, cfg.Kind, err)
 		}
 
-		if s.bus != nil {
-			s.bus.Publish(ctx, events.Event{
-				Type:    events.TypeGrabStarted,
-				MovieID: "",
-				Data: map[string]any{
-					"client":         cfg.Name,
-					"client_item_id": itemID,
-				},
-			})
-		}
+		// TypeGrabStarted is published by indexer.Service.Grab once the
+		// grab_history row lands — emitting here too would double-count
+		// every grab in the activity log without adding any context (no
+		// movie_id, no release_title). Don't reintroduce the duplicate.
 
 		return cfg.ID, itemID, nil
 	}

@@ -287,6 +287,19 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 						"guid", r.GUID, "error", blErr)
 				}
 			}
+			// Surface the rejection as an activity entry so the
+			// "Needs attention" rail picks it up. The manual-grab
+			// path doesn't need this — the user gets a toast there.
+			if s.bus != nil {
+				s.bus.Publish(ctx, events.Event{
+					Type:    events.TypeGrabFailed,
+					MovieID: movieID,
+					Data: map[string]any{
+						"release_title": r.Title,
+						"reason":        "download client rejected release",
+					},
+				})
+			}
 			continue
 		}
 

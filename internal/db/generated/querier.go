@@ -123,6 +123,12 @@ type Querier interface {
 	ListGrabHistoryByProtocol(ctx context.Context, arg ListGrabHistoryByProtocolParams) ([]GrabHistory, error)
 	ListGrabHistoryByStatus(ctx context.Context, arg ListGrabHistoryByStatusParams) ([]GrabHistory, error)
 	ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg ListGrabHistoryByStatusAndProtocolParams) ([]GrabHistory, error)
+	// Powers the Activity-page "Needs attention" rail: returns recent
+	// failed/removed/stalled grabs within a time window. The ::text casts
+	// make the types explicit to the planner; grab_history.grabbed_at is
+	// TEXT-encoded RFC3339 so the comparison is lexicographic but
+	// order-preserving.
+	ListGrabHistoryByStatusSince(ctx context.Context, arg ListGrabHistoryByStatusSinceParams) ([]GrabHistory, error)
 	ListImportExclusions(ctx context.Context) ([]ImportExclusion, error)
 	ListImportListConfigs(ctx context.Context) ([]ImportListConfig, error)
 	ListImportListTagIDs(ctx context.Context, importListID string) ([]string, error)

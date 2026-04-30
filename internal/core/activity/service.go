@@ -17,21 +17,36 @@ import (
 	"github.com/beacon-stack/prism/internal/events"
 )
 
-// Category groups related event types for filtering.
+// Category groups related event types for filtering. Mirrors Pilot's
+// success/failure split so the Activity-page "Needs attention" rail
+// can find failed grabs/imports without re-parsing the type column.
 type Category string
 
 const (
-	CategoryGrab   Category = "grab"
-	CategoryImport Category = "import"
-	CategoryTask   Category = "task"
-	CategoryHealth Category = "health"
-	CategoryMovie  Category = "movie"
+	CategoryGrabSucceeded   Category = "grab_succeeded"
+	CategoryGrabFailed      Category = "grab_failed"
+	CategoryImportSucceeded Category = "import_succeeded"
+	CategoryImportFailed    Category = "import_failed"
+	CategoryTask            Category = "task"
+	CategoryHealth          Category = "health"
+	CategoryMovie           Category = "movie"
+
+	// Legacy values kept in the validator so existing API clients that
+	// filter by the old coarse names ("grab"/"import") don't break.
+	// Migration 00005_activity_categories.sql back-fills DB rows to
+	// the new vocabulary; these constants exist only to accept legacy
+	// query strings.
+	CategoryGrabLegacy   Category = "grab"
+	CategoryImportLegacy Category = "import"
 )
 
 // ValidCategory returns true if c is a known category.
 func ValidCategory(c string) bool {
 	switch Category(c) {
-	case CategoryGrab, CategoryImport, CategoryTask, CategoryHealth, CategoryMovie:
+	case CategoryGrabSucceeded, CategoryGrabFailed,
+		CategoryImportSucceeded, CategoryImportFailed,
+		CategoryTask, CategoryHealth, CategoryMovie,
+		CategoryGrabLegacy, CategoryImportLegacy:
 		return true
 	}
 	return false
@@ -115,37 +130,37 @@ func (s *Service) classify(e events.Event) (Category, string) {
 		release := str("release_title")
 		indexer := str("indexer")
 		if indexer != "" {
-			return CategoryGrab, fmt.Sprintf("Grabbed %s from %s", release, indexer)
+			return CategoryGrabSucceeded, fmt.Sprintf("Grabbed %s from %s", release, indexer)
 		}
-		return CategoryGrab, fmt.Sprintf("Grabbed %s", release)
+		return CategoryGrabSucceeded, fmt.Sprintf("Grabbed %s", release)
 
 	case events.TypeGrabFailed:
 		release := str("release_title")
 		reason := str("reason")
 		if reason != "" {
-			return CategoryGrab, fmt.Sprintf("Grab failed for %s: %s", release, reason)
+			return CategoryGrabFailed, fmt.Sprintf("Grab failed for %s: %s", release, reason)
 		}
-		return CategoryGrab, fmt.Sprintf("Grab failed for %s", release)
+		return CategoryGrabFailed, fmt.Sprintf("Grab failed for %s", release)
 
 	case events.TypeDownloadDone:
 		release := str("release_title")
-		return CategoryImport, fmt.Sprintf("Download complete: %s", release)
+		return CategoryImportSucceeded, fmt.Sprintf("Download complete: %s", release)
 
 	case events.TypeImportComplete:
 		title := str("movie_title")
 		quality := str("quality")
 		if quality != "" {
-			return CategoryImport, fmt.Sprintf("Imported %s — %s", title, quality)
+			return CategoryImportSucceeded, fmt.Sprintf("Imported %s — %s", title, quality)
 		}
-		return CategoryImport, fmt.Sprintf("Imported %s", title)
+		return CategoryImportSucceeded, fmt.Sprintf("Imported %s", title)
 
 	case events.TypeImportFailed:
 		title := str("movie_title")
 		reason := str("reason")
 		if reason != "" {
-			return CategoryImport, fmt.Sprintf("Import failed for %s: %s", title, reason)
+			return CategoryImportFailed, fmt.Sprintf("Import failed for %s: %s", title, reason)
 		}
-		return CategoryImport, fmt.Sprintf("Import failed for %s", title)
+		return CategoryImportFailed, fmt.Sprintf("Import failed for %s", title)
 
 	case events.TypeMovieAdded:
 		title := str("title")
@@ -177,7 +192,7 @@ func (s *Service) classify(e events.Event) (Category, string) {
 		return CategoryHealth, fmt.Sprintf("%s: recovered", check)
 
 	case events.TypeBulkSearchComplete:
-		return CategoryGrab, "Bulk search completed"
+		return CategoryGrabSucceeded, "Bulk search completed"
 
 	default:
 		return "", ""
@@ -237,3 +252,110 @@ func (s *Service) Prune(ctx context.Context, olderThan time.Duration) error {
 	cutoff := time.Now().UTC().Add(-olderThan).Format(time.RFC3339)
 	return s.q.PruneActivities(ctx, cutoff)
 }
+
+// AttentionItem is one entry in the "Needs attention" rail. Each item is
+// either a failed or removed grab (from grab_history.download_status) or
+// a failed import (from activity_log.category=import_failed).
+type AttentionItem struct {
+	Kind         string `json:"kind"` // "grab_failed" | "import_failed"
+	GrabID       string `json:"grab_id,omitempty"`
+	MovieID      string `json:"movie_id,omitempty"`
+	ReleaseTitle string `json:"release_title"`
+	Detail       string `json:"detail,omitempty"`
+	CreatedAt    string `json:"created_at"`
+}
+
+// AttentionResult is the response shape for /api/v1/activity/needs-attention.
+type AttentionResult struct {
+	Items []AttentionItem `json:"items"`
+	// Counts breaks the items down by kind so the UI can show a summary
+	// without re-counting client-side.
+	Counts struct {
+		GrabFailed   int `json:"grab_failed"`
+		ImportFailed int `json:"import_failed"`
+	} `json:"counts"`
+}
+
+// NeedsAttention returns recent failures for the Activity-page "Needs
+// attention" rail. window controls how far back to look; perKind caps
+// each bucket so a flood of one type doesn't drown out the others.
+//
+// Mirrors Pilot's NeedsAttention shape (see pilot/internal/core/activity
+// /service.go) — minus the "stalled" bucket, which Prism doesn't have a
+// stallwatcher for. Add stalled here if/when one ships.
+func (s *Service) NeedsAttention(ctx context.Context, window time.Duration, perKind int) (*AttentionResult, error) {
+	if window <= 0 {
+		window = 48 * time.Hour
+	}
+	if perKind <= 0 || perKind > 200 {
+		perKind = 50
+	}
+	since := time.Now().UTC().Add(-window).Format(time.RFC3339)
+
+	out := &AttentionResult{Items: []AttentionItem{}}
+
+	// Failed grabs from grab_history (download client rejected, mid-
+	// flight failure, or user-removed).
+	for _, status := range []string{"failed", "removed"} {
+		rows, err := s.q.ListGrabHistoryByStatusSince(ctx, dbgen.ListGrabHistoryByStatusSinceParams{
+			Status: status,
+			Since:  since,
+			Limit:  int32(perKind),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("listing grab history (%s): %w", status, err)
+		}
+		for _, r := range rows {
+			out.Items = append(out.Items, AttentionItem{
+				Kind:         "grab_failed",
+				GrabID:       r.ID,
+				MovieID:      r.MovieID,
+				ReleaseTitle: r.ReleaseTitle,
+				Detail:       fmt.Sprintf("Download %s", r.DownloadStatus),
+				CreatedAt:    r.GrabbedAt,
+			})
+			out.Counts.GrabFailed++
+		}
+	}
+
+	// Failed imports from the activity_log split-category vocabulary.
+	cat := dbutil.NullString(stringPtr(string(CategoryImportFailed)))
+	sinceNS := dbutil.NullString(&since)
+	imports, err := s.q.ListActivities(ctx, dbgen.ListActivitiesParams{
+		Category: cat,
+		Since:    sinceNS,
+		Limit:    int32(perKind),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("listing import failures: %w", err)
+	}
+	for _, r := range imports {
+		var detail string
+		if r.Detail.Valid {
+			var d map[string]any
+			if json.Unmarshal([]byte(r.Detail.String), &d) == nil {
+				if v, ok := d["reason"].(string); ok {
+					detail = v
+				}
+			}
+		}
+		movieID := ""
+		if r.MovieID.Valid {
+			movieID = r.MovieID.String
+		}
+		out.Items = append(out.Items, AttentionItem{
+			Kind:         "import_failed",
+			MovieID:      movieID,
+			ReleaseTitle: r.Title,
+			Detail:       detail,
+			CreatedAt:    r.CreatedAt,
+		})
+		out.Counts.ImportFailed++
+	}
+
+	return out, nil
+}
+
+// stringPtr is a tiny helper for embedding string-literal pointers
+// inline. Prism uses *string heavily as a "nullable filter" pattern.
+func stringPtr(s string) *string { return &s }

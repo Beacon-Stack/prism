@@ -565,6 +565,67 @@ func (q *Queries) ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg Li
 	return items, nil
 }
 
+const listGrabHistoryByStatusSince = `-- name: ListGrabHistoryByStatusSince :many
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history
+WHERE download_status = $1::text
+  AND grabbed_at > $2::text
+ORDER BY grabbed_at DESC
+LIMIT $3
+`
+
+type ListGrabHistoryByStatusSinceParams struct {
+	Status string `json:"status"`
+	Since  string `json:"since"`
+	Limit  int32  `json:"limit"`
+}
+
+// Powers the Activity-page "Needs attention" rail: returns recent
+// failed/removed/stalled grabs within a time window. The ::text casts
+// make the types explicit to the planner; grab_history.grabbed_at is
+// TEXT-encoded RFC3339 so the comparison is lexicographic but
+// order-preserving.
+func (q *Queries) ListGrabHistoryByStatusSince(ctx context.Context, arg ListGrabHistoryByStatusSinceParams) ([]GrabHistory, error) {
+	rows, err := q.db.QueryContext(ctx, listGrabHistoryByStatusSince, arg.Status, arg.Since, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GrabHistory
+	for rows.Next() {
+		var i GrabHistory
+		if err := rows.Scan(
+			&i.ID,
+			&i.MovieID,
+			&i.IndexerID,
+			&i.ReleaseGuid,
+			&i.ReleaseTitle,
+			&i.ReleaseSource,
+			&i.ReleaseResolution,
+			&i.ReleaseCodec,
+			&i.ReleaseHdr,
+			&i.Protocol,
+			&i.Size,
+			&i.DownloadClientID,
+			&i.ClientItemID,
+			&i.GrabbedAt,
+			&i.DownloadStatus,
+			&i.DownloadedBytes,
+			&i.ScoreBreakdown,
+			&i.ReleaseEdition,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIndexerConfigs = `-- name: ListIndexerConfigs :many
 SELECT id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders FROM indexer_configs ORDER BY priority ASC, name ASC
 `
