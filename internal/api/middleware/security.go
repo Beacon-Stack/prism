@@ -21,8 +21,13 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		// Basic CSP: only allow resources from the same origin.
 		// unsafe-inline is needed for the React SPA's inline scripts/styles
 		// until a nonce-based CSP can be implemented.
+		// style-src must include fonts.googleapis.com so the @import
+		// stylesheet (which @font-faces Inter / JetBrains Mono) loads.
+		// font-src must include fonts.gstatic.com for the actual woff2
+		// files. Without both, Inter fails silently and the nav falls
+		// back to system-ui — visibly different on Linux/Windows.
 		h.Set("Content-Security-Policy",
-			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://image.tmdb.org; font-src 'self'; connect-src 'self' blob: ws: wss:; worker-src 'self' blob:")
+			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://image.tmdb.org; font-src 'self' https://fonts.gstatic.com; connect-src 'self' blob: ws: wss:; worker-src 'self' blob:")
 		next.ServeHTTP(w, r)
 	})
 }

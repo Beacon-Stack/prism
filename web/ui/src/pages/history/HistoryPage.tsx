@@ -5,6 +5,7 @@ import { formatBytes, formatDate } from "@/lib/utils";
 import ScoreChip from "@/components/ScoreChip";
 import QualityBadge from "@/components/QualityBadge";
 import StatusBadge from "@/components/StatusBadge";
+import TableScroll from "@beacon-shared/TableScroll";
 import type { GrabHistory } from "@/types";
 
 function HistoryRow({ item, isLast }: { item: GrabHistory; isLast: boolean }) {
@@ -135,22 +136,24 @@ export default function HistoryPage() {
             )}
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {["Release", "Quality", "Score", "Protocol", "Size", "Status", "Grabbed"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "8px 20px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-                    {h}
-                  </th>
+          <TableScroll minWidth={900}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                  {["Release", "Quality", "Score", "Protocol", "Size", "Status", "Grabbed"].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "8px 20px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <HistoryRow key={item.id} item={item} isLast={idx === items.length - 1} />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, idx) => (
-                <HistoryRow key={item.id} item={item} isLast={idx === items.length - 1} />
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </TableScroll>
         )}
       </div>
     </div>

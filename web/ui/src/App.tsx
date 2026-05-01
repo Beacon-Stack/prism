@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { Shell } from "@/layouts/Shell";
+import Shell from "@/layouts/Shell";
 import { ConfirmProvider } from "@beacon-shared/ConfirmDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Dashboard from "@/pages/dashboard/Dashboard";

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import Modal from "@beacon-shared/Modal";
+import TableScroll from "@beacon-shared/TableScroll";
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
 import { useQueryClient } from "@tanstack/react-query";
@@ -1378,28 +1379,29 @@ export default function LibraryList() {
             </p>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {["Name", "Root Path", "Quality Profile", "Min Free Space", ""].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: "left",
-                      padding: "10px 16px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "var(--color-text-muted)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+          <TableScroll minWidth={800}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                  {["Name", "Root Path", "Quality Profile", "Min Free Space", ""].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: "left",
+                        padding: "10px 16px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: "var(--color-text-muted)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
             <tbody>
               {data.map((lib, i) => (
                 <tr
@@ -1445,7 +1447,8 @@ export default function LibraryList() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </TableScroll>
         )}
       </div>
 
