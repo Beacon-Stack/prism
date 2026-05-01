@@ -48,6 +48,11 @@ export const handlers = [
     HttpResponse.json({ cast: [], crew: [], recommendations: [] })
   ),
 
+  // Haul history (returns empty when Haul isn't configured)
+  http.get("/api/v1/movies/:id/haul-history", () =>
+    HttpResponse.json({ records: [] })
+  ),
+
   // Watch
   http.post("/api/v1/watch-sync/run", () =>
     HttpResponse.json({ status: "ok" })
