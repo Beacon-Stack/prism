@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "@beacon-shared/Modal";
+import TableScroll from "@beacon-shared/TableScroll";
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
 import {
@@ -1146,10 +1147,11 @@ export default function NotificationList() {
             </p>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {["Name", "Type", "Events", "Status", ""].map((h) => (
+          <TableScroll minWidth={700}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                  {["Name", "Type", "Events", "Status", ""].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -1227,7 +1229,8 @@ export default function NotificationList() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </TableScroll>
         )}
       </div>
 

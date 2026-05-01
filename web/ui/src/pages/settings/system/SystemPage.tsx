@@ -15,6 +15,7 @@ import type { HealthStatus, UpdateCheck, LogEntry } from "@/types";
 import { card, sectionHeader } from "@/lib/styles";
 import Pill from "@/components/Pill";
 import Modal from "@beacon-shared/Modal";
+import TableScroll from "@beacon-shared/TableScroll";
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -660,28 +661,29 @@ function TasksSection() {
           No tasks registered.
         </p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr>
-              {["Task", "Interval", ""].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    textAlign: "left",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "var(--color-text-muted)",
-                    paddingBottom: 8,
-                    borderBottom: "1px solid var(--color-border-subtle)",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
+        <TableScroll minWidth={500}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr>
+                {["Task", "Interval", ""].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      textAlign: "left",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "var(--color-text-muted)",
+                      paddingBottom: 8,
+                      borderBottom: "1px solid var(--color-border-subtle)",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
           <tbody>
             {data.map((task, i) => {
               const isPending = runTask.isPending && runTask.variables === task.name;
@@ -764,7 +766,8 @@ function TasksSection() {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </TableScroll>
       )}
     </div>
   );
@@ -949,6 +952,7 @@ function LogsSection() {
         </p>
       ) : (
         <div style={{ maxHeight: 420, overflowY: "auto" }}>
+          <TableScroll minWidth={600}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -981,6 +985,7 @@ function LogsSection() {
               ))}
             </tbody>
           </table>
+          </TableScroll>
         </div>
       )}
     </div>

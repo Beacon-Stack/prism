@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft, CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useRadarrPreview, useRadarrImport } from "@/api/import";
+import TableScroll from "@beacon-shared/TableScroll";
 import type { RadarrPreviewResult, RadarrImportOptions, RadarrImportResult, CategoryResult } from "@/types";
 
 // ── sessionStorage helpers (credentials cleared on tab close) ─────────────────
@@ -603,6 +604,7 @@ function DoneStep({ result }: { result: RadarrImportResult }) {
       {/* Results table */}
       <div style={card}>
         <div style={sectionTitle}>Import summary</div>
+        <TableScroll minWidth={500}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -672,6 +674,7 @@ function DoneStep({ result }: { result: RadarrImportResult }) {
             <CategoryRow label="Movies" result={result.movies} />
           </tbody>
         </table>
+        </TableScroll>
       </div>
 
       {/* Error list */}

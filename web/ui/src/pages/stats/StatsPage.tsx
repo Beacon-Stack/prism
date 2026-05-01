@@ -35,6 +35,7 @@ import type {
   GenreBucket,
 } from "@/api/stats";
 import { formatBytes } from "@/lib/utils";
+import TableScroll from "@beacon-shared/TableScroll";
 const tooltipStyle = {
   contentStyle: {
     background: "var(--color-bg-elevated)",
@@ -634,10 +635,11 @@ function GrabsCard({ data }: { data: GrabStats }) {
           >
             Top Indexers
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr>
-                {["Indexer", "Grabs", "Success Rate"].map((h) => (
+          <TableScroll minWidth={450}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr>
+                  {["Indexer", "Grabs", "Success Rate"].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -695,7 +697,8 @@ function GrabsCard({ data }: { data: GrabStats }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </TableScroll>
         </div>
       )}
     </Card>

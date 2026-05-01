@@ -9,6 +9,7 @@ import {
 } from "@/api/quality-profiles";
 import { useQualityDefinitions } from "@/api/quality-definitions";
 import Modal from "@beacon-shared/Modal";
+import TableScroll from "@beacon-shared/TableScroll";
 import type { Quality, QualityDefinition, QualityProfile, QualityProfileRequest } from "@/types";
 
 // ── Quality helpers ──────────────────────────────────────────────────────────
@@ -275,18 +276,19 @@ function QualityProfileModal({ editing, definitions, onClose }: ModalProps) {
             <label style={{ ...labelStyle, marginBottom: 0 }}>Allowed Qualities *</label>
             <ToggleSlider checked={advanced} onChange={setAdvanced} label="Advanced" />
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {headers.map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleDefs.map((def) => {
+          <TableScroll minWidth={600}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                  {headers.map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "6px 10px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visibleDefs.map((def) => {
                 const checked = selectedKeys.has(def.id);
                 return (
                   <tr
@@ -320,7 +322,8 @@ function QualityProfileModal({ editing, definitions, onClose }: ModalProps) {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </TableScroll>
         </div>
 
         {/* Cutoff + Upgrade */}
@@ -485,16 +488,17 @@ export default function QualityProfileList() {
             <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--color-text-muted)" }}>Add a profile to control which releases get grabbed.</p>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {["Name", "Cutoff", "Qualities", "Upgrades", ""].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+          <TableScroll minWidth={700}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                  {["Name", "Cutoff", "Qualities", "Upgrades", ""].map((h) => (
+                    <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
             <tbody>
               {data.map((profile, i) => (
                 <tr key={profile.id} style={{ borderBottom: i < data.length - 1 ? "1px solid var(--color-border-subtle)" : "none" }}>
@@ -587,7 +591,8 @@ export default function QualityProfileList() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </TableScroll>
         )}
       </div>
 

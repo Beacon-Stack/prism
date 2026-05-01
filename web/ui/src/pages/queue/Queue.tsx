@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useQueue, useRemoveFromQueue, useBlocklistQueueItem } from "@/api/queue";
 import { formatBytes, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/StatusBadge";
+import TableScroll from "@beacon-shared/TableScroll";
 import type { QueueItem } from "@/types";
 
 function progressPct(item: QueueItem): number {
@@ -337,34 +338,36 @@ export default function Queue() {
             </div>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
-                {["Release", "Status", "Progress", "Grabbed", ""].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: "left",
-                      padding: "8px 20px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "var(--color-text-muted)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
+          <TableScroll minWidth={700}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                  {["Release", "Status", "Progress", "Grabbed", ""].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: "left",
+                        padding: "8px 20px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: "var(--color-text-muted)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, idx) => (
+                  <QueueRow key={item.id} item={item} isLast={idx === items.length - 1} />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, idx) => (
-                <QueueRow key={item.id} item={item} isLast={idx === items.length - 1} />
-              ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </TableScroll>
         )}
       </div>
     </div>
