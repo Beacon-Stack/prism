@@ -155,6 +155,12 @@ export interface Release {
   // blocklist, etc.). Auto-grab skips flagged rows; the manual-search
   // dialog renders them grayed-out with an override-and-grab button.
   filter_reasons?: string[];
+  // already_grabbed_at, when set, means the user has previously grabbed
+  // this exact release (by GUID match in grab_history). The UI badges
+  // the row and asks for confirmation before re-grabbing.
+  already_grabbed_at?: string;
+  already_grabbed_id?: string;
+  already_grabbed_status?: string;
 }
 
 export interface GrabHistory {
