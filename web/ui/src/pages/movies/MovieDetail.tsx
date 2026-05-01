@@ -20,6 +20,7 @@ import {
   useAutoSearch,
   useEditions,
 } from "@/api/movies";
+import { useMovieHaulHistory, useReimportFromHaul } from "@/api/haul";
 import Modal from "@beacon-shared/Modal";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
 import ScoreChip from "@/components/ScoreChip";
@@ -756,6 +757,70 @@ function MatchTMDBBanner({ movieId }: { movieId: string }) {
   );
 }
 
+// ── Haul history banner ────────────────────────────────────────────────────────
+
+function HaulBanner({ movieId }: { movieId: string }) {
+  const { data: records, isLoading } = useMovieHaulHistory(movieId);
+  const reimport = useReimportFromHaul(movieId);
+
+  // Only show banner for completed, still-present records
+  const available = (records ?? []).filter(
+    (r) => r.completed_at && !r.removed_at
+  );
+
+  if (isLoading || available.length === 0) return null;
+
+  const best = available[0];
+  const completedDate = best.completed_at
+    ? new Date(best.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : "";
+
+  return (
+    <div
+      data-testid="haul-banner"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "10px 16px",
+        background: "color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-surface))",
+        border: "1px solid color-mix(in srgb, var(--color-accent) 25%, var(--color-border-subtle))",
+        borderRadius: 8,
+        marginBottom: 20,
+      }}
+    >
+      <span style={{ fontSize: 13, color: "var(--color-text-primary)" }}>
+        Haul has{available.length > 1 ? ` ${available.length} downloads` : " 1 download"} for this movie
+        {completedDate ? ` (${completedDate})` : ""}
+        {" — "}
+        <span style={{ color: "var(--color-text-muted)", fontFamily: "var(--font-family-mono)", fontSize: 11 }}>
+          {best.name}
+        </span>
+      </span>
+      <button
+        onClick={() => reimport.mutate(best.info_hash)}
+        disabled={reimport.isPending}
+        style={{
+          flexShrink: 0,
+          background: "var(--color-accent)",
+          color: "var(--color-accent-fg)",
+          border: "none",
+          borderRadius: 5,
+          padding: "5px 14px",
+          fontSize: 12,
+          fontWeight: 500,
+          cursor: reimport.isPending ? "not-allowed" : "pointer",
+          whiteSpace: "nowrap",
+          opacity: reimport.isPending ? 0.7 : 1,
+        }}
+      >
+        {reimport.isPending ? "Importing…" : "Re-import"}
+      </button>
+    </div>
+  );
+}
+
 // ── Delete confirm ─────────────────────────────────────────────────────────────
 
 function DeleteConfirmBar({ movieId, onCancel }: { movieId: string; onCancel: () => void }) {
@@ -945,6 +1010,9 @@ export default function MovieDetail() {
 
       {/* Unmatched banner */}
       {movie.tmdb_id === 0 && <MatchTMDBBanner movieId={movie.id} />}
+
+      {/* Haul re-import banner — only when no file is on disk */}
+      {(!files || files.length === 0) && <HaulBanner movieId={movie.id} />}
 
       {/* Delete confirmation bar */}
       {confirming && (
