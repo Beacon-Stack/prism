@@ -243,13 +243,17 @@ func (s *Service) fireTransitionEvent(ctx context.Context, g dbgen.GrabHistory, 
 	}
 	switch plugin.DownloadStatus(newStatus) {
 	case plugin.StatusCompleted:
+		// release_title matches what the activity classifier reads —
+		// see classify() in internal/core/activity/service.go. Drift
+		// here used to render activity rows as "Download complete: "
+		// with an empty title.
 		s.bus.Publish(ctx, events.Event{
 			Type:    events.TypeDownloadDone,
 			MovieID: g.MovieID,
 			Data: map[string]any{
-				"grab_id":      g.ID,
-				"title":        g.ReleaseTitle,
-				"content_path": contentPath,
+				"grab_id":       g.ID,
+				"release_title": g.ReleaseTitle,
+				"content_path":  contentPath,
 			},
 		})
 		s.logger.Info("download completed",
@@ -257,6 +261,15 @@ func (s *Service) fireTransitionEvent(ctx context.Context, g dbgen.GrabHistory, 
 			"release", g.ReleaseTitle,
 		)
 	case plugin.StatusFailed:
+		s.bus.Publish(ctx, events.Event{
+			Type:    events.TypeGrabFailed,
+			MovieID: g.MovieID,
+			Data: map[string]any{
+				"grab_id":       g.ID,
+				"release_title": g.ReleaseTitle,
+				"reason":        "download client reported failed",
+			},
+		})
 		s.logger.Warn("download failed",
 			"movie_id", g.MovieID,
 			"release", g.ReleaseTitle,

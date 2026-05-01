@@ -93,13 +93,24 @@ func (s *Service) Subscribe() {
 				"error", err,
 			)
 			if s.bus != nil {
+				// Best-effort: look up the movie title for the
+				// activity log row. Without it, the Activity page
+				// renders "Import failed for " — uninformative
+				// when the user is trying to triage failures.
+				data := map[string]any{
+					"grab_id": grabID,
+					"reason":  err.Error(),
+				}
+				if grab, gErr := s.q.GetGrabByID(ctx, grabID); gErr == nil {
+					data["release_title"] = grab.ReleaseTitle
+					if mov, mErr := s.q.GetMovie(ctx, grab.MovieID); mErr == nil {
+						data["movie_title"] = mov.Title
+					}
+				}
 				s.bus.Publish(ctx, events.Event{
 					Type:    events.TypeImportFailed,
 					MovieID: e.MovieID,
-					Data: map[string]any{
-						"grab_id": grabID,
-						"error":   err.Error(),
-					},
+					Data:    data,
 				})
 			}
 		}
@@ -256,12 +267,22 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	}
 
 	// ── Publish success event ──────────────────────────────────────────────
+	// movie_title + quality are read by the activity classifier — see
+	// classify() in internal/core/activity/service.go. The previous
+	// emit omitted both, leaving activity rows rendered as "Imported "
+	// with an empty title.
+	qualityLabel := string(q.Resolution)
+	if q.Source != "" {
+		qualityLabel = fmt.Sprintf("%s %s", q.Resolution, q.Source)
+	}
 	s.bus.Publish(ctx, events.Event{
 		Type:    events.TypeImportComplete,
 		MovieID: grab.MovieID,
 		Data: map[string]any{
-			"grab_id":   grabID,
-			"dest_path": destPath,
+			"grab_id":     grabID,
+			"dest_path":   destPath,
+			"movie_title": mov.Title,
+			"quality":     qualityLabel,
 		},
 	})
 

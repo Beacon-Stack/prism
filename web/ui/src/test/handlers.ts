@@ -42,6 +42,12 @@ export const handlers = [
   http.get("/api/v1/activity", () =>
     HttpResponse.json({ activities: [], total: 0 })
   ),
+  http.get("/api/v1/activity/needs-attention", () =>
+    HttpResponse.json({
+      items: [],
+      counts: { grab_failed: 0, import_failed: 0 },
+    })
+  ),
 
   // Movie credits
   http.get("/api/v1/movies/:id/credits", () =>

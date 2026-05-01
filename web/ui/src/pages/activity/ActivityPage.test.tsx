@@ -1,6 +1,10 @@
+// ActivityPage.test.tsx — exercises the four rails (Currently
+// downloading, Recently imported, Needs attention, Background tasks).
+// The page no longer has filter pills; the legacy flat-timeline tests
+// were deleted with the component.
+
 import { describe, it, expect } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/handlers";
 import { renderWithProviders } from "@/test/helpers";
@@ -11,198 +15,187 @@ function renderPage() {
   return renderWithProviders(createElement(ActivityPage));
 }
 
-const fixtures = {
-  activities: [
-    {
-      id: "a-1",
-      type: "grab_started",
-      category: "grab",
-      movie_id: "movie-1",
-      title: "Grabbed Alien.1979.DC.1080p.BluRay from The Pirate Bay",
-      detail: { indexer: "The Pirate Bay", quality: "1080p bluray" },
-      created_at: new Date(Date.now() - 300_000).toISOString(), // 5m ago
-    },
-    {
-      id: "a-2",
-      type: "task_finished",
-      category: "task",
-      title: "RSS Sync completed",
-      created_at: new Date(Date.now() - 3600_000).toISOString(), // 1h ago
-    },
-    {
-      id: "a-3",
-      type: "import_complete",
-      category: "import",
-      movie_id: "movie-2",
-      title: "Imported Inception (2010) — 2160p Bluray",
-      created_at: new Date(Date.now() - 86400_000).toISOString(), // 1d ago
-    },
-    {
-      id: "a-4",
-      type: "health_issue",
-      category: "health",
-      title: "library_paths: path not accessible",
-      created_at: new Date(Date.now() - 172800_000).toISOString(), // 2d ago
-    },
-    {
-      id: "a-5",
-      type: "movie_added",
-      category: "movie",
-      movie_id: "movie-3",
-      title: "Added The Matrix (1999) to library",
-      created_at: new Date(Date.now() - 259200_000).toISOString(), // 3d ago
-    },
-  ],
-  total: 5,
+const movie = {
+  id: "movie-1",
+  tmdb_id: 100,
+  title: "Inception",
+  year: 2010,
+  status: "monitored",
+  monitored: true,
+  library_id: "lib-1",
+  size_on_disk: 0,
+  added_at: "2024-01-01T00:00:00Z",
 };
 
 describe("ActivityPage", () => {
-  it("renders heading", () => {
+  it("renders the page heading", () => {
     renderPage();
-    expect(screen.getByText("Activity")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Activity/i })).toBeInTheDocument();
   });
 
-  it("shows loading skeletons while fetching", () => {
-    server.use(http.get("/api/v1/activity", () => new Promise(() => {})));
-    const { container } = renderPage();
-    expect(container.querySelectorAll(".skeleton").length).toBeGreaterThan(0);
-  });
-
-  it("shows empty state when no activities", async () => {
+  // The Downloading rail is the first user-facing data rail. If it
+  // doesn't show items the queue API returns, the page is back to
+  // being useless.
+  it("shows currently-downloading items in the Downloading rail", async () => {
     server.use(
-      http.get("/api/v1/activity", () =>
-        HttpResponse.json({ activities: [], total: 0 })
+      http.get("/api/v1/movies", () =>
+        HttpResponse.json({ movies: [movie], total: 1, page: 1, per_page: 500 })
+      ),
+      http.get("/api/v1/queue", () =>
+        HttpResponse.json([
+          {
+            id: "q1",
+            movie_id: "movie-1",
+            release_title: "Inception.2010.UHD.BluRay.2160p",
+            protocol: "torrent",
+            size: 50_000_000_000,
+            downloaded_bytes: 25_000_000_000,
+            status: "downloading",
+            grabbed_at: new Date().toISOString(),
+          },
+        ])
       )
     );
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByTestId("empty-state")).toBeInTheDocument()
-    );
-    expect(screen.getByText("No recent activity")).toBeInTheDocument();
-  });
 
-  it("renders activity list from API data", async () => {
-    server.use(
-      http.get("/api/v1/activity", () => HttpResponse.json(fixtures))
-    );
     renderPage();
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "Grabbed Alien.1979.DC.1080p.BluRay from The Pirate Bay"
-        )
+        screen.getByText("Inception.2010.UHD.BluRay.2160p")
       ).toBeInTheDocument()
     );
-    expect(screen.getByText("RSS Sync completed")).toBeInTheDocument();
-    expect(
-      screen.getByText("Imported Inception (2010) — 2160p Bluray")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("library_paths: path not accessible")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Added The Matrix (1999) to library")
-    ).toBeInTheDocument();
   });
 
-  it("shows total count", async () => {
+  // The Recently Imported rail reads activity_log import_complete events
+  // (NOT grab_history) so completion-time bucketing works correctly.
+  // grab_history.grabbed_at is request time, which can be days before
+  // a large download finishes — using it for the 48h cutoff hides
+  // imports that just landed.
+  it("shows recently-completed import_complete events in the Recently Imported rail", async () => {
     server.use(
-      http.get("/api/v1/activity", () => HttpResponse.json(fixtures))
-    );
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("5 events")).toBeInTheDocument()
-    );
-  });
-
-  it("renders movie-linked activities as clickable links", async () => {
-    server.use(
-      http.get("/api/v1/activity", () => HttpResponse.json(fixtures))
-    );
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByTestId("activity-link-a-1")).toBeInTheDocument()
-    );
-    const link = screen.getByTestId("activity-link-a-1");
-    expect(link.tagName).toBe("A");
-    expect(link.getAttribute("href")).toBe("/movies/movie-1");
-  });
-
-  it("renders non-movie activities as plain text", async () => {
-    server.use(
-      http.get("/api/v1/activity", () => HttpResponse.json(fixtures))
-    );
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByTestId("activity-text-a-2")).toBeInTheDocument()
-    );
-    const el = screen.getByTestId("activity-text-a-2");
-    expect(el.tagName).toBe("SPAN");
-  });
-
-  it("shows relative timestamps", async () => {
-    server.use(
-      http.get("/api/v1/activity", () => HttpResponse.json(fixtures))
-    );
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("5m ago")).toBeInTheDocument()
-    );
-    expect(screen.getByText("1h ago")).toBeInTheDocument();
-    expect(screen.getByText("1d ago")).toBeInTheDocument();
-  });
-
-  it("filters by category when clicking a pill", async () => {
-    const user = userEvent.setup();
-    let lastCategory: string | null = null;
-
-    server.use(
+      http.get("/api/v1/movies", () =>
+        HttpResponse.json({ movies: [movie], total: 1, page: 1, per_page: 500 })
+      ),
       http.get("/api/v1/activity", ({ request }) => {
         const url = new URL(request.url);
-        lastCategory = url.searchParams.get("category");
-        if (lastCategory === "grab") {
-          return HttpResponse.json({
-            activities: [fixtures.activities[0]],
-            total: 1,
-          });
+        if (url.searchParams.get("category") !== "import_succeeded") {
+          return HttpResponse.json({ activities: [], total: 0 });
         }
-        return HttpResponse.json(fixtures);
+        return HttpResponse.json({
+          activities: [
+            {
+              id: "a-import",
+              type: "import_complete",
+              category: "import_succeeded",
+              movie_id: "movie-1",
+              title: "Imported Inception — 1080p BluRay",
+              detail: { quality: "1080p BluRay" },
+              created_at: new Date(Date.now() - 3600_000).toISOString(),
+            },
+          ],
+          total: 1,
+        });
+      })
+    );
+
+    renderPage();
+    // The rail renders the resolved movie title (from useMovies idx),
+    // not the raw event title — so we look for "Inception".
+    await waitFor(() =>
+      expect(screen.getByText("Inception")).toBeInTheDocument()
+    );
+  });
+
+  // Pin the time-window contract: an import_complete event older than
+  // 48h must NOT render. Without this the rail would slowly drift into
+  // an "all imports ever" view.
+  it("filters out import_complete events older than 48h", async () => {
+    server.use(
+      http.get("/api/v1/movies", () =>
+        HttpResponse.json({ movies: [movie], total: 1, page: 1, per_page: 500 })
+      ),
+      http.get("/api/v1/activity", ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get("category") !== "import_succeeded") {
+          return HttpResponse.json({ activities: [], total: 0 });
+        }
+        return HttpResponse.json({
+          activities: [
+            {
+              id: "a-old",
+              type: "import_complete",
+              category: "import_succeeded",
+              movie_id: "movie-1",
+              title: "Imported Inception",
+              created_at: new Date(Date.now() - 72 * 3600_000).toISOString(), // 3 days ago
+            },
+          ],
+          total: 1,
+        });
       })
     );
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText("5 events")).toBeInTheDocument()
-    );
-
-    await user.click(screen.getByTestId("filter-grab"));
-    await waitFor(() => expect(lastCategory).toBe("grab"));
-    await waitFor(() =>
-      expect(screen.getByText("1 events")).toBeInTheDocument()
+      expect(screen.getByText(/No imports in the last 48 hours/i)).toBeInTheDocument()
     );
   });
 
-  it("shows error state on API failure", async () => {
+  // The Needs Attention rail is the load-bearing piece for triage.
+  // If the API returns failures, they MUST render — otherwise the rail
+  // claims "nothing needs attention" while failures are piling up.
+  it("renders failures from the needs-attention API in the Needs Attention rail", async () => {
     server.use(
-      http.get("/api/v1/activity", () =>
-        HttpResponse.json({ title: "Internal Server Error" }, { status: 500 })
+      http.get("/api/v1/activity/needs-attention", () =>
+        HttpResponse.json({
+          items: [
+            {
+              kind: "grab_failed",
+              grab_id: "g1",
+              movie_id: "movie-1",
+              release_title: "Bad.Release.1080p",
+              detail: "Download failed",
+              created_at: new Date().toISOString(),
+            },
+            {
+              kind: "import_failed",
+              movie_id: "movie-1",
+              release_title: "Other.Release.1080p",
+              detail: "permission denied",
+              created_at: new Date(Date.now() - 1000).toISOString(),
+            },
+          ],
+          counts: { grab_failed: 1, import_failed: 1 },
+        })
       )
     );
+
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("Bad.Release.1080p")).toBeInTheDocument();
+      expect(screen.getByText("Other.Release.1080p")).toBeInTheDocument();
+    });
+    // Counts summary should be visible too.
+    expect(screen.getByText(/1 failed grab/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 failed import/i)).toBeInTheDocument();
+  });
+
+  // Empty state for needs-attention shouldn't crash and must say
+  // something reassuring rather than rendering nothing.
+  it("renders the clean-window empty state when no failures", async () => {
     renderPage();
     await waitFor(() =>
       expect(
-        screen.getByText("Failed to load activity.")
+        screen.getByText(/Nothing needs attention/i)
       ).toBeInTheDocument()
     );
   });
 
-  it("renders all category filter pills", () => {
+  // The Background Tasks rail is a known placeholder. Default-collapsed
+  // so it doesn't take vertical space — assert the header is rendered.
+  it("renders the background-tasks rail header", () => {
     renderPage();
-    expect(screen.getByTestId("filter-all")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-grab")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-import")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-task")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-health")).toBeInTheDocument();
-    expect(screen.getByTestId("filter-movie")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Active background tasks/i)
+    ).toBeInTheDocument();
   });
 });

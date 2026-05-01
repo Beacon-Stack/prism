@@ -74,6 +74,18 @@ UPDATE grab_history SET download_status = 'removed' WHERE id = $1;
 -- name: ListGrabHistoryByStatus :many
 SELECT * FROM grab_history WHERE download_status = $1 ORDER BY grabbed_at DESC LIMIT $2;
 
+-- name: ListGrabHistoryByStatusSince :many
+-- Powers the Activity-page "Needs attention" rail: returns recent
+-- failed/removed/stalled grabs within a time window. The ::text casts
+-- make the types explicit to the planner; grab_history.grabbed_at is
+-- TEXT-encoded RFC3339 so the comparison is lexicographic but
+-- order-preserving.
+SELECT * FROM grab_history
+WHERE download_status = sqlc.arg('status')::text
+  AND grabbed_at > sqlc.arg('since')::text
+ORDER BY grabbed_at DESC
+LIMIT sqlc.arg('limit');
+
 -- name: ListGrabHistoryByProtocol :many
 SELECT * FROM grab_history WHERE protocol = $1 ORDER BY grabbed_at DESC LIMIT $2;
 

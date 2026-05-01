@@ -52,8 +52,8 @@ func TestHandleEvent_GrabStarted(t *testing.T) {
 	}
 
 	a := result.Activities[0]
-	if a.Category != "grab" {
-		t.Errorf("category: got %q, want %q", a.Category, "grab")
+	if a.Category != "grab_succeeded" {
+		t.Errorf("category: got %q, want %q", a.Category, "grab_succeeded")
 	}
 	if a.Type != "grab_started" {
 		t.Errorf("type: got %q, want %q", a.Type, "grab_started")
@@ -149,7 +149,7 @@ func TestList_CategoryFilter(t *testing.T) {
 	publishAndWait(bus, events.Event{Type: events.TypeGrabStarted, Timestamp: time.Now(), Data: map[string]any{"release_title": "R1"}})
 	publishAndWait(bus, events.Event{Type: events.TypeTaskFinished, Timestamp: time.Now(), Data: map[string]any{"task": "RSS"}})
 
-	cat := "grab"
+	cat := "grab_succeeded"
 	result, err := svc.List(ctx, &cat, nil, 100)
 	if err != nil {
 		t.Fatalf("List: %v", err)
@@ -157,8 +157,8 @@ func TestList_CategoryFilter(t *testing.T) {
 	if len(result.Activities) != 1 {
 		t.Fatalf("expected 1 grab activity, got %d", len(result.Activities))
 	}
-	if result.Activities[0].Category != "grab" {
-		t.Errorf("category: got %q, want %q", result.Activities[0].Category, "grab")
+	if result.Activities[0].Category != "grab_succeeded" {
+		t.Errorf("category: got %q, want %q", result.Activities[0].Category, "grab_succeeded")
 	}
 }
 
@@ -315,7 +315,14 @@ func TestConcurrentWrites(t *testing.T) {
 
 func TestValidCategory(t *testing.T) {
 	t.Parallel()
-	valid := []string{"grab", "import", "task", "health", "movie"}
+	// New split categories AND legacy values (the latter for clients
+	// that filter on the old "grab"/"import" names).
+	valid := []string{
+		"grab_succeeded", "grab_failed",
+		"import_succeeded", "import_failed",
+		"task", "health", "movie",
+		"grab", "import", // legacy back-compat
+	}
 	for _, c := range valid {
 		if !activity.ValidCategory(c) {
 			t.Errorf("expected %q to be valid", c)
