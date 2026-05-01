@@ -7,6 +7,7 @@ import {
   Download,
   Wifi,
   TriangleAlert,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMovieReleases, useGrabRelease, useMovie, type GrabReleaseRequest } from "@/api/movies";
@@ -16,6 +17,7 @@ import type { Release, QualityConflict } from "@/types";
 import { formatBytes } from "@beacon-shared/utils";
 import QualityBadge from "@/components/QualityBadge";
 import Modal from "@beacon-shared/Modal";
+import { useConfirm } from "@beacon-shared/ConfirmDialog";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -106,6 +108,10 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
   const health = seedHealth(release.seeds);
   const hasConflicts = (release.conflicts?.length ?? 0) > 0;
   const filtered = (release.filter_reasons?.length ?? 0) > 0;
+  const alreadyGrabbed = !!release.already_grabbed_at;
+  const grabbedAgeLabel = alreadyGrabbed
+    ? formatAge((Date.now() - new Date(release.already_grabbed_at!).getTime()) / 86400000)
+    : "";
 
   return (
     <tr
@@ -198,6 +204,25 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
               }}
             >
               Filtered
+            </span>
+          )}
+          {alreadyGrabbed && (
+            <span
+              title={`Previously grabbed ${grabbedAgeLabel} ago — status: ${release.already_grabbed_status ?? "unknown"}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                padding: "1px 6px",
+                borderRadius: 8,
+                background: "color-mix(in srgb, var(--color-warning) 15%, transparent)",
+                color: "var(--color-warning)",
+                border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)",
+                fontSize: 10,
+                fontWeight: 500,
+              }}
+            >
+              <History size={10} /> Already grabbed {grabbedAgeLabel} ago
             </span>
           )}
         </div>
@@ -331,6 +356,7 @@ interface ManualSearchModalProps {
 export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearchModalProps) {
   const { data: releases, isLoading, error, refetch } = useMovieReleases(movieId);
   const grab = useGrabRelease();
+  const confirm = useConfirm();
 
   // Profile + current-file lookup for the header note. All three hooks hit
   // React Query's shared cache, so when this modal is opened from MovieDetail
@@ -400,7 +426,25 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
   }
 
   const handleGrab = useCallback(
-    (release: Release) => {
+    async (release: Release) => {
+      // Already-grabbed guardrail: when grab_history has a row for this
+      // release's GUID, prompt the user to confirm before re-grabbing.
+      // Soft warning; confirmed grabs proceed normally.
+      if (release.already_grabbed_at) {
+        const ageDays = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(release.already_grabbed_at).getTime()) / 86400000),
+        );
+        const ageLabel = ageDays === 0 ? "today" : ageDays === 1 ? "1 day ago" : `${ageDays} days ago`;
+        const status = release.already_grabbed_status || "unknown";
+        const ok = await confirm({
+          title: "Already grabbed",
+          message: `You grabbed this exact release ${ageLabel} (status: ${status}). Grab it again?`,
+          confirmLabel: "Grab again",
+          danger: false,
+        });
+        if (!ok) return;
+      }
       const body: GrabReleaseRequest & { movieId: string } = {
         movieId,
         guid: release.guid,
@@ -442,7 +486,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
         },
       });
     },
-    [movieId, grab, onClose],
+    [movieId, grab, confirm, onClose],
   );
 
   const liveCount = releases?.filter((r) => (r.seeds ?? 0) > 0).length ?? 0;

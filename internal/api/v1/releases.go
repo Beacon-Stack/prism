@@ -20,6 +20,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/titlematch"
+	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
@@ -43,6 +44,14 @@ type releaseBody struct {
 	OtherSources   []string              `json:"other_sources,omitempty" doc:"Other indexer names that reported this same torrent (matched by info_hash); seed/peer counts above are the median across all sources"`
 	FilterReasons  []string              `json:"filter_reasons,omitempty" doc:"Reasons this release was flagged by safety filters (min seeders, blocklist, etc.). Auto-grab skips flagged rows; manual-search shows them grayed-out with an override option."`
 	Conflicts      []conflict.Conflict   `json:"conflicts,omitempty" doc:"Regressions compared to current file on disk"`
+	// AlreadyGrabbedAt, when set, means a grab_history row exists for
+	// this release's GUID. The UI badges the row "already grabbed" and
+	// asks for confirmation before grabbing again. Other AlreadyGrabbed*
+	// fields surface the existing grab's id and status. Guardrail, not
+	// a hard filter — the user can still confirm and re-grab.
+	AlreadyGrabbedAt     string `json:"already_grabbed_at,omitempty"`
+	AlreadyGrabbedID     string `json:"already_grabbed_id,omitempty"`
+	AlreadyGrabbedStatus string `json:"already_grabbed_status,omitempty"`
 }
 
 type releaseListOutput struct {
@@ -138,6 +147,24 @@ func bestFileEdition(files []movie.FileInfo) string {
 	return bestEdition
 }
 
+// indexLatestGrabsByGUID returns a map of release GUID → most-recent
+// grab row for that GUID. The search handler uses this to badge
+// releases the user has already grabbed (see "Already grabbed"
+// guardrail).
+//
+// "Most recent" is determined by GrabbedAt string comparison. The
+// column stores RFC3339 UTC timestamps which sort lexically the same
+// as chronologically, so a string compare is the right tiebreaker.
+func indexLatestGrabsByGUID(rows []dbgen.GrabHistory) map[string]dbgen.GrabHistory {
+	out := make(map[string]dbgen.GrabHistory, len(rows))
+	for _, gr := range rows {
+		if existing, ok := out[gr.ReleaseGuid]; !ok || gr.GrabbedAt > existing.GrabbedAt {
+			out[gr.ReleaseGuid] = gr
+		}
+	}
+	return out
+}
+
 func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 	return &releaseBody{
 		GUID:           r.GUID,
@@ -222,6 +249,15 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			currentEdition = bestFileEdition(files)
 		}
 
+		// Build a guid → most-recent grab map so we can badge releases
+		// the user has already grabbed before. Cheap: one query per
+		// search, hash-map lookup per release. Guardrail covers the
+		// common forgot-and-re-grabbed case without gating the action.
+		var grabsByGUID map[string]dbgen.GrabHistory
+		if grabRows, gErr := indexerSvc.GrabHistory(ctx, input.MovieID); gErr == nil {
+			grabsByGUID = indexLatestGrabsByGUID(grabRows)
+		}
+
 		bodies := make([]*releaseBody, len(results))
 		for i, r := range results {
 			if prof != nil {
@@ -230,6 +266,11 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			bodies[i] = indexerResultToBody(r)
 			if currentQuality != nil {
 				bodies[i].Conflicts = conflict.Compare(*currentQuality, r.Quality, currentEdition, r.Edition)
+			}
+			if prior, ok := grabsByGUID[r.GUID]; ok {
+				bodies[i].AlreadyGrabbedAt = prior.GrabbedAt
+				bodies[i].AlreadyGrabbedID = prior.ID
+				bodies[i].AlreadyGrabbedStatus = prior.DownloadStatus
 			}
 		}
 
