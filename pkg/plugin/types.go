@@ -228,4 +228,14 @@ type Release struct {
 	// hash separately. Used to dedupe cross-indexer copies of the same
 	// torrent in Prism's search dialog — see indexer.dedupeByInfoHash.
 	InfoHash string
+
+	// Media context — populated by the API layer before sending to the
+	// download client. Haul uses these to (1) rename files on
+	// completion and (2) answer history-lookup queries later
+	// ("have I downloaded anything for movie_id=X?"). All optional;
+	// leaving empty disables the lookup integration for this grab.
+	MediaTitle string `json:"media_title,omitempty"`
+	MediaYear  int    `json:"media_year,omitempty"`
+	TMDBID     int    `json:"tmdb_id,omitempty"`
+	MovieID    string `json:"movie_id,omitempty"` // Prism movie UUID
 }

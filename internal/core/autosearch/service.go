@@ -268,7 +268,16 @@ func (s *Service) SearchMovie(ctx context.Context, movieID string) (*Result, err
 		if s.downloaderSvc == nil {
 			return nil, fmt.Errorf("no download client service configured")
 		}
-		dcID, itemID, addErr := s.downloaderSvc.Add(ctx, r.Release, allowedClientIDs)
+		// Enrich the release with movie metadata so the download
+		// client (Haul) can rename files on completion AND record
+		// arr-side IDs in its history index. The indexer plugin
+		// doesn't know about Prism's internal IDs — that's our job.
+		toGrab := r.Release
+		toGrab.MediaTitle = mov.Title
+		toGrab.MediaYear = mov.Year
+		toGrab.TMDBID = mov.TMDBID
+		toGrab.MovieID = mov.ID
+		dcID, itemID, addErr := s.downloaderSvc.Add(ctx, toGrab, allowedClientIDs)
 		if addErr != nil {
 			if errors.Is(addErr, downloader.ErrNoCompatibleClient) {
 				return nil, fmt.Errorf("no download client configured for protocol %s", r.Protocol)

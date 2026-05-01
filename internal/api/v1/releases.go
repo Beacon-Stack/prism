@@ -269,6 +269,13 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			DownloadURL: input.Body.DownloadURL,
 			Size:        input.Body.Size,
 			Quality:     qual,
+			// Forward arr-side identity so Haul's history index can
+			// later answer "have I downloaded anything for this
+			// movie?". Used by Phase 4+ UI integrations.
+			MediaTitle: mov.Title,
+			MediaYear:  mov.Year,
+			TMDBID:     mov.TMDBID,
+			MovieID:    mov.ID,
 		}
 
 		// Reject releases that are on the blocklist.
