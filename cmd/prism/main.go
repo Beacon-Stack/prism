@@ -443,6 +443,7 @@ func run() error {
 		ActivityService:          activitySvc,
 		WatchSyncService:         watchSyncSvc,
 		ImportListService:        importListSvc,
+		ImporterService:          importerSvc,
 		ProviderResolver:         providerResolver,
 		LogBuffer:                logBuffer,
 		WSHub:                    wsHub,

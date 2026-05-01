@@ -106,6 +106,30 @@ func (s *Service) Subscribe() {
 	})
 }
 
+// ImportFromHaulRecord runs the import pipeline against a Haul history
+// record without requiring a pre-existing Prism grab_history row.
+// Used by the "import from Haul" flow on the movie detail page and
+// the Activity-page "downloaded but not in library" rail — surfaces
+// files Haul has but Prism's library doesn't know about (because
+// the original grab record was lost, the torrent was added directly
+// in Haul, or the file pre-dates the importer).
+//
+// movieID is the target movie in Prism's DB; contentPath is the
+// absolute path Haul reports as save_path/name. Quality + edition
+// are zero-valued (importer derives what it can from filename when
+// the grab is empty).
+func (s *Service) ImportFromHaulRecord(ctx context.Context, movieID, contentPath string) error {
+	s.logger.Info("import started (from Haul record)", "movie_id", movieID, "content_path", contentPath)
+
+	// Synthesize a minimal grab. No grab_history row is created —
+	// this import is orthogonal to the grab pipeline. The
+	// ID field is left empty so the TypeImportComplete event's
+	// grab_id field is "" (callers can detect synthetic imports
+	// that way).
+	grab := dbgen.GrabHistory{MovieID: movieID}
+	return s.runImport(ctx, grab, contentPath, "")
+}
+
 // importFile performs the full import pipeline for a single completed download.
 func (s *Service) importFile(ctx context.Context, grabID, contentPath string) error {
 	s.logger.Info("import started", "grab_id", grabID, "content_path", contentPath)
@@ -115,7 +139,15 @@ func (s *Service) importFile(ctx context.Context, grabID, contentPath string) er
 	if err != nil {
 		return fmt.Errorf("loading grab %q: %w", grabID, err)
 	}
+	return s.runImport(ctx, grab, contentPath, grabID)
+}
 
+// runImport is the post-grab-loaded portion of importFile. Extracted
+// so both the regular grab-driven path AND the import-from-Haul
+// path can share it. grabID is used only for the
+// TypeImportComplete event Data; pass "" when there's no associated
+// grab (then the consumer sees grab_id="" in the event payload).
+func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, contentPath string, grabID string) error {
 	mov, err := s.q.GetMovie(ctx, grab.MovieID)
 	if err != nil {
 		return fmt.Errorf("loading movie %q: %w", grab.MovieID, err)

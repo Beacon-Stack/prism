@@ -26,6 +26,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/downloader"
 	"github.com/beacon-stack/prism/internal/core/downloadhandling"
 	"github.com/beacon-stack/prism/internal/core/health"
+	"github.com/beacon-stack/prism/internal/core/importer"
 	"github.com/beacon-stack/prism/internal/core/importlist"
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/library"
@@ -88,6 +89,7 @@ type RouterConfig struct {
 	ActivityService          *activity.Service
 	WatchSyncService         *watchsync.Service
 	ImportListService        *importlist.Service
+	ImporterService          *importer.Service
 	ProviderResolver         *provider.Resolver
 	LogBuffer                *logging.RingBuffer
 	WSHub                    *ws.Hub
@@ -240,6 +242,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	if cfg.DownloaderService != nil {
 		v1.RegisterDownloadClientRoutes(humaAPI, cfg.DownloaderService, cfg.TagService)
+	}
+
+	// Haul history endpoints — needs both downloader (to find a Haul
+	// client) and importer (to run the import pipeline).
+	if cfg.DownloaderService != nil && cfg.ImporterService != nil {
+		v1.RegisterHaulHistoryRoutes(humaAPI, cfg.DownloaderService, cfg.ImporterService)
 	}
 
 	if cfg.QueueService != nil {
