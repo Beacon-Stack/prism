@@ -40,6 +40,10 @@ RUN go mod download
 # Overwrite web/static/ with the freshly built frontend
 COPY --from=frontend /app/web/static/ ./web/static/
 
+# Guard against silent keyless builds — see pilot/docker/Dockerfile.beacon
+# for rationale.
+RUN [ -n "${TMDB_API_KEY}" ] || (echo >&2 "ERROR: TMDB_API_KEY is empty. Refusing to bake a keyless binary. Set PRISM_TMDB_API_KEY in your shell before rebuilding." && exit 1)
+
 # XOR-obfuscate the provider keys before baking them into the binary.
 # See pilot/docker/Dockerfile.beacon for the rationale.
 RUN TMDB_LDFLAGS="$(go run ./tools/obfuscate obfuscatedTMDBKey tmdbKeyXORKey "${TMDB_API_KEY}")" && \
