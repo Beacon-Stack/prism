@@ -396,7 +396,7 @@ func run() error {
 	sched.Add(jobs.WatchSync(watchSyncSvc, logger))
 
 	// ── Pulse integration (optional) ────────────────────────────────────
-	cfgrrIntegration, err := pulse.New(cfg.Pulse, cfg.Server.Host, cfg.Server.Port, logger)
+	cfgrrIntegration, err := pulse.New(cfg.Pulse, cfg.Server.Host, cfg.Server.Port, cfg.Auth.APIKey.Value(), logger)
 	if err != nil {
 		logger.Warn("pulse integration failed — continuing without it", "error", err)
 	}
