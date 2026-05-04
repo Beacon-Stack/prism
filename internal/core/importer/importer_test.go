@@ -13,7 +13,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
-	"github.com/beacon-stack/prism/internal/logging"
+	beaconlog "github.com/beacon-stack/pulse/pkg/log"
 )
 
 // ── Fake DB querier ────────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ func TestImport_SingleFile(t *testing.T) {
 		fileDone: make(chan struct{}),
 	}
 
-	logger, _ := logging.New("error", "text")
+	logger, _ := beaconlog.New(beaconlog.Config{Service: "prism-test", Level: "error", Format: "text"})
 	bus := events.New(logger)
 
 	// completeDone is closed by the subscriber goroutine once TypeImportComplete
@@ -258,7 +258,7 @@ func TestImport_Directory_PicksLargestVideo(t *testing.T) {
 		fileDone: make(chan struct{}),
 	}
 
-	logger, _ := logging.New("error", "text")
+	logger, _ := beaconlog.New(beaconlog.Config{Service: "prism-test", Level: "error", Format: "text"})
 	bus := events.New(logger)
 	svc := importer.NewService(fq, bus, logger, mediamanagement.NewService(fq), nil, nil)
 	svc.Subscribe()
@@ -299,7 +299,7 @@ func TestImport_Directory_PicksLargestVideo(t *testing.T) {
 }
 
 func TestImport_MissingGrabID(t *testing.T) {
-	logger, _ := logging.New("error", "text")
+	logger, _ := beaconlog.New(beaconlog.Config{Service: "prism-test", Level: "error", Format: "text"})
 	bus := events.New(logger)
 
 	var gotFailed atomic.Bool
@@ -342,7 +342,7 @@ func TestImport_EmptyContentPath(t *testing.T) {
 		libID   = "lib-1"
 	)
 
-	logger, _ := logging.New("error", "text")
+	logger, _ := beaconlog.New(beaconlog.Config{Service: "prism-test", Level: "error", Format: "text"})
 	bus := events.New(logger)
 
 	failedDone := make(chan struct{})
