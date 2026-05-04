@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard/Dashboard";
 import MovieDetail from "@/pages/movies/MovieDetail";
 import Queue from "@/pages/queue/Queue";
 import SystemPage from "@/pages/settings/system/SystemPage";
+import LogsPage from "@/pages/settings/system/Logs";
 import LibraryList from "@/pages/settings/libraries/LibraryList";
 import QualityProfileList from "@/pages/settings/quality-profiles/QualityProfileList";
 import QualityDefinitionsPage from "@/pages/settings/quality-definitions/QualityDefinitionsPage";
@@ -89,6 +90,7 @@ export default function App() {
                 <Route path="media-management" element={<RouteEB><MediaManagementPage /></RouteEB>} />
                 <Route path="media-scanning" element={<RouteEB><MediaScanningPage /></RouteEB>} />
                 <Route path="system" element={<RouteEB><SystemPage /></RouteEB>} />
+                <Route path="system/logs" element={<RouteEB><LogsPage /></RouteEB>} />
                 <Route path="providers" element={<RouteEB><ProvidersSettings /></RouteEB>} />
                 <Route path="import" element={<RouteEB><ImportPage /></RouteEB>} />
               </Route>
