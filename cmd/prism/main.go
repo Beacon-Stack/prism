@@ -44,7 +44,6 @@ import (
 	"github.com/beacon-stack/prism/internal/db"
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
-	"github.com/beacon-stack/prism/internal/logging"
 	"github.com/beacon-stack/prism/internal/mediaservers"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 	"github.com/beacon-stack/prism/internal/notifications"
@@ -57,6 +56,9 @@ import (
 	"github.com/beacon-stack/prism/internal/scheduler/jobs"
 	"github.com/beacon-stack/prism/internal/trakt"
 	"github.com/beacon-stack/prism/internal/version"
+	beaconlog "github.com/beacon-stack/pulse/pkg/log"
+	"github.com/beacon-stack/pulse/pkg/log/plugins/file"
+	"github.com/beacon-stack/pulse/pkg/log/plugins/loki"
 
 	// Blank-import built-in plugins so their init() functions register
 	// them with the default registry before any service is constructed.
@@ -120,11 +122,41 @@ func run() error {
 	}
 
 	// ── Logger ────────────────────────────────────────────────────────────────
-	logger, logBuffer := logging.New(cfg.Log.Level, cfg.Log.Format)
-
-	// Set the global slog default so packages using the top-level slog
-	// functions (slog.Info, slog.Error, etc.) pick up the configured handler.
+	// Shared module from pulse/pkg/log — stdout JSON, ring buffer
+	// behind /api/v1/system/logs, pluggable sinks via env vars.
+	logger, logSystem := beaconlog.New(beaconlog.Config{
+		Service: "prism",
+		Level:   cfg.Log.Level,
+		Format:  cfg.Log.Format,
+	})
 	slog.SetDefault(logger)
+	defer logSystem.Close(context.Background())
+
+	if url := os.Getenv("BEACON_LOG_LOKI_URL"); url != "" {
+		p, err := loki.New(loki.Config{
+			Service:   "prism",
+			URL:       url,
+			TenantID:  os.Getenv("BEACON_LOG_LOKI_TENANT"),
+			BasicUser: os.Getenv("BEACON_LOG_LOKI_USER"),
+			BasicPass: os.Getenv("BEACON_LOG_LOKI_PASS"),
+		})
+		if err != nil {
+			logger.Warn("loki plugin disabled", "error", err)
+		} else {
+			logSystem.Add(p)
+			logger.Info("log sink: loki", "url", url)
+		}
+	}
+	if path := os.Getenv("BEACON_LOG_FILE_PATH"); path != "" {
+		p, err := file.New(file.Config{Path: path})
+		if err != nil {
+			logger.Warn("file log plugin disabled", "error", err)
+		} else {
+			logSystem.Add(p)
+			logger.Info("log sink: file", "path", path)
+		}
+	}
+	dockerLogs := beaconlog.NewDockerLogsReader()
 
 	// Advisory config file permission check — use the resolved path so the
 	// warning fires whether the file was specified explicitly or found at the
@@ -445,7 +477,8 @@ func run() error {
 		ImportListService:        importListSvc,
 		ImporterService:          importerSvc,
 		ProviderResolver:         providerResolver,
-		LogBuffer:                logBuffer,
+		LogSystem:                logSystem,
+		DockerLogs:               dockerLogs,
 		WSHub:                    wsHub,
 		Bus:                      bus,
 		PulseSyncHandler:         pulseSyncHandler(cfgrrIntegration, indexerSvc, downloaderSvc),

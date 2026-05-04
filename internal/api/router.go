@@ -42,13 +42,13 @@ import (
 	"github.com/beacon-stack/prism/internal/core/tag"
 	"github.com/beacon-stack/prism/internal/core/watchsync"
 	"github.com/beacon-stack/prism/internal/events"
-	"github.com/beacon-stack/prism/internal/logging"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 	"github.com/beacon-stack/prism/internal/plexsync"
 	"github.com/beacon-stack/prism/internal/radarrimport"
 	"github.com/beacon-stack/prism/internal/scheduler"
 	"github.com/beacon-stack/prism/internal/version"
 	"github.com/beacon-stack/prism/web"
+	beaconlog "github.com/beacon-stack/pulse/pkg/log"
 )
 
 // RouterConfig holds everything the router needs to function.
@@ -91,7 +91,8 @@ type RouterConfig struct {
 	ImportListService        *importlist.Service
 	ImporterService          *importer.Service
 	ProviderResolver         *provider.Resolver
-	LogBuffer                *logging.RingBuffer
+	LogSystem                *beaconlog.System
+	DockerLogs               *beaconlog.DockerLogsReader
 	WSHub                    *ws.Hub
 	Bus                      *events.Bus
 	PulseSyncHandler         http.HandlerFunc
@@ -194,8 +195,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	v1.RegisterSystemRoutes(humaAPI, cfg.StartTime, cfg.DBType, cfg.DBPath, cfg.ConfigFile, cfg.AICommandService, cfg.TMDBKeyIsDefault, cfg.Auth.Value(), cfg.MovieService, cfg.Logger)
 
-	if cfg.LogBuffer != nil {
-		v1.RegisterLogRoutes(humaAPI, cfg.LogBuffer)
+	if cfg.LogSystem != nil {
+		beaconlog.RegisterRoutesWithDocker(humaAPI, cfg.LogSystem, cfg.DockerLogs)
 	}
 
 	if cfg.QualityService != nil {
