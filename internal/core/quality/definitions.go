@@ -59,9 +59,9 @@ func (s *DefinitionService) List(ctx context.Context) ([]Definition, error) {
 func (s *DefinitionService) BulkUpdate(ctx context.Context, updates []DefinitionSizeUpdate) error {
 	for _, u := range updates {
 		if err := s.q.UpdateQualityDefinitionSizes(ctx, dbgen.UpdateQualityDefinitionSizesParams{
-			MinSize:       float32(u.MinSize),
-			MaxSize:       float32(u.MaxSize),
-			PreferredSize: float32(u.PreferredSize),
+			MinSize:       float64(u.MinSize),
+			MaxSize:       float64(u.MaxSize),
+			PreferredSize: float64(u.PreferredSize),
 			ID:            u.ID,
 		}); err != nil {
 			return fmt.Errorf("update quality definition %q: %w", u.ID, err)

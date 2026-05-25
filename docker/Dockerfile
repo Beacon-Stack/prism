@@ -55,22 +55,20 @@ FROM alpine:3.21
 
 # ffmpeg pulls in ffprobe. ca-certificates is needed for outbound HTTPS.
 # tzdata provides timezone data for correct time display.
-RUN apk add --no-cache ffmpeg ca-certificates tzdata postgresql-client && \
+RUN apk add --no-cache ffmpeg ca-certificates tzdata && \
     adduser -D -u 1000 prism
 
 # The binary
 COPY --from=builder /prism /prism
 
 # Beacon-stack-shaped defaults — the published image expects to land in a
-# compose with services named `postgres` and (optionally) `pulse`. For
-# standalone use, override these via the container's `environment:` block;
-# env always beats Dockerfile ENV. See docker/docker-compose.yml for the
+# compose alongside an (optional) `pulse` service. The database is an
+# embedded SQLite file on the /config volume; no external DB container is
+# needed. Override these via the container's `environment:` block; env
+# always beats Dockerfile ENV. See docker/docker-compose.yml for the
 # standalone recipe.
-ENV PRISM_DATABASE_DRIVER=postgres \
-    PRISM_DATABASE_DSN="postgres://prism@postgres:5432/prism_db?sslmode=disable" \
-    PRISM_DATABASE_PASSWORD_FILE=/run/secrets/prism.txt \
+ENV PRISM_DATABASE_PATH=/config/prism.db \
     PRISM_PULSE_URL=http://pulse:9696 \
-    PRISM_PULSE_API_KEY_FILE=/run/secrets/pulse-api-key.txt \
     PRISM_LOG_LEVEL=info \
     TZ=UTC
 

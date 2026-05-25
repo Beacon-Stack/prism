@@ -94,7 +94,7 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Library, error
 		RootPath:                req.RootPath,
 		DefaultQualityProfileID: req.DefaultQualityProfileID,
 		NamingFormat:            dbutil.NullString(req.NamingFormat),
-		MinFreeSpaceGb:          int32(req.MinFreeSpaceGB),
+		MinFreeSpaceGb:          int64(req.MinFreeSpaceGB),
 		TagsJson:                tagsJSON,
 		CreatedAt:               now,
 		UpdatedAt:               now,
@@ -159,7 +159,7 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Lib
 		RootPath:                req.RootPath,
 		DefaultQualityProfileID: req.DefaultQualityProfileID,
 		NamingFormat:            dbutil.NullString(req.NamingFormat),
-		MinFreeSpaceGb:          int32(req.MinFreeSpaceGB),
+		MinFreeSpaceGb:          int64(req.MinFreeSpaceGB),
 		TagsJson:                tagsJSON,
 		UpdatedAt:               time.Now().UTC().Format(time.RFC3339),
 	})
@@ -283,7 +283,7 @@ func (s *Service) ScanDisk(ctx context.Context, libraryID string) ([]DiskFile, e
 			FilePath:    f.Path,
 			FileSize:    f.SizeBytes,
 			ParsedTitle: f.ParsedTitle,
-			ParsedYear:  int32(f.ParsedYear),
+			ParsedYear:  int64(f.ParsedYear),
 			ScannedAt:   now,
 		})
 	}
@@ -349,10 +349,11 @@ func (s *Service) Scan(ctx context.Context, libraryID string) error {
 				ID:        f.ID,
 			})
 			// Backfill edition from filename if not already set.
-			if !f.Edition.Valid {
+			if f.Edition == nil {
 				if ed := edition.Parse(filepath.Base(f.Path)); ed != nil {
+					name := ed.Name
 					_ = s.q.UpdateMovieFileEdition(ctx, dbgen.UpdateMovieFileEditionParams{
-						Edition: sql.NullString{String: ed.Name, Valid: true},
+						Edition: &name,
 						ID:      f.ID,
 					})
 				}
@@ -392,11 +393,11 @@ func (s *Service) matchCandidates(ctx context.Context, libraryID string) {
 			continue
 		}
 		_ = s.q.SetLibraryFileCandidateMatch(ctx, dbgen.SetLibraryFileCandidateMatchParams{
-			TmdbID:            int32(best.ID),
+			TmdbID:            int64(best.ID),
 			TmdbTitle:         best.Title,
-			TmdbYear:          int32(best.Year),
+			TmdbYear:          int64(best.Year),
 			TmdbOriginalTitle: best.OriginalTitle,
-			MatchedAt:         sql.NullString{String: now, Valid: true},
+			MatchedAt:         &now,
 			LibraryID:         libraryID,
 			FilePath:          c.FilePath,
 		})

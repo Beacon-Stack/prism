@@ -7,21 +7,20 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
 const createCollection = `-- name: CreateCollection :one
 INSERT INTO collections (id, name, person_id, person_type, created_at)
-VALUES ($1, $2, $3, $4, $5)
+VALUES (?, ?, ?, ?, ?)
 RETURNING id, name, person_id, person_type, created_at, total_items, in_library_items
 `
 
 type CreateCollectionParams struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	PersonID   int64     `json:"personId"`
-	PersonType string    `json:"personType"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	PersonID   int64  `json:"personId"`
+	PersonType string `json:"personType"`
+	CreatedAt  string `json:"createdAt"`
 }
 
 func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error) {
@@ -46,7 +45,7 @@ func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionPara
 }
 
 const deleteCollection = `-- name: DeleteCollection :exec
-DELETE FROM collections WHERE id = $1
+DELETE FROM collections WHERE id = ?
 `
 
 func (q *Queries) DeleteCollection(ctx context.Context, id string) error {
@@ -55,7 +54,7 @@ func (q *Queries) DeleteCollection(ctx context.Context, id string) error {
 }
 
 const getCollection = `-- name: GetCollection :one
-SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections WHERE id = $1
+SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections WHERE id = ?
 `
 
 func (q *Queries) GetCollection(ctx context.Context, id string) (Collection, error) {
@@ -74,7 +73,7 @@ func (q *Queries) GetCollection(ctx context.Context, id string) (Collection, err
 }
 
 const getCollectionByPerson = `-- name: GetCollectionByPerson :one
-SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections WHERE person_id = $1 AND person_type = $2
+SELECT id, name, person_id, person_type, created_at, total_items, in_library_items FROM collections WHERE person_id = ? AND person_type = ?
 `
 
 type GetCollectionByPersonParams struct {
@@ -133,12 +132,12 @@ func (q *Queries) ListCollections(ctx context.Context) ([]Collection, error) {
 }
 
 const updateCollectionCounts = `-- name: UpdateCollectionCounts :exec
-UPDATE collections SET total_items = $1, in_library_items = $2 WHERE id = $3
+UPDATE collections SET total_items = ?, in_library_items = ? WHERE id = ?
 `
 
 type UpdateCollectionCountsParams struct {
-	TotalItems     int32  `json:"totalItems"`
-	InLibraryItems int32  `json:"inLibraryItems"`
+	TotalItems     int64  `json:"totalItems"`
+	InLibraryItems int64  `json:"inLibraryItems"`
 	ID             string `json:"id"`
 }
 

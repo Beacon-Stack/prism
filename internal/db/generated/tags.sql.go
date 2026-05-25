@@ -10,7 +10,7 @@ import (
 )
 
 const addDownloadClientTag = `-- name: AddDownloadClientTag :exec
-INSERT INTO download_client_tags (download_client_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING
+INSERT INTO download_client_tags (download_client_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING
 `
 
 type AddDownloadClientTagParams struct {
@@ -24,7 +24,7 @@ func (q *Queries) AddDownloadClientTag(ctx context.Context, arg AddDownloadClien
 }
 
 const addImportListTag = `-- name: AddImportListTag :exec
-INSERT INTO import_list_tags (import_list_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING
+INSERT INTO import_list_tags (import_list_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING
 `
 
 type AddImportListTagParams struct {
@@ -38,7 +38,7 @@ func (q *Queries) AddImportListTag(ctx context.Context, arg AddImportListTagPara
 }
 
 const addIndexerTag = `-- name: AddIndexerTag :exec
-INSERT INTO indexer_tags (indexer_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING
+INSERT INTO indexer_tags (indexer_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING
 `
 
 type AddIndexerTagParams struct {
@@ -52,7 +52,7 @@ func (q *Queries) AddIndexerTag(ctx context.Context, arg AddIndexerTagParams) er
 }
 
 const addMovieTag = `-- name: AddMovieTag :exec
-INSERT INTO movie_tags (movie_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING
+INSERT INTO movie_tags (movie_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING
 `
 
 type AddMovieTagParams struct {
@@ -66,7 +66,7 @@ func (q *Queries) AddMovieTag(ctx context.Context, arg AddMovieTagParams) error 
 }
 
 const addNotificationTag = `-- name: AddNotificationTag :exec
-INSERT INTO notification_tags (notification_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING
+INSERT INTO notification_tags (notification_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING
 `
 
 type AddNotificationTagParams struct {
@@ -80,7 +80,7 @@ func (q *Queries) AddNotificationTag(ctx context.Context, arg AddNotificationTag
 }
 
 const countDownloadClientsForTag = `-- name: CountDownloadClientsForTag :one
-SELECT COUNT(*) FROM download_client_tags WHERE tag_id = $1
+SELECT COUNT(*) FROM download_client_tags WHERE tag_id = ?
 `
 
 func (q *Queries) CountDownloadClientsForTag(ctx context.Context, tagID string) (int64, error) {
@@ -92,7 +92,7 @@ func (q *Queries) CountDownloadClientsForTag(ctx context.Context, tagID string) 
 
 const countImportListsForTag = `-- name: CountImportListsForTag :one
 
-SELECT COUNT(*) FROM import_list_tags WHERE tag_id = $1
+SELECT COUNT(*) FROM import_list_tags WHERE tag_id = ?
 `
 
 // Import list tag operations.
@@ -104,7 +104,7 @@ func (q *Queries) CountImportListsForTag(ctx context.Context, tagID string) (int
 }
 
 const countIndexersForTag = `-- name: CountIndexersForTag :one
-SELECT COUNT(*) FROM indexer_tags WHERE tag_id = $1
+SELECT COUNT(*) FROM indexer_tags WHERE tag_id = ?
 `
 
 func (q *Queries) CountIndexersForTag(ctx context.Context, tagID string) (int64, error) {
@@ -116,7 +116,7 @@ func (q *Queries) CountIndexersForTag(ctx context.Context, tagID string) (int64,
 
 const countMoviesForTag = `-- name: CountMoviesForTag :one
 
-SELECT COUNT(*) FROM movie_tags WHERE tag_id = $1
+SELECT COUNT(*) FROM movie_tags WHERE tag_id = ?
 `
 
 // Tag counts per entity type (for usage display).
@@ -128,7 +128,7 @@ func (q *Queries) CountMoviesForTag(ctx context.Context, tagID string) (int64, e
 }
 
 const countNotificationsForTag = `-- name: CountNotificationsForTag :one
-SELECT COUNT(*) FROM notification_tags WHERE tag_id = $1
+SELECT COUNT(*) FROM notification_tags WHERE tag_id = ?
 `
 
 func (q *Queries) CountNotificationsForTag(ctx context.Context, tagID string) (int64, error) {
@@ -139,7 +139,7 @@ func (q *Queries) CountNotificationsForTag(ctx context.Context, tagID string) (i
 }
 
 const createTag = `-- name: CreateTag :one
-INSERT INTO tags (id, name) VALUES ($1, $2) RETURNING id, name
+INSERT INTO tags (id, name) VALUES (?, ?) RETURNING id, name
 `
 
 type CreateTagParams struct {
@@ -155,7 +155,7 @@ func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, erro
 }
 
 const deleteTag = `-- name: DeleteTag :exec
-DELETE FROM tags WHERE id = $1
+DELETE FROM tags WHERE id = ?
 `
 
 func (q *Queries) DeleteTag(ctx context.Context, id string) error {
@@ -164,7 +164,7 @@ func (q *Queries) DeleteTag(ctx context.Context, id string) error {
 }
 
 const getTag = `-- name: GetTag :one
-SELECT id, name FROM tags WHERE id = $1
+SELECT id, name FROM tags WHERE id = ?
 `
 
 func (q *Queries) GetTag(ctx context.Context, id string) (Tag, error) {
@@ -175,7 +175,7 @@ func (q *Queries) GetTag(ctx context.Context, id string) (Tag, error) {
 }
 
 const getTagByName = `-- name: GetTagByName :one
-SELECT id, name FROM tags WHERE name = $1
+SELECT id, name FROM tags WHERE name = ?
 `
 
 func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
@@ -186,7 +186,7 @@ func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
 }
 
 const listDownloadClientTagIDs = `-- name: ListDownloadClientTagIDs :many
-SELECT tag_id FROM download_client_tags WHERE download_client_id = $1
+SELECT tag_id FROM download_client_tags WHERE download_client_id = ?
 `
 
 func (q *Queries) ListDownloadClientTagIDs(ctx context.Context, downloadClientID string) ([]string, error) {
@@ -213,7 +213,7 @@ func (q *Queries) ListDownloadClientTagIDs(ctx context.Context, downloadClientID
 }
 
 const listImportListTagIDs = `-- name: ListImportListTagIDs :many
-SELECT tag_id FROM import_list_tags WHERE import_list_id = $1
+SELECT tag_id FROM import_list_tags WHERE import_list_id = ?
 `
 
 func (q *Queries) ListImportListTagIDs(ctx context.Context, importListID string) ([]string, error) {
@@ -240,7 +240,7 @@ func (q *Queries) ListImportListTagIDs(ctx context.Context, importListID string)
 }
 
 const listIndexerTagIDs = `-- name: ListIndexerTagIDs :many
-SELECT tag_id FROM indexer_tags WHERE indexer_id = $1
+SELECT tag_id FROM indexer_tags WHERE indexer_id = ?
 `
 
 func (q *Queries) ListIndexerTagIDs(ctx context.Context, indexerID string) ([]string, error) {
@@ -267,7 +267,7 @@ func (q *Queries) ListIndexerTagIDs(ctx context.Context, indexerID string) ([]st
 }
 
 const listMovieTagIDs = `-- name: ListMovieTagIDs :many
-SELECT tag_id FROM movie_tags WHERE movie_id = $1
+SELECT tag_id FROM movie_tags WHERE movie_id = ?
 `
 
 func (q *Queries) ListMovieTagIDs(ctx context.Context, movieID string) ([]string, error) {
@@ -294,7 +294,7 @@ func (q *Queries) ListMovieTagIDs(ctx context.Context, movieID string) ([]string
 }
 
 const listNotificationTagIDs = `-- name: ListNotificationTagIDs :many
-SELECT tag_id FROM notification_tags WHERE notification_id = $1
+SELECT tag_id FROM notification_tags WHERE notification_id = ?
 `
 
 func (q *Queries) ListNotificationTagIDs(ctx context.Context, notificationID string) ([]string, error) {
@@ -349,7 +349,7 @@ func (q *Queries) ListTags(ctx context.Context) ([]Tag, error) {
 
 const setDownloadClientTags = `-- name: SetDownloadClientTags :exec
 
-DELETE FROM download_client_tags WHERE download_client_id = $1
+DELETE FROM download_client_tags WHERE download_client_id = ?
 `
 
 // Download client tag operations.
@@ -359,7 +359,7 @@ func (q *Queries) SetDownloadClientTags(ctx context.Context, downloadClientID st
 }
 
 const setImportListTags = `-- name: SetImportListTags :exec
-DELETE FROM import_list_tags WHERE import_list_id = $1
+DELETE FROM import_list_tags WHERE import_list_id = ?
 `
 
 func (q *Queries) SetImportListTags(ctx context.Context, importListID string) error {
@@ -369,7 +369,7 @@ func (q *Queries) SetImportListTags(ctx context.Context, importListID string) er
 
 const setIndexerTags = `-- name: SetIndexerTags :exec
 
-DELETE FROM indexer_tags WHERE indexer_id = $1
+DELETE FROM indexer_tags WHERE indexer_id = ?
 `
 
 // Indexer tag operations.
@@ -380,7 +380,7 @@ func (q *Queries) SetIndexerTags(ctx context.Context, indexerID string) error {
 
 const setMovieTags = `-- name: SetMovieTags :exec
 
-DELETE FROM movie_tags WHERE movie_id = $1
+DELETE FROM movie_tags WHERE movie_id = ?
 `
 
 // Movie tag operations.
@@ -391,7 +391,7 @@ func (q *Queries) SetMovieTags(ctx context.Context, movieID string) error {
 
 const setNotificationTags = `-- name: SetNotificationTags :exec
 
-DELETE FROM notification_tags WHERE notification_id = $1
+DELETE FROM notification_tags WHERE notification_id = ?
 `
 
 // Notification tag operations.
@@ -401,7 +401,7 @@ func (q *Queries) SetNotificationTags(ctx context.Context, notificationID string
 }
 
 const updateTag = `-- name: UpdateTag :one
-UPDATE tags SET name = $1 WHERE id = $2 RETURNING id, name
+UPDATE tags SET name = ? WHERE id = ? RETURNING id, name
 `
 
 type UpdateTagParams struct {

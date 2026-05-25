@@ -2,7 +2,6 @@ package mediainfo
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -51,10 +50,10 @@ func (s *Service) ScanFile(ctx context.Context, fileID, filePath string) error {
 		return fmt.Errorf("marshaling mediainfo: %w", err)
 	}
 
-	now := time.Now().UTC()
+	nowStr := time.Now().UTC().Format(time.RFC3339Nano)
 	return s.q.UpdateMovieFileMediainfo(ctx, dbgen.UpdateMovieFileMediainfoParams{
 		MediainfoJson:      string(b),
-		MediainfoScannedAt: sql.NullTime{Time: now, Valid: true},
+		MediainfoScannedAt: &nowStr,
 		ID:                 fileID,
 	})
 }

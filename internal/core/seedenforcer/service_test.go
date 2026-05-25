@@ -2,7 +2,6 @@ package seedenforcer_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"log/slog"
 	"testing"
@@ -49,7 +48,7 @@ func (m *mockQuerier) GetGrabByID(_ context.Context, _ string) (dbgen.GrabHistor
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-func nullStr(s string) sql.NullString { return sql.NullString{String: s, Valid: true} }
+func nullStr(s string) *string { return &s }
 
 func torrentGrab() dbgen.GrabHistory {
 	return dbgen.GrabHistory{
@@ -147,7 +146,7 @@ func TestSeedEnforcer_NZBProtocolSkipped(t *testing.T) {
 func TestSeedEnforcer_MissingIDsSkipped(t *testing.T) {
 	dl := &mock.DownloadClient{}
 	grab := torrentGrab()
-	grab.IndexerID = sql.NullString{} // missing indexer ID
+	grab.IndexerID = nil // missing indexer ID
 
 	bus := events.New(slog.Default())
 	svc := seedenforcer.NewService(

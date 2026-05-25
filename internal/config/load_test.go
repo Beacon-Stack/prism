@@ -20,8 +20,8 @@ func TestLoad_Defaults(t *testing.T) {
 	if cfg.Log.Level != config.DefaultLogLevel {
 		t.Errorf("Log.Level = %q, want %q", cfg.Log.Level, config.DefaultLogLevel)
 	}
-	if cfg.Database.Driver != config.DefaultDBDriver {
-		t.Errorf("Database.Driver = %q, want %q", cfg.Database.Driver, config.DefaultDBDriver)
+	if cfg.Database.Path == "" {
+		t.Error("Database.Path is empty, want a default path")
 	}
 }
 
@@ -118,68 +118,21 @@ func TestEnsureAPIKey_Generates(t *testing.T) {
 	}
 }
 
-func TestLoad_PasswordFileOverridesDSN(t *testing.T) {
-	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(cfgPath, []byte(`
-database:
-  driver: postgres
-  dsn: "postgres://user:plain@host:5432/db"
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	pwFile := filepath.Join(dir, "pw.txt")
-	if err := os.WriteFile(pwFile, []byte("secretpw\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
+func TestLoad_DatabasePathEnvOverride(t *testing.T) {
+	t.Setenv("PRISM_DATABASE_PATH", "/tmp/custom-prism.db")
 
-	t.Setenv("PRISM_DATABASE_PASSWORD_FILE", pwFile)
-
-	cfg, err := config.Load(cfgPath)
+	cfg, err := config.Load("")
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 
-	want := "postgres://user:secretpw@host:5432/db"
-	if got := cfg.Database.DSN.Value(); got != want {
-		t.Fatalf("DSN = %q; want %q", got, want)
-	}
-}
-
-func TestLoad_NoPasswordFile_LeavesDSNIntact(t *testing.T) {
-	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(cfgPath, []byte(`
-database:
-  driver: postgres
-  dsn: "postgres://user:plain@host:5432/db"
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv("PRISM_DATABASE_PASSWORD_FILE", "")
-
-	cfg, err := config.Load(cfgPath)
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-
-	want := "postgres://user:plain@host:5432/db"
-	if got := cfg.Database.DSN.Value(); got != want {
-		t.Fatalf("DSN = %q; want %q", got, want)
+	if got := cfg.Database.Path; got != "/tmp/custom-prism.db" {
+		t.Fatalf("Database.Path = %q; want /tmp/custom-prism.db", got)
 	}
 }
 
 func TestLoad_PulseAPIKeyFileOverridesInlineKey(t *testing.T) {
 	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(cfgPath, []byte(`
-database:
-  driver: postgres
-  dsn: "postgres://user:plain@host:5432/db"
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	keyFile := filepath.Join(dir, "pulse.txt")
 	if err := os.WriteFile(keyFile, []byte("secret-key\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -188,7 +141,7 @@ database:
 	t.Setenv("PRISM_PULSE_API_KEY", "inline-loses")
 	t.Setenv("PRISM_PULSE_API_KEY_FILE", keyFile)
 
-	cfg, err := config.Load(cfgPath)
+	cfg, err := config.Load("")
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -199,38 +152,10 @@ database:
 }
 
 func TestLoad_InvalidPulseAPIKeyFilePath_Errors(t *testing.T) {
-	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(cfgPath, []byte(`
-database:
-  driver: postgres
-  dsn: "postgres://user:plain@host:5432/db"
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
 	t.Setenv("PRISM_PULSE_API_KEY_FILE", "/nonexistent/pulse-api-key")
 
-	if _, err := config.Load(cfgPath); err == nil {
+	if _, err := config.Load(""); err == nil {
 		t.Fatal("expected error when pulse api_key_file path is invalid")
-	}
-}
-
-func TestLoad_InvalidPasswordFilePath_Errors(t *testing.T) {
-	dir := t.TempDir()
-	cfgPath := filepath.Join(dir, "config.yaml")
-	if err := os.WriteFile(cfgPath, []byte(`
-database:
-  driver: postgres
-  dsn: "postgres://user:plain@host:5432/db"
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	t.Setenv("PRISM_DATABASE_PASSWORD_FILE", "/nonexistent/secret")
-
-	if _, err := config.Load(cfgPath); err == nil {
-		t.Fatal("expected error when password file path is invalid")
 	}
 }
 

@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
 )
 
 const getCollectionStats = `-- name: GetCollectionStats :one
@@ -17,7 +15,7 @@ SELECT
     COALESCE(SUM(CASE WHEN monitored = TRUE THEN 1 ELSE 0 END), 0)                         AS monitored,
     COALESCE(SUM(CASE WHEN path IS NOT NULL AND path != '' THEN 1 ELSE 0 END), 0)          AS with_file,
     COALESCE(SUM(CASE WHEN monitored = TRUE AND (path IS NULL OR path = '') THEN 1 ELSE 0 END), 0) AS missing,
-    COALESCE(SUM(CASE WHEN added_at > to_char(CURRENT_DATE - INTERVAL '30 days', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') THEN 1 ELSE 0 END), 0) AS recently_added
+    COALESCE(SUM(CASE WHEN added_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', 'start of day', '-30 days') THEN 1 ELSE 0 END), 0) AS recently_added
 FROM movies
 `
 
@@ -72,7 +70,7 @@ ORDER BY year ASC
 `
 
 type GetMovieYearDistributionRow struct {
-	Year  int32 `json:"year"`
+	Year  int64 `json:"year"`
 	Count int64 `json:"count"`
 }
 
@@ -101,17 +99,17 @@ func (q *Queries) GetMovieYearDistribution(ctx context.Context) ([]GetMovieYearD
 
 const getMoviesAddedByMonth = `-- name: GetMoviesAddedByMonth :many
 SELECT
-    to_char(added_at::timestamp, 'YYYY-MM') AS month,
-    COUNT(*)                                 AS count
+    strftime('%Y-%m', added_at) AS month,
+    COUNT(*)                    AS count
 FROM movies
 WHERE added_at IS NOT NULL
-GROUP BY to_char(added_at::timestamp, 'YYYY-MM')
+GROUP BY strftime('%Y-%m', added_at)
 ORDER BY month ASC
 `
 
 type GetMoviesAddedByMonthRow struct {
-	Month string `json:"month"`
-	Count int64  `json:"count"`
+	Month interface{} `json:"month"`
+	Count int64       `json:"count"`
 }
 
 func (q *Queries) GetMoviesAddedByMonth(ctx context.Context) ([]GetMoviesAddedByMonthRow, error) {
@@ -172,10 +170,10 @@ LIMIT 10
 `
 
 type GetTopIndexersRow struct {
-	IndexerID    sql.NullString `json:"indexerId"`
-	IndexerName  string         `json:"indexerName"`
-	GrabCount    int64          `json:"grabCount"`
-	SuccessCount interface{}    `json:"successCount"`
+	IndexerID    *string     `json:"indexerId"`
+	IndexerName  string      `json:"indexerName"`
+	GrabCount    int64       `json:"grabCount"`
+	SuccessCount interface{} `json:"successCount"`
 }
 
 func (q *Queries) GetTopIndexers(ctx context.Context) ([]GetTopIndexersRow, error) {
@@ -208,14 +206,14 @@ func (q *Queries) GetTopIndexers(ctx context.Context) ([]GetTopIndexersRow, erro
 
 const insertStorageSnapshot = `-- name: InsertStorageSnapshot :exec
 INSERT INTO storage_snapshots (id, captured_at, total_bytes, file_count)
-VALUES ($1, $2, $3, $4)
+VALUES (?, ?, ?, ?)
 `
 
 type InsertStorageSnapshotParams struct {
-	ID         string    `json:"id"`
-	CapturedAt time.Time `json:"capturedAt"`
-	TotalBytes int64     `json:"totalBytes"`
-	FileCount  int64     `json:"fileCount"`
+	ID         string `json:"id"`
+	CapturedAt string `json:"capturedAt"`
+	TotalBytes int64  `json:"totalBytes"`
+	FileCount  int64  `json:"fileCount"`
 }
 
 func (q *Queries) InsertStorageSnapshot(ctx context.Context, arg InsertStorageSnapshotParams) error {
@@ -319,10 +317,10 @@ func (q *Queries) ListMovieGenresJSON(ctx context.Context) ([]string, error) {
 const listStorageSnapshots = `-- name: ListStorageSnapshots :many
 SELECT id, captured_at, total_bytes, file_count FROM storage_snapshots
 ORDER BY captured_at DESC
-LIMIT $1
+LIMIT ?
 `
 
-func (q *Queries) ListStorageSnapshots(ctx context.Context, limit int32) ([]StorageSnapshot, error) {
+func (q *Queries) ListStorageSnapshots(ctx context.Context, limit int64) ([]StorageSnapshot, error) {
 	rows, err := q.db.QueryContext(ctx, listStorageSnapshots, limit)
 	if err != nil {
 		return nil, err
@@ -352,10 +350,10 @@ func (q *Queries) ListStorageSnapshots(ctx context.Context, limit int32) ([]Stor
 
 const pruneOldStorageSnapshots = `-- name: PruneOldStorageSnapshots :exec
 DELETE FROM storage_snapshots
-WHERE captured_at < $1
+WHERE captured_at < ?
 `
 
-func (q *Queries) PruneOldStorageSnapshots(ctx context.Context, capturedAt time.Time) error {
+func (q *Queries) PruneOldStorageSnapshots(ctx context.Context, capturedAt string) error {
 	_, err := q.db.ExecContext(ctx, pruneOldStorageSnapshots, capturedAt)
 	return err
 }

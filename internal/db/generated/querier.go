@@ -6,7 +6,6 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
 type Querier interface {
@@ -16,7 +15,7 @@ type Querier interface {
 	AddMovieTag(ctx context.Context, arg AddMovieTagParams) error
 	AddNotificationTag(ctx context.Context, arg AddNotificationTagParams) error
 	CleanupNeverWatched(ctx context.Context, addedAt string) ([]CleanupNeverWatchedRow, error)
-	CleanupWatchedOnce(ctx context.Context, watchedAt string) ([]CleanupWatchedOnceRow, error)
+	CleanupWatchedOnce(ctx context.Context) ([]CleanupWatchedOnceRow, error)
 	ClearBlocklist(ctx context.Context) error
 	CountActivities(ctx context.Context, arg CountActivitiesParams) (int64, error)
 	CountBlocklist(ctx context.Context) (int64, error)
@@ -78,14 +77,14 @@ type Querier interface {
 	GetGrabByClientItemID(ctx context.Context, arg GetGrabByClientItemIDParams) (GrabHistory, error)
 	GetGrabByID(ctx context.Context, id string) (GrabHistory, error)
 	GetGrabStats(ctx context.Context) (GetGrabStatsRow, error)
-	GetImportExclusionByTMDBID(ctx context.Context, tmdbID int32) (ImportExclusion, error)
+	GetImportExclusionByTMDBID(ctx context.Context, tmdbID int64) (ImportExclusion, error)
 	GetImportListConfig(ctx context.Context, id string) (ImportListConfig, error)
 	GetIndexerConfig(ctx context.Context, id string) (IndexerConfig, error)
 	GetLibrary(ctx context.Context, id string) (Library, error)
 	GetMediaManagement(ctx context.Context) (MediaManagement, error)
 	GetMediaServerConfig(ctx context.Context, id string) (MediaServerConfig, error)
 	GetMovie(ctx context.Context, id string) (Movie, error)
-	GetMovieByTMDBID(ctx context.Context, tmdbID int32) (Movie, error)
+	GetMovieByTMDBID(ctx context.Context, tmdbID int64) (Movie, error)
 	GetMovieFile(ctx context.Context, id string) (MovieFile, error)
 	GetMovieFileByPath(ctx context.Context, path string) (MovieFile, error)
 	GetMovieYearDistribution(ctx context.Context) ([]GetMovieYearDistributionRow, error)
@@ -105,7 +104,7 @@ type Querier interface {
 	IsBlocklistedByTitle(ctx context.Context, releaseTitle string) (int64, error)
 	ListActiveGrabs(ctx context.Context) ([]GrabHistory, error)
 	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]ActivityLog, error)
-	ListAllTMDBIDs(ctx context.Context) ([]int32, error)
+	ListAllTMDBIDs(ctx context.Context) ([]int64, error)
 	ListBlocklist(ctx context.Context, arg ListBlocklistParams) ([]ListBlocklistRow, error)
 	ListCollections(ctx context.Context) ([]Collection, error)
 	ListCustomFormatScores(ctx context.Context, qualityProfileID string) ([]CustomFormatScore, error)
@@ -117,16 +116,15 @@ type Querier interface {
 	ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, error)
 	ListEnabledMediaServers(ctx context.Context) ([]MediaServerConfig, error)
 	ListEnabledNotifications(ctx context.Context) ([]NotificationConfig, error)
-	ListExcludedTMDBIDs(ctx context.Context) ([]int32, error)
-	ListGrabHistory(ctx context.Context, limit int32) ([]GrabHistory, error)
+	ListExcludedTMDBIDs(ctx context.Context) ([]int64, error)
+	ListGrabHistory(ctx context.Context, limit int64) ([]GrabHistory, error)
 	ListGrabHistoryByMovie(ctx context.Context, movieID string) ([]GrabHistory, error)
 	ListGrabHistoryByProtocol(ctx context.Context, arg ListGrabHistoryByProtocolParams) ([]GrabHistory, error)
 	ListGrabHistoryByStatus(ctx context.Context, arg ListGrabHistoryByStatusParams) ([]GrabHistory, error)
 	ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg ListGrabHistoryByStatusAndProtocolParams) ([]GrabHistory, error)
 	// Powers the Activity-page "Needs attention" rail: returns recent
-	// failed/removed/stalled grabs within a time window. The ::text casts
-	// make the types explicit to the planner; grab_history.grabbed_at is
-	// TEXT-encoded RFC3339 so the comparison is lexicographic but
+	// failed/removed/stalled grabs within a time window. grab_history.grabbed_at
+	// is TEXT-encoded RFC3339 so the comparison is lexicographic but
 	// order-preserving.
 	ListGrabHistoryByStatusSince(ctx context.Context, arg ListGrabHistoryByStatusSinceParams) ([]GrabHistory, error)
 	ListImportExclusions(ctx context.Context) ([]ImportExclusion, error)
@@ -156,16 +154,16 @@ type Querier interface {
 	ListQualityDefinitions(ctx context.Context) ([]QualityDefinition, error)
 	ListQualityProfiles(ctx context.Context) ([]QualityProfile, error)
 	ListRemotePathMappings(ctx context.Context) ([]RemotePathMapping, error)
-	ListStorageSnapshots(ctx context.Context, limit int32) ([]StorageSnapshot, error)
+	ListStorageSnapshots(ctx context.Context, limit int64) ([]StorageSnapshot, error)
 	ListTags(ctx context.Context) ([]Tag, error)
 	ListUnmatchedLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error)
 	ListUnscannedMovieFiles(ctx context.Context) ([]ListUnscannedMovieFilesRow, error)
 	MarkGrabRemoved(ctx context.Context, id string) error
 	PruneActivities(ctx context.Context, createdAt string) error
-	PruneOldStorageSnapshots(ctx context.Context, capturedAt time.Time) error
+	PruneOldStorageSnapshots(ctx context.Context, capturedAt string) error
 	// Removes candidates that were not seen in the current scan (scanned_at < cutoff).
 	PruneStaleLibraryFileCandidates(ctx context.Context, arg PruneStaleLibraryFileCandidatesParams) error
-	QualityProfileInUse(ctx context.Context, arg QualityProfileInUseParams) (bool, error)
+	QualityProfileInUse(ctx context.Context, arg QualityProfileInUseParams) (int64, error)
 	SetCustomFormatScore(ctx context.Context, arg SetCustomFormatScoreParams) error
 	// Download client tag operations.
 	SetDownloadClientTags(ctx context.Context, downloadClientID string) error

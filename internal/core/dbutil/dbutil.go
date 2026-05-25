@@ -2,88 +2,102 @@
 package dbutil
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	sqlite "modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
-// NullString converts a *string to sql.NullString. A nil or empty pointer
-// yields a null value.
-func NullString(p *string) sql.NullString {
-	if p == nil {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: *p, Valid: true}
+// SQLite/sqlc note: with `emit_pointers_for_null_types: true`, sqlc-sqlite
+// generates `*string` / `*int64` / `*time.Time` for nullable columns rather
+// than `sql.NullXxx` structs. The helpers below operate on those pointer
+// shapes directly so call sites do not have to mix types.
+
+// NullString returns p unchanged. It exists as a no-op for callers that built
+// against the older sql.NullString-based API; keep it so adoption is grep-free.
+// Empty strings are preserved (they are not coerced to nil) — callers that
+// want "" treated as NULL should call NullStringFromString.
+func NullString(p *string) *string {
+	return p
 }
 
-// NullStringFromString converts a string to sql.NullString. An empty string
-// yields a null value.
-func NullStringFromString(s string) sql.NullString {
+// NullStringFromString converts a string to a nullable *string. An empty
+// string yields nil (so it stores as SQL NULL).
+func NullStringFromString(s string) *string {
 	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
-}
-
-// NullStringPtr converts a sql.NullString back to a *string. Invalid values
-// yield nil.
-func NullStringPtr(ns sql.NullString) *string {
-	if !ns.Valid {
 		return nil
 	}
-	s := ns.String
 	return &s
 }
 
-// NullStringValue returns the string value of a sql.NullString, or "" if invalid.
-func NullStringValue(ns sql.NullString) string {
-	if !ns.Valid {
+// NullStringPtr is the identity for *string. Keeps the call-site name stable
+// against the pre-SQLite signature, which converted sql.NullString → *string.
+func NullStringPtr(p *string) *string {
+	return p
+}
+
+// NullStringValue returns the dereferenced value of p, or "" if nil.
+func NullStringValue(p *string) string {
+	if p == nil {
 		return ""
 	}
-	return ns.String
+	return *p
 }
 
-// NullInt32 converts a *int to sql.NullInt32. A nil pointer yields a null value.
-func NullInt32(p *int) sql.NullInt32 {
+// NullInt32 converts a *int to a *int64. A nil pointer yields nil.
+func NullInt32(p *int) *int64 {
 	if p == nil {
-		return sql.NullInt32{}
-	}
-	return sql.NullInt32{Int32: int32(*p), Valid: true}
-}
-
-// NullInt32FromInt64Ptr converts a *int64 to sql.NullInt32.
-func NullInt32FromInt64Ptr(p *int64) sql.NullInt32 {
-	if p == nil {
-		return sql.NullInt32{}
-	}
-	return sql.NullInt32{Int32: int32(*p), Valid: true}
-}
-
-// NullInt32Value returns the int value of a sql.NullInt32, or 0 if invalid.
-func NullInt32Value(ns sql.NullInt32) int {
-	if !ns.Valid {
-		return 0
-	}
-	return int(ns.Int32)
-}
-
-// NullTime converts a *time.Time to sql.NullTime. A nil pointer yields a null value.
-func NullTime(p *time.Time) sql.NullTime {
-	if p == nil {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: *p, Valid: true}
-}
-
-// NullTimePtr converts a sql.NullTime back to a *time.Time. Invalid values yield nil.
-func NullTimePtr(nt sql.NullTime) *time.Time {
-	if !nt.Valid {
 		return nil
 	}
-	t := nt.Time
+	v := int64(*p)
+	return &v
+}
+
+// NullInt32FromInt64Ptr returns p unchanged; SQLite-sqlc emits *int64 for
+// nullable integer columns. Kept under the old name so existing call sites
+// continue to compile against the migrated API.
+func NullInt32FromInt64Ptr(p *int64) *int64 {
+	return p
+}
+
+// NullInt32Value returns the dereferenced value of p, or 0 if nil.
+func NullInt32Value(p *int64) int {
+	if p == nil {
+		return 0
+	}
+	return int(*p)
+}
+
+// NullTime converts a *time.Time to its RFC3339 UTC string representation.
+// A nil pointer yields nil so the column stores as SQL NULL.
+//
+// TIMESTAMPTZ columns are stored as TEXT in SQLite (see migration squash);
+// using RFC3339 keeps lexicographic ordering identical to chronological
+// ordering, which several queries rely on.
+func NullTime(p *time.Time) *string {
+	if p == nil {
+		return nil
+	}
+	s := p.UTC().Format(time.RFC3339Nano)
+	return &s
+}
+
+// NullTimePtr parses an RFC3339-encoded *string back to *time.Time. Nil or
+// unparseable input yields nil.
+func NullTimePtr(s *string) *time.Time {
+	if s == nil || *s == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, *s)
+	if err != nil {
+		// Some legacy callers may pass plain RFC3339 (no fractional secs).
+		t, err = time.Parse(time.RFC3339, *s)
+		if err != nil {
+			return nil
+		}
+	}
 	return &t
 }
 
@@ -114,12 +128,16 @@ func MergeSettings(existing, newSettings json.RawMessage) json.RawMessage {
 	return merged
 }
 
-// IsUniqueViolation reports whether err is a PostgreSQL unique constraint violation
-// (error code 23505).
+// IsUniqueViolation reports whether err is a SQLite unique constraint violation
+// (extended result codes SQLITE_CONSTRAINT_UNIQUE / SQLITE_CONSTRAINT_PRIMARYKEY).
 func IsUniqueViolation(err error) bool {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		return pgErr.Code == "23505"
+	var sqliteErr *sqlite.Error
+	if !errors.As(err, &sqliteErr) {
+		return false
+	}
+	switch sqliteErr.Code() {
+	case sqlite3.SQLITE_CONSTRAINT_UNIQUE, sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY:
+		return true
 	}
 	return false
 }

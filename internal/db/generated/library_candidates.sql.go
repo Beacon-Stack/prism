@@ -7,11 +7,10 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const deleteLibraryFileCandidate = `-- name: DeleteLibraryFileCandidate :exec
-DELETE FROM library_file_candidates WHERE library_id = $1 AND file_path = $2
+DELETE FROM library_file_candidates WHERE library_id = ? AND file_path = ?
 `
 
 type DeleteLibraryFileCandidateParams struct {
@@ -25,7 +24,7 @@ func (q *Queries) DeleteLibraryFileCandidate(ctx context.Context, arg DeleteLibr
 }
 
 const listLibraryFileCandidates = `-- name: ListLibraryFileCandidates :many
-SELECT library_id, file_path, file_size, parsed_title, parsed_year, tmdb_id, tmdb_title, tmdb_year, tmdb_original_title, auto_matched, scanned_at, matched_at FROM library_file_candidates WHERE library_id = $1
+SELECT library_id, file_path, file_size, parsed_title, parsed_year, tmdb_id, tmdb_title, tmdb_year, tmdb_original_title, auto_matched, scanned_at, matched_at FROM library_file_candidates WHERE library_id = ?
 `
 
 func (q *Queries) ListLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error) {
@@ -66,7 +65,7 @@ func (q *Queries) ListLibraryFileCandidates(ctx context.Context, libraryID strin
 
 const listUnmatchedLibraryFileCandidates = `-- name: ListUnmatchedLibraryFileCandidates :many
 SELECT library_id, file_path, file_size, parsed_title, parsed_year, tmdb_id, tmdb_title, tmdb_year, tmdb_original_title, auto_matched, scanned_at, matched_at FROM library_file_candidates
-WHERE library_id = $1 AND tmdb_id = 0 AND parsed_year > 0 AND parsed_title != ''
+WHERE library_id = ? AND tmdb_id = 0 AND parsed_year > 0 AND parsed_title != ''
 `
 
 func (q *Queries) ListUnmatchedLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error) {
@@ -106,7 +105,7 @@ func (q *Queries) ListUnmatchedLibraryFileCandidates(ctx context.Context, librar
 }
 
 const pruneStaleLibraryFileCandidates = `-- name: PruneStaleLibraryFileCandidates :exec
-DELETE FROM library_file_candidates WHERE library_id = $1 AND scanned_at < $2
+DELETE FROM library_file_candidates WHERE library_id = ? AND scanned_at < ?
 `
 
 type PruneStaleLibraryFileCandidatesParams struct {
@@ -122,23 +121,23 @@ func (q *Queries) PruneStaleLibraryFileCandidates(ctx context.Context, arg Prune
 
 const setLibraryFileCandidateMatch = `-- name: SetLibraryFileCandidateMatch :exec
 UPDATE library_file_candidates
-SET tmdb_id             = $1,
-    tmdb_title          = $2,
-    tmdb_year           = $3,
-    tmdb_original_title = $4,
+SET tmdb_id             = ?,
+    tmdb_title          = ?,
+    tmdb_year           = ?,
+    tmdb_original_title = ?,
     auto_matched        = TRUE,
-    matched_at          = $5
-WHERE library_id = $6 AND file_path = $7
+    matched_at          = ?
+WHERE library_id = ? AND file_path = ?
 `
 
 type SetLibraryFileCandidateMatchParams struct {
-	TmdbID            int32          `json:"tmdbId"`
-	TmdbTitle         string         `json:"tmdbTitle"`
-	TmdbYear          int32          `json:"tmdbYear"`
-	TmdbOriginalTitle string         `json:"tmdbOriginalTitle"`
-	MatchedAt         sql.NullString `json:"matchedAt"`
-	LibraryID         string         `json:"libraryId"`
-	FilePath          string         `json:"filePath"`
+	TmdbID            int64   `json:"tmdbId"`
+	TmdbTitle         string  `json:"tmdbTitle"`
+	TmdbYear          int64   `json:"tmdbYear"`
+	TmdbOriginalTitle string  `json:"tmdbOriginalTitle"`
+	MatchedAt         *string `json:"matchedAt"`
+	LibraryID         string  `json:"libraryId"`
+	FilePath          string  `json:"filePath"`
 }
 
 func (q *Queries) SetLibraryFileCandidateMatch(ctx context.Context, arg SetLibraryFileCandidateMatchParams) error {
@@ -157,7 +156,7 @@ func (q *Queries) SetLibraryFileCandidateMatch(ctx context.Context, arg SetLibra
 const upsertLibraryFileCandidate = `-- name: UpsertLibraryFileCandidate :exec
 INSERT INTO library_file_candidates
     (library_id, file_path, file_size, parsed_title, parsed_year, scanned_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (?, ?, ?, ?, ?, ?)
 ON CONFLICT(library_id, file_path) DO UPDATE SET
     file_size    = excluded.file_size,
     parsed_title = excluded.parsed_title,
@@ -170,7 +169,7 @@ type UpsertLibraryFileCandidateParams struct {
 	FilePath    string `json:"filePath"`
 	FileSize    int64  `json:"fileSize"`
 	ParsedTitle string `json:"parsedTitle"`
-	ParsedYear  int32  `json:"parsedYear"`
+	ParsedYear  int64  `json:"parsedYear"`
 	ScannedAt   string `json:"scannedAt"`
 }
 

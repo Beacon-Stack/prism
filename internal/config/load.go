@@ -18,13 +18,21 @@ import (
 const (
 	DefaultHost          = "0.0.0.0"
 	DefaultPort          = 8282
-	DefaultDBDriver      = "sqlite"
 	DefaultLogLevel      = "info"
 	DefaultLogFormat     = "json"
 	DefaultAIMatchModel  = "claude-sonnet-4-6"
 	DefaultAIScoreModel  = "claude-haiku-4-5-20251001"
 	DefaultAIFilterModel = "claude-haiku-4-5-20251001"
 )
+
+// dataDir returns the default data directory: ~/.config/prism/
+func dataDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "data" // fallback to relative
+	}
+	return filepath.Join(home, ".config", "prism")
+}
 
 // Load reads configuration from a YAML file and environment variables.
 // If cfgFile is empty, the following paths are searched in order:
@@ -39,10 +47,12 @@ const (
 func Load(cfgFile string) (*Config, error) {
 	v := viper.New()
 
+	dir := dataDir()
+
 	// Defaults
 	v.SetDefault("server.host", DefaultHost)
 	v.SetDefault("server.port", DefaultPort)
-	v.SetDefault("database.driver", DefaultDBDriver)
+	v.SetDefault("database.path", filepath.Join(dir, "prism.db"))
 	v.SetDefault("log.level", DefaultLogLevel)
 	v.SetDefault("log.format", DefaultLogFormat)
 	v.SetDefault("ai.match_model", DefaultAIMatchModel)
@@ -79,8 +89,6 @@ func Load(cfgFile string) (*Config, error) {
 	_ = v.BindEnv("tmdb.api_key", "PRISM_TMDB_API_KEY")
 	_ = v.BindEnv("ai.api_key", "PRISM_AI_API_KEY")
 	_ = v.BindEnv("database.path", "PRISM_DATABASE_PATH")
-	_ = v.BindEnv("database.dsn", "PRISM_DATABASE_DSN")
-	_ = v.BindEnv("database.password_file", "PRISM_DATABASE_PASSWORD_FILE")
 	_ = v.BindEnv("pulse.url", "PRISM_PULSE_URL")
 	_ = v.BindEnv("pulse.api_key", "PRISM_PULSE_API_KEY")
 	_ = v.BindEnv("pulse.api_key_file", "PRISM_PULSE_API_KEY_FILE")
@@ -107,32 +115,12 @@ func Load(cfgFile string) (*Config, error) {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 
-	if cfg.Database.PasswordFile != "" {
-		merged, err := secretfile.OverrideDSNPassword(cfg.Database.DSN.Value(), cfg.Database.PasswordFile)
-		if err != nil {
-			return nil, fmt.Errorf("applying database password file: %w", err)
-		}
-		cfg.Database.DSN = Secret(merged)
-	}
-
 	if cfg.Pulse.APIKeyFile != "" {
 		contents, err := secretfile.Read(cfg.Pulse.APIKeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("reading Pulse API key file: %w", err)
 		}
 		cfg.Pulse.APIKey = Secret(contents)
-	}
-
-	// Default SQLite path: if /config exists (Docker volume), use it;
-	// otherwise fall back to ~/.config/prism/ (bare-metal).
-	if cfg.Database.Driver == "sqlite" && cfg.Database.Path == "" {
-		if info, err := os.Stat("/config"); err == nil && info.IsDir() {
-			cfg.Database.Path = "/config/prism.db"
-		} else if home, _ := os.UserHomeDir(); home != "" {
-			cfg.Database.Path = filepath.Join(home, ".config", "prism", "prism.db")
-		} else {
-			cfg.Database.Path = "/config/prism.db"
-		}
 	}
 
 	// Apply build-time default TMDB key if no key was configured.

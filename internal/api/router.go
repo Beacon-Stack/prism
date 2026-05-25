@@ -59,7 +59,6 @@ type RouterConfig struct {
 	DB                       *sql.DB
 	DBType                   string
 	DBPath                   string
-	DBDSN                    string
 	ConfigFile               string
 	TMDBKeyIsDefault         bool
 	QualityService           *quality.Service
@@ -126,7 +125,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// Backup / restore — registered directly on chi (binary body/response, not JSON).
 	// Auth accepts same-origin browser requests (Sec-Fetch-Site) or external API key.
-	if cfg.DBDSN != "" {
+	if cfg.DB != nil && cfg.DBPath != "" {
 		authKey := []byte(cfg.Auth.Value())
 		withAuth := func(next http.HandlerFunc) http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -141,8 +140,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				http.Error(w, `{"status":401,"title":"Unauthorized"}`, http.StatusUnauthorized)
 			}
 		}
-		r.Get("/api/v1/system/backup", withAuth(v1.BackupHandler(cfg.DBDSN, cfg.Logger)))
-		r.Post("/api/v1/system/restore", withAuth(v1.RestoreHandler(cfg.DBDSN, cfg.Logger)))
+		r.Get("/api/v1/system/backup", withAuth(v1.BackupHandler(cfg.DB, cfg.Logger)))
+		r.Post("/api/v1/system/restore", withAuth(v1.RestoreHandler(cfg.DBPath, cfg.Logger)))
 	}
 
 	// Unauthenticated health check for load balancers / container probes.

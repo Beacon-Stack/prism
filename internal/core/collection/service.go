@@ -201,7 +201,7 @@ func (s *Service) Create(ctx context.Context, personID int, personType string) (
 		Name:       entityName,
 		PersonID:   int64(personID),
 		PersonType: personType,
-		CreatedAt:  time.Now().UTC(),
+		CreatedAt:  time.Now().UTC().Format(time.RFC3339Nano),
 	})
 	if err != nil {
 		if dbutil.IsUniqueViolation(err) {
@@ -240,10 +240,10 @@ func (s *Service) scanAndStoreCounts(ctx context.Context, collID string, personI
 			return
 		}
 	}
-	total := int32(len(items))
-	var inLibrary int32
+	total := int64(len(items))
+	var inLibrary int64
 	for _, item := range items {
-		if _, lookupErr := s.q.GetMovieByTMDBID(ctx, int32(item.TMDBID)); lookupErr == nil {
+		if _, lookupErr := s.q.GetMovieByTMDBID(ctx, int64(item.TMDBID)); lookupErr == nil {
 			inLibrary++
 		}
 	}
@@ -311,7 +311,7 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 			PosterPath: item.PosterPath,
 		}
 		// Cross-reference with the movie library.
-		m, lookupErr := s.q.GetMovieByTMDBID(ctx, int32(item.TMDBID))
+		m, lookupErr := s.q.GetMovieByTMDBID(ctx, int64(item.TMDBID))
 		if lookupErr == nil {
 			ci.InLibrary = true
 			ci.MovieID = m.ID
@@ -347,8 +347,8 @@ func (s *Service) Get(ctx context.Context, id string) (*Collection, error) {
 
 	// Refresh stored counts so List() stays accurate.
 	_ = s.q.UpdateCollectionCounts(ctx, dbgen.UpdateCollectionCountsParams{
-		TotalItems:     int32(coll.Total),
-		InLibraryItems: int32(coll.InLibrary),
+		TotalItems:     int64(coll.Total),
+		InLibraryItems: int64(coll.InLibrary),
 		ID:             id,
 	})
 
@@ -434,12 +434,16 @@ func rowToCollection(r dbgen.Collection) *Collection {
 	if missing < 0 {
 		missing = 0
 	}
+	createdAt, _ := time.Parse(time.RFC3339Nano, r.CreatedAt)
+	if createdAt.IsZero() {
+		createdAt, _ = time.Parse(time.RFC3339, r.CreatedAt)
+	}
 	return &Collection{
 		ID:         r.ID,
 		Name:       r.Name,
 		PersonID:   int(r.PersonID),
 		PersonType: r.PersonType,
-		CreatedAt:  r.CreatedAt,
+		CreatedAt:  createdAt,
 		Total:      total,
 		InLibrary:  inLibrary,
 		Missing:    missing,

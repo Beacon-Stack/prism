@@ -1,12 +1,14 @@
 package dbutil
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgconn"
+	_ "modernc.org/sqlite"
 )
 
 func TestMergeSettings(t *testing.T) {
@@ -35,16 +37,32 @@ func TestMergeSettingsEmptyNew(t *testing.T) {
 	}
 }
 
-func TestIsUniqueViolation_PgError(t *testing.T) {
-	err := &pgconn.PgError{Code: "23505"}
+// TestIsUniqueViolation_RealConstraint verifies the helper against a real
+// SQLite UNIQUE-constraint failure: nothing else reliably distinguishes the
+// extended-result-code path we depend on.
+func TestIsUniqueViolation_RealConstraint(t *testing.T) {
+	db, err := sql.Open("sqlite", "file:"+filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec("CREATE TABLE t (id INTEGER PRIMARY KEY, k TEXT UNIQUE)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("INSERT INTO t (k) VALUES ('a')"); err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec("INSERT INTO t (k) VALUES ('a')")
+	if err == nil {
+		t.Fatal("expected a unique-constraint error")
+	}
 	if !IsUniqueViolation(err) {
-		t.Error("23505 PgError should be a unique violation")
+		t.Errorf("IsUniqueViolation(%v) = false; want true", err)
 	}
 }
 
 func TestIsUniqueViolation_PlainError(t *testing.T) {
-	err := errors.New("some random error")
-	if IsUniqueViolation(err) {
+	if IsUniqueViolation(errors.New("some random error")) {
 		t.Error("plain error should not be a unique violation")
 	}
 }

@@ -75,7 +75,7 @@ func WithMonitored(monitored bool) MovieOption {
 // WithTMDBID sets the TMDB ID on the seeded movie.
 func WithTMDBID(id int) MovieOption {
 	return func(p *dbgen.CreateMovieParams) {
-		p.TmdbID = int32(id)
+		p.TmdbID = int64(id)
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 // Settings is the application-level view of the download_handling table.
 type Settings struct {
 	EnableCompleted             bool
-	CheckIntervalMinutes        int32
+	CheckIntervalMinutes        int64
 	RedownloadFailed            bool
 	RedownloadFailedInteractive bool
 }

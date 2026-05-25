@@ -131,9 +131,9 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Config, error)
 		Name:       req.Name,
 		Kind:       req.Kind,
 		Enabled:    req.Enabled,
-		Priority:   int32(priority),
+		Priority:   int64(priority),
 		Settings:   string(settings),
-		MinSeeders: int32(minSeeders),
+		MinSeeders: int64(minSeeders),
 		CreatedAt:  now.Format(time.RFC3339),
 		UpdatedAt:  now.Format(time.RFC3339),
 	})
@@ -210,9 +210,9 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Con
 		Name:       req.Name,
 		Kind:       req.Kind,
 		Enabled:    req.Enabled,
-		Priority:   int32(priority),
+		Priority:   int64(priority),
 		Settings:   string(settings),
-		MinSeeders: int32(minSeeders),
+		MinSeeders: int64(minSeeders),
 		UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
 	})
 	if err != nil {
@@ -586,20 +586,20 @@ func (s *Service) ListHistory(ctx context.Context, limit int, status, protocol s
 		return s.q.ListGrabHistoryByStatusAndProtocol(ctx, dbgen.ListGrabHistoryByStatusAndProtocolParams{
 			DownloadStatus: status,
 			Protocol:       protocol,
-			Limit:          int32(limit),
+			Limit:          int64(limit),
 		})
 	case status != "":
 		return s.q.ListGrabHistoryByStatus(ctx, dbgen.ListGrabHistoryByStatusParams{
 			DownloadStatus: status,
-			Limit:          int32(limit),
+			Limit:          int64(limit),
 		})
 	case protocol != "":
 		return s.q.ListGrabHistoryByProtocol(ctx, dbgen.ListGrabHistoryByProtocolParams{
 			Protocol: protocol,
-			Limit:    int32(limit),
+			Limit:    int64(limit),
 		})
 	default:
-		return s.q.ListGrabHistory(ctx, int32(limit))
+		return s.q.ListGrabHistory(ctx, int64(limit))
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 
 const createCustomFormat = `-- name: CreateCustomFormat :one
 INSERT INTO custom_formats (id, name, include_when_renaming, specifications_json, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id, name, include_when_renaming, specifications_json, created_at, updated_at
 `
 
@@ -46,7 +46,7 @@ func (q *Queries) CreateCustomFormat(ctx context.Context, arg CreateCustomFormat
 }
 
 const deleteCustomFormat = `-- name: DeleteCustomFormat :exec
-DELETE FROM custom_formats WHERE id = $1
+DELETE FROM custom_formats WHERE id = ?
 `
 
 func (q *Queries) DeleteCustomFormat(ctx context.Context, id string) error {
@@ -55,7 +55,7 @@ func (q *Queries) DeleteCustomFormat(ctx context.Context, id string) error {
 }
 
 const deleteCustomFormatScores = `-- name: DeleteCustomFormatScores :exec
-DELETE FROM custom_format_scores WHERE quality_profile_id = $1
+DELETE FROM custom_format_scores WHERE quality_profile_id = ?
 `
 
 func (q *Queries) DeleteCustomFormatScores(ctx context.Context, qualityProfileID string) error {
@@ -64,7 +64,7 @@ func (q *Queries) DeleteCustomFormatScores(ctx context.Context, qualityProfileID
 }
 
 const getCustomFormat = `-- name: GetCustomFormat :one
-SELECT id, name, include_when_renaming, specifications_json, created_at, updated_at FROM custom_formats WHERE id = $1
+SELECT id, name, include_when_renaming, specifications_json, created_at, updated_at FROM custom_formats WHERE id = ?
 `
 
 func (q *Queries) GetCustomFormat(ctx context.Context, id string) (CustomFormat, error) {
@@ -82,7 +82,7 @@ func (q *Queries) GetCustomFormat(ctx context.Context, id string) (CustomFormat,
 }
 
 const listCustomFormatScores = `-- name: ListCustomFormatScores :many
-SELECT quality_profile_id, custom_format_id, score FROM custom_format_scores WHERE quality_profile_id = $1
+SELECT quality_profile_id, custom_format_id, score FROM custom_format_scores WHERE quality_profile_id = ?
 `
 
 func (q *Queries) ListCustomFormatScores(ctx context.Context, qualityProfileID string) ([]CustomFormatScore, error) {
@@ -144,14 +144,14 @@ func (q *Queries) ListCustomFormats(ctx context.Context) ([]CustomFormat, error)
 
 const setCustomFormatScore = `-- name: SetCustomFormatScore :exec
 INSERT INTO custom_format_scores (quality_profile_id, custom_format_id, score)
-VALUES ($1, $2, $3)
+VALUES (?, ?, ?)
 ON CONFLICT (quality_profile_id, custom_format_id) DO UPDATE SET score = excluded.score
 `
 
 type SetCustomFormatScoreParams struct {
 	QualityProfileID string `json:"qualityProfileId"`
 	CustomFormatID   string `json:"customFormatId"`
-	Score            int32  `json:"score"`
+	Score            int64  `json:"score"`
 }
 
 func (q *Queries) SetCustomFormatScore(ctx context.Context, arg SetCustomFormatScoreParams) error {
@@ -161,8 +161,8 @@ func (q *Queries) SetCustomFormatScore(ctx context.Context, arg SetCustomFormatS
 
 const updateCustomFormat = `-- name: UpdateCustomFormat :one
 UPDATE custom_formats
-SET name = $1, include_when_renaming = $2, specifications_json = $3, updated_at = $4
-WHERE id = $5
+SET name = ?, include_when_renaming = ?, specifications_json = ?, updated_at = ?
+WHERE id = ?
 RETURNING id, name, include_when_renaming, specifications_json, created_at, updated_at
 `
 

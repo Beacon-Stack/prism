@@ -4,7 +4,6 @@ package activity
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -93,11 +92,12 @@ func (s *Service) handleEvent(ctx context.Context, e events.Event) {
 		return // unknown event type — skip
 	}
 
-	var detailStr sql.NullString
+	var detailStr *string
 	if len(e.Data) > 0 {
 		b, err := json.Marshal(e.Data)
 		if err == nil {
-			detailStr = sql.NullString{String: string(b), Valid: true}
+			s := string(b)
+			detailStr = &s
 		}
 	}
 
@@ -211,7 +211,7 @@ func (s *Service) List(ctx context.Context, category *string, since *string, lim
 	rows, err := s.q.ListActivities(ctx, dbgen.ListActivitiesParams{
 		Category: catFilter,
 		Since:    sinceFilter,
-		Limit:    int32(limit),
+		Limit:    limit,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing activities: %w", err)
@@ -235,8 +235,8 @@ func (s *Service) List(ctx context.Context, category *string, since *string, lim
 			Title:     r.Title,
 			CreatedAt: r.CreatedAt,
 		}
-		if r.Detail.Valid {
-			_ = json.Unmarshal([]byte(r.Detail.String), &a.Detail)
+		if r.Detail != nil {
+			_ = json.Unmarshal([]byte(*r.Detail), &a.Detail)
 		}
 		activities = append(activities, a)
 	}
@@ -300,7 +300,7 @@ func (s *Service) NeedsAttention(ctx context.Context, window time.Duration, perK
 		rows, err := s.q.ListGrabHistoryByStatusSince(ctx, dbgen.ListGrabHistoryByStatusSinceParams{
 			Status: status,
 			Since:  since,
-			Limit:  int32(perKind),
+			Limit:  int64(perKind),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing grab history (%s): %w", status, err)
@@ -324,24 +324,24 @@ func (s *Service) NeedsAttention(ctx context.Context, window time.Duration, perK
 	imports, err := s.q.ListActivities(ctx, dbgen.ListActivitiesParams{
 		Category: cat,
 		Since:    sinceNS,
-		Limit:    int32(perKind),
+		Limit:    int64(perKind),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("listing import failures: %w", err)
 	}
 	for _, r := range imports {
 		var detail string
-		if r.Detail.Valid {
+		if r.Detail != nil {
 			var d map[string]any
-			if json.Unmarshal([]byte(r.Detail.String), &d) == nil {
+			if json.Unmarshal([]byte(*r.Detail), &d) == nil {
 				if v, ok := d["reason"].(string); ok {
 					detail = v
 				}
 			}
 		}
 		movieID := ""
-		if r.MovieID.Valid {
-			movieID = r.MovieID.String
+		if r.MovieID != nil {
+			movieID = *r.MovieID
 		}
 		out.Items = append(out.Items, AttentionItem{
 			Kind:         "import_failed",

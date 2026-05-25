@@ -200,7 +200,7 @@ func (s *Service) provider() MetadataProvider {
 // Returns ErrAlreadyExists if a movie with the same TMDB ID is already present.
 func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 	// Check for duplicates before hitting TMDB (or creating a stub).
-	if _, err := s.q.GetMovieByTMDBID(ctx, int32(req.TMDBID)); err == nil {
+	if _, err := s.q.GetMovieByTMDBID(ctx, int64(req.TMDBID)); err == nil {
 		return Movie{}, ErrAlreadyExists
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return Movie{}, fmt.Errorf("checking for existing movie with tmdb_id %d: %w", req.TMDBID, err)
@@ -225,9 +225,9 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 
 	imdbID := dbutil.NullStringFromString(detail.IMDBId)
 
-	var runtimeMinutes sql.NullInt32
+	var runtimeMinutes *int64
 	if detail.RuntimeMinutes > 0 {
-		runtimeMinutes = sql.NullInt32{Int32: int32(detail.RuntimeMinutes), Valid: true}
+		runtimeMinutes = ptrInt64(int64(detail.RuntimeMinutes))
 	}
 
 	posterURL := dbutil.NullStringFromString(detail.PosterPath)
@@ -240,11 +240,11 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 
 	row, err := s.q.CreateMovie(ctx, dbgen.CreateMovieParams{
 		ID:                  uuid.New().String(),
-		TmdbID:              int32(detail.ID),
+		TmdbID:              int64(detail.ID),
 		ImdbID:              imdbID,
 		Title:               detail.Title,
 		OriginalTitle:       detail.OriginalTitle,
-		Year:                int32(detail.Year),
+		Year:                int64(detail.Year),
 		Overview:            detail.Overview,
 		RuntimeMinutes:      runtimeMinutes,
 		GenresJson:          genresJSON,
@@ -256,10 +256,10 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 		QualityProfileID:    req.QualityProfileID,
 		MinimumAvailability: minAvail,
 		ReleaseDate:         detail.ReleaseDate,
-		Path:                sql.NullString{},
+		Path:                nil,
 		AddedAt:             now,
 		UpdatedAt:           now,
-		MetadataRefreshedAt: sql.NullString{String: now, Valid: true},
+		MetadataRefreshedAt: ptrString(now),
 	})
 	if err != nil {
 		return Movie{}, fmt.Errorf("inserting movie: %w", err)
@@ -273,7 +273,7 @@ func (s *Service) Add(ctx context.Context, req AddRequest) (Movie, error) {
 	if req.PreferredEdition != "" {
 		if err := s.q.UpdateMoviePreferredEdition(ctx, dbgen.UpdateMoviePreferredEditionParams{
 			ID:               m.ID,
-			PreferredEdition: sql.NullString{String: req.PreferredEdition, Valid: true},
+			PreferredEdition: ptrString(req.PreferredEdition),
 			UpdatedAt:        time.Now().UTC().Format(time.RFC3339),
 		}); err != nil {
 			return Movie{}, fmt.Errorf("setting preferred edition for movie %q: %w", m.ID, err)
@@ -306,25 +306,25 @@ func (s *Service) addStub(ctx context.Context, req AddRequest) (Movie, error) {
 
 	row, err := s.q.CreateMovie(ctx, dbgen.CreateMovieParams{
 		ID:                  uuid.New().String(),
-		TmdbID:              int32(req.TMDBID),
-		ImdbID:              sql.NullString{},
+		TmdbID:              int64(req.TMDBID),
+		ImdbID:              nil,
 		Title:               fmt.Sprintf("tmdb:%d", req.TMDBID),
 		OriginalTitle:       "",
 		Year:                0,
 		Overview:            "",
-		RuntimeMinutes:      sql.NullInt32{},
+		RuntimeMinutes:      nil,
 		GenresJson:          "[]",
-		PosterUrl:           sql.NullString{},
-		FanartUrl:           sql.NullString{},
+		PosterUrl:           nil,
+		FanartUrl:           nil,
 		Status:              "unknown",
 		Monitored:           req.Monitored,
 		LibraryID:           req.LibraryID,
 		QualityProfileID:    req.QualityProfileID,
 		MinimumAvailability: minAvail,
-		Path:                sql.NullString{},
+		Path:                nil,
 		AddedAt:             now,
 		UpdatedAt:           now,
-		MetadataRefreshedAt: sql.NullString{},
+		MetadataRefreshedAt: nil,
 	})
 	if err != nil {
 		return Movie{}, fmt.Errorf("inserting stub movie for tmdb_id %d: %w", req.TMDBID, err)
@@ -362,25 +362,25 @@ func (s *Service) AddUnmatched(ctx context.Context, req AddUnmatchedRequest) (Mo
 	row, err := s.q.CreateMovie(ctx, dbgen.CreateMovieParams{
 		ID:                  uuid.New().String(),
 		TmdbID:              0,
-		ImdbID:              sql.NullString{},
+		ImdbID:              nil,
 		Title:               req.Title,
 		OriginalTitle:       "",
 		Year:                0,
 		Overview:            "",
-		RuntimeMinutes:      sql.NullInt32{},
+		RuntimeMinutes:      nil,
 		GenresJson:          "[]",
-		PosterUrl:           sql.NullString{},
-		FanartUrl:           sql.NullString{},
+		PosterUrl:           nil,
+		FanartUrl:           nil,
 		Status:              "announced",
 		Monitored:           false,
 		LibraryID:           req.LibraryID,
 		QualityProfileID:    req.QualityProfileID,
 		MinimumAvailability: "released",
 		ReleaseDate:         "",
-		Path:                sql.NullString{},
+		Path:                nil,
 		AddedAt:             now,
 		UpdatedAt:           now,
-		MetadataRefreshedAt: sql.NullString{},
+		MetadataRefreshedAt: nil,
 	})
 	if err != nil {
 		return Movie{}, fmt.Errorf("inserting unmatched movie: %w", err)
@@ -423,7 +423,7 @@ func (s *Service) MatchToTMDB(ctx context.Context, movieID string, tmdbID int) (
 	}
 
 	// Check that no other movie already owns this TMDB ID.
-	dup, err := s.q.GetMovieByTMDBID(ctx, int32(tmdbID))
+	dup, err := s.q.GetMovieByTMDBID(ctx, int64(tmdbID))
 	if err == nil && dup.ID != movieID {
 		return Movie{}, ErrAlreadyExists
 	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -432,7 +432,7 @@ func (s *Service) MatchToTMDB(ctx context.Context, movieID string, tmdbID int) (
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	if err := s.q.UpdateMovieTMDBID(ctx, dbgen.UpdateMovieTMDBIDParams{
-		TmdbID:    int32(tmdbID),
+		TmdbID:    int64(tmdbID),
 		UpdatedAt: now,
 		ID:        movieID,
 	}); err != nil {
@@ -470,8 +470,8 @@ func (s *Service) List(ctx context.Context, req ListRequest) (ListResult, error)
 		req.PerPage = 250
 	}
 
-	limit := int32(req.PerPage)
-	offset := int32((req.Page - 1) * req.PerPage)
+	limit := int64(req.PerPage)
+	offset := int64((req.Page - 1) * req.PerPage)
 
 	var (
 		rows  []dbgen.Movie
@@ -584,9 +584,9 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Mov
 	}
 
 	if req.PreferredEdition != nil {
-		var pe sql.NullString
+		var pe *string
 		if *req.PreferredEdition != "" {
-			pe = sql.NullString{String: *req.PreferredEdition, Valid: true}
+			pe = ptrString(*req.PreferredEdition)
 		}
 		if err := s.q.UpdateMoviePreferredEdition(ctx, dbgen.UpdateMoviePreferredEditionParams{
 			ID:               id,
@@ -751,9 +751,9 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 		return Movie{}, err
 	}
 
-	var runtimeMinutes sql.NullInt32
+	var runtimeMinutes *int64
 	if detail.RuntimeMinutes > 0 {
-		runtimeMinutes = sql.NullInt32{Int32: int32(detail.RuntimeMinutes), Valid: true}
+		runtimeMinutes = ptrInt64(int64(detail.RuntimeMinutes))
 	}
 
 	posterURL := dbutil.NullStringFromString(detail.PosterPath)
@@ -765,7 +765,7 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 		ID:                  id,
 		Title:               detail.Title,
 		OriginalTitle:       detail.OriginalTitle,
-		Year:                int32(detail.Year),
+		Year:                int64(detail.Year),
 		Overview:            detail.Overview,
 		RuntimeMinutes:      runtimeMinutes,
 		GenresJson:          genresJSON,
@@ -785,7 +785,7 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 
 	// Record when the metadata was last refreshed.
 	if err := s.q.UpdateMovieMetadataRefreshed(ctx, dbgen.UpdateMovieMetadataRefreshedParams{
-		MetadataRefreshedAt: sql.NullString{String: now, Valid: true},
+		MetadataRefreshedAt: ptrString(now),
 		UpdatedAt:           now,
 		ID:                  id,
 	}); err != nil {
@@ -803,7 +803,7 @@ func (s *Service) RefreshMetadata(ctx context.Context, id string) (Movie, error)
 // GetByTMDBID returns a movie by its TMDB ID.
 // Returns ErrNotFound if no movie with that TMDB ID exists.
 func (s *Service) GetByTMDBID(ctx context.Context, tmdbID int) (Movie, error) {
-	row, err := s.q.GetMovieByTMDBID(ctx, int32(tmdbID))
+	row, err := s.q.GetMovieByTMDBID(ctx, int64(tmdbID))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Movie{}, ErrNotFound
@@ -914,7 +914,7 @@ func (s *Service) DeleteFile(ctx context.Context, fileID string, deleteFromDisk 
 		if len(remaining) == 0 {
 			now := time.Now().UTC().Format(time.RFC3339)
 			if _, err := q.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
-				Path:      sql.NullString{},
+				Path:      nil,
 				UpdatedAt: now,
 				ID:        row.MovieID,
 			}); err != nil {
@@ -950,16 +950,16 @@ func (s *Service) AttachFile(ctx context.Context, movieID, filePath string, size
 	}
 
 	// Auto-detect edition from the filename.
-	var editionNS sql.NullString
+	var editionNS *string
 	if ed := edition.Parse(filepath.Base(filePath)); ed != nil {
-		editionNS = sql.NullString{String: ed.Name, Valid: true}
+		editionNS = ptrString(ed.Name)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	do := func(q dbgen.Querier) error {
 		if _, err := q.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
-			Path:      sql.NullString{String: filePath, Valid: true},
+			Path:      ptrString(filePath),
 			UpdatedAt: now,
 			ID:        movieID,
 		}); err != nil {
@@ -1044,8 +1044,8 @@ func (s *Service) RenameFiles(ctx context.Context, movieID string, settings Rena
 
 		// Set per-file edition so {Edition} renders correctly for each file.
 		fileRM := rm
-		if f.Edition.Valid {
-			fileRM.Edition = f.Edition.String
+		if f.Edition != nil {
+			fileRM.Edition = *f.Edition
 		}
 
 		ext := filepath.Ext(f.Path)
@@ -1104,9 +1104,9 @@ func (s *Service) RenameFiles(ctx context.Context, movieID string, settings Rena
 		}
 
 		// Keep movies.path in sync if this file's old path matches it.
-		if movie.Path.Valid && movie.Path.String == item.OldPath {
+		if movie.Path != nil && *movie.Path == item.OldPath {
 			if _, pathErr := s.q.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
-				Path:      sql.NullString{String: item.NewPath, Valid: true},
+				Path:      ptrString(item.NewPath),
 				UpdatedAt: now,
 				ID:        movieID,
 			}); pathErr != nil {
@@ -1207,8 +1207,8 @@ func rowToMovie(row dbgen.Movie) (Movie, error) {
 	}
 
 	var metadataRefreshedAt *time.Time
-	if row.MetadataRefreshedAt.Valid {
-		t, err := time.Parse(time.RFC3339, row.MetadataRefreshedAt.String)
+	if row.MetadataRefreshedAt != nil {
+		t, err := time.Parse(time.RFC3339, *row.MetadataRefreshedAt)
 		if err != nil {
 			return Movie{}, fmt.Errorf("parsing metadata_refreshed_at for movie %q: %w", row.ID, err)
 		}
@@ -1219,13 +1219,13 @@ func rowToMovie(row dbgen.Movie) (Movie, error) {
 	runtimeMinutes := dbutil.NullInt32Value(row.RuntimeMinutes)
 
 	var posterURL string
-	if row.PosterUrl.Valid {
-		posterURL = tmdbImageURL(row.PosterUrl.String, "w500")
+	if row.PosterUrl != nil {
+		posterURL = tmdbImageURL(*row.PosterUrl, "w500")
 	}
 
 	var fanartURL string
-	if row.FanartUrl.Valid {
-		fanartURL = tmdbImageURL(row.FanartUrl.String, "w1280")
+	if row.FanartUrl != nil {
+		fanartURL = tmdbImageURL(*row.FanartUrl, "w1280")
 	}
 
 	path := dbutil.NullStringValue(row.Path)
@@ -1270,8 +1270,8 @@ func (s *Service) ListMissing(ctx context.Context, page, perPage int) ([]Movie, 
 		return nil, 0, fmt.Errorf("counting missing movies: %w", err)
 	}
 	rows, err := s.q.ListMonitoredMoviesWithoutFile(ctx, dbgen.ListMonitoredMoviesWithoutFileParams{
-		Limit:  int32(perPage),
-		Offset: int32((page - 1) * perPage),
+		Limit:  int64(perPage),
+		Offset: int64((page - 1) * perPage),
 	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("listing missing movies: %w", err)
@@ -1395,4 +1395,14 @@ func rowToMovieFromWithFilesRow(r dbgen.ListMonitoredMoviesWithFilesRow) (Movie,
 		MetadataRefreshedAt: r.MetadataRefreshedAt,
 		MinimumAvailability: r.MinimumAvailability,
 	})
+}
+
+// ptrString returns a pointer to s.
+func ptrString(s string) *string {
+	return &s
+}
+
+// ptrInt64 returns a pointer to v.
+func ptrInt64(v int64) *int64 {
+	return &v
 }

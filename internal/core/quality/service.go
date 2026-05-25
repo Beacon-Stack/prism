@@ -60,13 +60,14 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Profile, error
 		return Profile{}, fmt.Errorf("marshaling qualities: %w", err)
 	}
 
-	var upgradeUntilJSON sql.NullString
+	var upgradeUntilJSON *string
 	if req.UpgradeUntil != nil {
 		b, err := json.Marshal(req.UpgradeUntil)
 		if err != nil {
 			return Profile{}, fmt.Errorf("marshaling upgrade_until: %w", err)
 		}
-		upgradeUntilJSON = sql.NullString{String: string(b), Valid: true}
+		s := string(b)
+		upgradeUntilJSON = &s
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -80,8 +81,8 @@ func (s *Service) Create(ctx context.Context, req CreateRequest) (Profile, error
 		UpgradeUntilJson:     upgradeUntilJSON,
 		CreatedAt:            now,
 		UpdatedAt:            now,
-		MinCustomFormatScore: int32(req.MinCustomFormatScore),
-		UpgradeUntilCfScore:  int32(req.UpgradeUntilCFScore),
+		MinCustomFormatScore: int64(req.MinCustomFormatScore),
+		UpgradeUntilCfScore:  int64(req.UpgradeUntilCFScore),
 		ManagedByPulse:       false,
 	})
 	if err != nil {
@@ -103,13 +104,14 @@ func (s *Service) CreateManaged(ctx context.Context, id string, req CreateReques
 	if err != nil {
 		return Profile{}, fmt.Errorf("marshaling qualities: %w", err)
 	}
-	var upgradeUntilJSON sql.NullString
+	var upgradeUntilJSON *string
 	if req.UpgradeUntil != nil {
 		b, err := json.Marshal(req.UpgradeUntil)
 		if err != nil {
 			return Profile{}, fmt.Errorf("marshaling upgrade_until: %w", err)
 		}
-		upgradeUntilJSON = sql.NullString{String: string(b), Valid: true}
+		s := string(b)
+		upgradeUntilJSON = &s
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -122,8 +124,8 @@ func (s *Service) CreateManaged(ctx context.Context, id string, req CreateReques
 		UpgradeUntilJson:     upgradeUntilJSON,
 		CreatedAt:            now,
 		UpdatedAt:            now,
-		MinCustomFormatScore: int32(req.MinCustomFormatScore),
-		UpgradeUntilCfScore:  int32(req.UpgradeUntilCFScore),
+		MinCustomFormatScore: int64(req.MinCustomFormatScore),
+		UpgradeUntilCfScore:  int64(req.UpgradeUntilCFScore),
 		ManagedByPulse:       true,
 	})
 	if err != nil {
@@ -219,13 +221,14 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Pro
 		return Profile{}, fmt.Errorf("marshaling qualities: %w", err)
 	}
 
-	var upgradeUntilJSON sql.NullString
+	var upgradeUntilJSON *string
 	if req.UpgradeUntil != nil {
 		b, err := json.Marshal(req.UpgradeUntil)
 		if err != nil {
 			return Profile{}, fmt.Errorf("marshaling upgrade_until: %w", err)
 		}
-		upgradeUntilJSON = sql.NullString{String: string(b), Valid: true}
+		s := string(b)
+		upgradeUntilJSON = &s
 	}
 
 	row, err := s.q.UpdateQualityProfile(ctx, dbgen.UpdateQualityProfileParams{
@@ -236,8 +239,8 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Pro
 		UpgradeAllowed:       req.UpgradeAllowed,
 		UpgradeUntilJson:     upgradeUntilJSON,
 		UpdatedAt:            time.Now().UTC().Format(time.RFC3339),
-		MinCustomFormatScore: int32(req.MinCustomFormatScore),
-		UpgradeUntilCfScore:  int32(req.UpgradeUntilCFScore),
+		MinCustomFormatScore: int64(req.MinCustomFormatScore),
+		UpgradeUntilCfScore:  int64(req.UpgradeUntilCFScore),
 	})
 	if err != nil {
 		return Profile{}, fmt.Errorf("updating quality profile %q: %w", id, err)
@@ -265,7 +268,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("checking quality profile usage for %q: %w", id, err)
 	}
-	if inUse {
+	if inUse != 0 {
 		return ErrInUse
 	}
 
@@ -288,9 +291,9 @@ func rowToProfile(row dbgen.QualityProfile) (Profile, error) {
 	}
 
 	var upgradeUntil *plugin.Quality
-	if row.UpgradeUntilJson.Valid {
+	if row.UpgradeUntilJson != nil {
 		var q plugin.Quality
-		if err := json.Unmarshal([]byte(row.UpgradeUntilJson.String), &q); err != nil {
+		if err := json.Unmarshal([]byte(*row.UpgradeUntilJson), &q); err != nil {
 			return Profile{}, fmt.Errorf("unmarshaling upgrade_until for profile %q: %w", row.ID, err)
 		}
 		upgradeUntil = &q

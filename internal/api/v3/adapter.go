@@ -56,7 +56,7 @@ func buildRowIDMap(ctx context.Context, db *sql.DB, table string) (rowIDMap, err
 // getUUIDByRowID returns the UUID for a given row_id, or "" if not found.
 func getUUIDByRowID(ctx context.Context, db *sql.DB, table string, rowid int64) (string, error) {
 	var uuid string
-	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT id FROM %s WHERE row_id = $1", table), rowid).Scan(&uuid) //nolint:gosec
+	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT id FROM %s WHERE row_id = ?", table), rowid).Scan(&uuid) //nolint:gosec
 	if err == sql.ErrNoRows {
 		return "", nil
 	}
@@ -66,7 +66,7 @@ func getUUIDByRowID(ctx context.Context, db *sql.DB, table string, rowid int64) 
 // getRowIDByUUID returns the row_id for a given UUID, or 0 if not found.
 func getRowIDByUUID(ctx context.Context, db *sql.DB, table string, uuid string) (int64, error) {
 	var rowid int64
-	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT row_id FROM %s WHERE id = $1", table), uuid).Scan(&rowid) //nolint:gosec
+	err := db.QueryRowContext(ctx, fmt.Sprintf("SELECT row_id FROM %s WHERE id = ?", table), uuid).Scan(&rowid) //nolint:gosec
 	if err == sql.ErrNoRows {
 		return 0, nil
 	}

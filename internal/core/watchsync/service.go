@@ -86,7 +86,7 @@ func (s *Service) Sync(ctx context.Context) error {
 			err = s.q.InsertWatchEvent(ctx, dbgen.InsertWatchEventParams{
 				ID:        uuid.New().String(),
 				MovieID:   m.ID,
-				TmdbID:    int32(e.TMDBID),
+				TmdbID:    int64(e.TMDBID),
 				WatchedAt: e.WatchedAt.UTC().Format(time.RFC3339),
 				UserName:  e.UserName,
 				Source:    cfg.Kind,

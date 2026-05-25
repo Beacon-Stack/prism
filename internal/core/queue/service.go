@@ -69,11 +69,11 @@ func (s *Service) GetQueue(ctx context.Context) ([]Item, error) {
 			Status:          g.DownloadStatus,
 			GrabbedAt:       grabbedAt,
 		}
-		if g.ClientItemID.Valid {
-			item.ClientItemID = g.ClientItemID.String
+		if g.ClientItemID != nil {
+			item.ClientItemID = *g.ClientItemID
 		}
-		if g.DownloadClientID.Valid {
-			item.DownloadClientID = g.DownloadClientID.String
+		if g.DownloadClientID != nil {
+			item.DownloadClientID = *g.DownloadClientID
 		}
 		items = append(items, item)
 	}
@@ -97,11 +97,11 @@ func (s *Service) GetQueueItem(ctx context.Context, grabID string) (Item, error)
 		Status:       g.DownloadStatus,
 		GrabbedAt:    grabbedAt,
 	}
-	if g.ClientItemID.Valid {
-		item.ClientItemID = g.ClientItemID.String
+	if g.ClientItemID != nil {
+		item.ClientItemID = *g.ClientItemID
 	}
-	if g.DownloadClientID.Valid {
-		item.DownloadClientID = g.DownloadClientID.String
+	if g.DownloadClientID != nil {
+		item.DownloadClientID = *g.DownloadClientID
 	}
 	return item, nil
 }
@@ -114,16 +114,16 @@ func (s *Service) RemoveFromQueue(ctx context.Context, grabID string, deleteFile
 		return fmt.Errorf("grab %q not found: %w", grabID, err)
 	}
 	target := &grab
-	if !target.DownloadClientID.Valid || !target.ClientItemID.Valid {
+	if target.DownloadClientID == nil || target.ClientItemID == nil {
 		return errors.New("grab has no associated download client")
 	}
 
-	client, err := s.downloader.ClientFor(ctx, target.DownloadClientID.String)
+	client, err := s.downloader.ClientFor(ctx, *target.DownloadClientID)
 	if err != nil {
 		return fmt.Errorf("getting download client for grab: %w", err)
 	}
 
-	if err := client.Remove(ctx, target.ClientItemID.String, deleteFiles); err != nil {
+	if err := client.Remove(ctx, *target.ClientItemID, deleteFiles); err != nil {
 		return fmt.Errorf("removing from download client: %w", err)
 	}
 
@@ -148,10 +148,10 @@ func (s *Service) PollAndUpdate(ctx context.Context) error {
 	// Group grabs by download client to minimize API calls.
 	byClient := make(map[string][]dbgen.GrabHistory)
 	for _, g := range grabs {
-		if !g.DownloadClientID.Valid || !g.ClientItemID.Valid {
+		if g.DownloadClientID == nil || g.ClientItemID == nil {
 			continue
 		}
-		byClient[g.DownloadClientID.String] = append(byClient[g.DownloadClientID.String], g)
+		byClient[*g.DownloadClientID] = append(byClient[*g.DownloadClientID], g)
 	}
 
 	for clientID, clientGrabs := range byClient {
@@ -172,11 +172,11 @@ func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbgen
 	}
 
 	for _, g := range grabs {
-		if !g.ClientItemID.Valid {
+		if g.ClientItemID == nil {
 			continue
 		}
 
-		item, err := client.Status(ctx, g.ClientItemID.String)
+		item, err := client.Status(ctx, *g.ClientItemID)
 		if err != nil {
 			// If the client says the item is definitively gone (not a
 			// transient network error), mark the grab as removed so the
@@ -192,7 +192,7 @@ func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbgen
 					"movie_id", g.MovieID,
 					"release", g.ReleaseTitle,
 					"client_id", clientID,
-					"client_item_id", g.ClientItemID.String,
+					"client_item_id", *g.ClientItemID,
 				)
 				if mErr := s.q.MarkGrabRemoved(ctx, g.ID); mErr != nil {
 					s.logger.Warn("queue: failed to mark grab removed",
@@ -206,7 +206,7 @@ func (s *Service) pollClient(ctx context.Context, clientID string, grabs []dbgen
 			// A brief haul restart or network blip must not clear the queue.
 			s.logger.Debug("could not get status for item",
 				"client_id", clientID,
-				"client_item_id", g.ClientItemID.String,
+				"client_item_id", *g.ClientItemID,
 				"error", err,
 			)
 			continue
