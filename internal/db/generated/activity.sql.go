@@ -7,18 +7,17 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const countActivities = `-- name: CountActivities :one
 SELECT COUNT(*) FROM activity_log
-WHERE ($1::text IS NULL OR category = $1::text)
-  AND ($2::text IS NULL OR created_at > $2::text)
+WHERE (?1 IS NULL OR category = ?1)
+  AND (?2 IS NULL OR created_at > ?2)
 `
 
 type CountActivitiesParams struct {
-	Category sql.NullString `json:"category"`
-	Since    sql.NullString `json:"since"`
+	Category interface{} `json:"category"`
+	Since    interface{} `json:"since"`
 }
 
 func (q *Queries) CountActivities(ctx context.Context, arg CountActivitiesParams) (int64, error) {
@@ -30,17 +29,17 @@ func (q *Queries) CountActivities(ctx context.Context, arg CountActivitiesParams
 
 const insertActivity = `-- name: InsertActivity :exec
 INSERT INTO activity_log (id, type, category, movie_id, title, detail, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type InsertActivityParams struct {
-	ID        string         `json:"id"`
-	Type      string         `json:"type"`
-	Category  string         `json:"category"`
-	MovieID   sql.NullString `json:"movieId"`
-	Title     string         `json:"title"`
-	Detail    sql.NullString `json:"detail"`
-	CreatedAt string         `json:"createdAt"`
+	ID        string  `json:"id"`
+	Type      string  `json:"type"`
+	Category  string  `json:"category"`
+	MovieID   *string `json:"movieId"`
+	Title     string  `json:"title"`
+	Detail    *string `json:"detail"`
+	CreatedAt string  `json:"createdAt"`
 }
 
 func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) error {
@@ -58,16 +57,16 @@ func (q *Queries) InsertActivity(ctx context.Context, arg InsertActivityParams) 
 
 const listActivities = `-- name: ListActivities :many
 SELECT id, type, category, movie_id, title, detail, created_at FROM activity_log
-WHERE ($1::text IS NULL OR category = $1::text)
-  AND ($2::text IS NULL OR created_at > $2::text)
+WHERE (?1 IS NULL OR category = ?1)
+  AND (?2 IS NULL OR created_at > ?2)
 ORDER BY created_at DESC
-LIMIT $3
+LIMIT ?3
 `
 
 type ListActivitiesParams struct {
-	Category sql.NullString `json:"category"`
-	Since    sql.NullString `json:"since"`
-	Limit    int32          `json:"limit"`
+	Category interface{} `json:"category"`
+	Since    interface{} `json:"since"`
+	Limit    int64       `json:"limit"`
 }
 
 func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) ([]ActivityLog, error) {
@@ -102,7 +101,7 @@ func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) 
 }
 
 const pruneActivities = `-- name: PruneActivities :exec
-DELETE FROM activity_log WHERE created_at < $1
+DELETE FROM activity_log WHERE created_at < ?
 `
 
 func (q *Queries) PruneActivities(ctx context.Context, createdAt string) error {

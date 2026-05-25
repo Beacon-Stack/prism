@@ -276,15 +276,19 @@ func (s *Service) Storage(ctx context.Context) (StorageStat, error) {
 
 // StorageTrend returns the most recent n storage snapshots, oldest first.
 func (s *Service) StorageTrend(ctx context.Context, limit int) ([]StoragePoint, error) {
-	rows, err := s.q.ListStorageSnapshots(ctx, int32(limit))
+	rows, err := s.q.ListStorageSnapshots(ctx, int64(limit))
 	if err != nil {
 		return nil, fmt.Errorf("listing storage snapshots: %w", err)
 	}
 	// Rows come back newest-first; reverse for chronological order.
 	points := make([]StoragePoint, len(rows))
 	for i, r := range rows {
+		captured, _ := time.Parse(time.RFC3339Nano, r.CapturedAt)
+		if captured.IsZero() {
+			captured, _ = time.Parse(time.RFC3339, r.CapturedAt)
+		}
 		points[len(rows)-1-i] = StoragePoint{
-			CapturedAt: r.CapturedAt,
+			CapturedAt: captured,
 			TotalBytes: r.TotalBytes,
 			FileCount:  r.FileCount,
 		}
@@ -321,8 +325,8 @@ func (s *Service) GrabPerformance(ctx context.Context) (GrabStats, []IndexerStat
 	indexers := make([]IndexerStat, len(indexerRows))
 	for i, r := range indexerRows {
 		idxID := ""
-		if r.IndexerID.Valid {
-			idxID = r.IndexerID.String
+		if r.IndexerID != nil {
+			idxID = *r.IndexerID
 		}
 		successes := toInt64(r.SuccessCount)
 		var idxRate float64
@@ -396,8 +400,9 @@ func (s *Service) LibraryGrowth(ctx context.Context) ([]GrowthPoint, error) {
 	var cumulative int64
 	for i, r := range rows {
 		cumulative += r.Count
+		month, _ := r.Month.(string)
 		points[i] = GrowthPoint{
-			Month:      r.Month,
+			Month:      month,
 			Added:      r.Count,
 			Cumulative: cumulative,
 		}
@@ -448,7 +453,7 @@ func (s *Service) TakeSnapshot(ctx context.Context) error {
 	}
 	if err := s.q.InsertStorageSnapshot(ctx, dbgen.InsertStorageSnapshotParams{
 		ID:         uuid.New().String(),
-		CapturedAt: time.Now().UTC(),
+		CapturedAt: time.Now().UTC().Format(time.RFC3339Nano),
 		TotalBytes: toInt64(totals.TotalBytes),
 		FileCount:  totals.FileCount,
 	}); err != nil {
@@ -459,7 +464,7 @@ func (s *Service) TakeSnapshot(ctx context.Context) error {
 
 // PruneSnapshots removes snapshots older than the given duration.
 func (s *Service) PruneSnapshots(ctx context.Context, olderThan time.Duration) error {
-	cutoff := time.Now().UTC().Add(-olderThan)
+	cutoff := time.Now().UTC().Add(-olderThan).Format(time.RFC3339Nano)
 	if err := s.q.PruneOldStorageSnapshots(ctx, cutoff); err != nil {
 		return fmt.Errorf("pruning snapshots: %w", err)
 	}

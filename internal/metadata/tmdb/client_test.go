@@ -1,6 +1,8 @@
 package tmdb
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -374,6 +376,83 @@ func TestGetMovieExtended_EmptyCredits(t *testing.T) {
 	}
 	if len(movie.Recommendations) != 0 {
 		t.Errorf("Recommendations should be empty, got %d", len(movie.Recommendations))
+	}
+}
+
+// gzipBytes returns b wrapped in a single gzip layer.
+func gzipBytes(t *testing.T, b []byte) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	if _, err := zw.Write(b); err != nil {
+		t.Fatalf("gzip write: %v", err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("gzip close: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// TestGet_DoubleGzippedResponse reproduces the TMDB CDN behaviour where a
+// response is gzip-encoded twice but only advertises a single
+// Content-Encoding: gzip. Go's transport strips the outer layer; the client
+// must peel the remaining one rather than hand gzip bytes to the decoder.
+func TestGet_DoubleGzippedResponse(t *testing.T) {
+	payload := mustMarshal(t, map[string]any{
+		"results": []map[string]any{
+			{"id": 27205, "title": "Inception", "release_date": "2010-07-16"},
+		},
+	})
+	// Inner gzip layer plus a stray trailing byte (as the CDN serves it),
+	// then the outer layer.
+	inner := append(gzipBytes(t, payload), '\n')
+	doubled := gzipBytes(t, inner)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(doubled)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	results, err := c.SearchMovies(context.Background(), "Inception", 0)
+	if err != nil {
+		t.Fatalf("SearchMovies() error = %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
+	}
+	if results[0].Title != "Inception" {
+		t.Errorf("Title = %q, want Inception", results[0].Title)
+	}
+}
+
+func TestPeelGzip(t *testing.T) {
+	plain := []byte(`{"ok":true}`)
+	once := gzipBytes(t, plain)
+	twice := gzipBytes(t, once)
+
+	cases := []struct {
+		name string
+		in   []byte
+		want string
+	}{
+		{"plain JSON unchanged", plain, string(plain)},
+		{"single gzip layer", once, string(plain)},
+		{"double gzip layer", twice, string(plain)},
+		{"empty input", []byte{}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := peelGzip(tc.in)
+			if err != nil {
+				t.Fatalf("peelGzip() error = %v", err)
+			}
+			if string(got) != tc.want {
+				t.Errorf("peelGzip() = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 

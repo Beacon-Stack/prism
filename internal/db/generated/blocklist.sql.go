@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
 )
 
 const clearBlocklist = `-- name: ClearBlocklist :exec
@@ -34,20 +32,20 @@ func (q *Queries) CountBlocklist(ctx context.Context) (int64, error) {
 const createBlocklistEntry = `-- name: CreateBlocklistEntry :one
 INSERT INTO blocklist (id, movie_id, release_guid, release_title, indexer_id,
     protocol, size, added_at, notes)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, movie_id, release_guid, release_title, indexer_id, protocol, size, added_at, notes
 `
 
 type CreateBlocklistEntryParams struct {
-	ID           string         `json:"id"`
-	MovieID      string         `json:"movieId"`
-	ReleaseGuid  string         `json:"releaseGuid"`
-	ReleaseTitle string         `json:"releaseTitle"`
-	IndexerID    sql.NullString `json:"indexerId"`
-	Protocol     string         `json:"protocol"`
-	Size         int64          `json:"size"`
-	AddedAt      time.Time      `json:"addedAt"`
-	Notes        string         `json:"notes"`
+	ID           string  `json:"id"`
+	MovieID      string  `json:"movieId"`
+	ReleaseGuid  string  `json:"releaseGuid"`
+	ReleaseTitle string  `json:"releaseTitle"`
+	IndexerID    *string `json:"indexerId"`
+	Protocol     string  `json:"protocol"`
+	Size         int64   `json:"size"`
+	AddedAt      string  `json:"addedAt"`
+	Notes        string  `json:"notes"`
 }
 
 func (q *Queries) CreateBlocklistEntry(ctx context.Context, arg CreateBlocklistEntryParams) (Blocklist, error) {
@@ -78,7 +76,7 @@ func (q *Queries) CreateBlocklistEntry(ctx context.Context, arg CreateBlocklistE
 }
 
 const deleteBlocklistEntry = `-- name: DeleteBlocklistEntry :exec
-DELETE FROM blocklist WHERE id = $1
+DELETE FROM blocklist WHERE id = ?
 `
 
 func (q *Queries) DeleteBlocklistEntry(ctx context.Context, id string) error {
@@ -87,7 +85,7 @@ func (q *Queries) DeleteBlocklistEntry(ctx context.Context, id string) error {
 }
 
 const isBlocklisted = `-- name: IsBlocklisted :one
-SELECT COUNT(*) FROM blocklist WHERE release_guid = $1
+SELECT COUNT(*) FROM blocklist WHERE release_guid = ?
 `
 
 func (q *Queries) IsBlocklisted(ctx context.Context, releaseGuid string) (int64, error) {
@@ -98,7 +96,7 @@ func (q *Queries) IsBlocklisted(ctx context.Context, releaseGuid string) (int64,
 }
 
 const isBlocklistedByTitle = `-- name: IsBlocklistedByTitle :one
-SELECT COUNT(*) FROM blocklist WHERE release_title = $1
+SELECT COUNT(*) FROM blocklist WHERE release_title = ?
 `
 
 func (q *Queries) IsBlocklistedByTitle(ctx context.Context, releaseTitle string) (int64, error) {
@@ -112,25 +110,25 @@ const listBlocklist = `-- name: ListBlocklist :many
 SELECT b.id, b.movie_id, b.release_guid, b.release_title, b.indexer_id, b.protocol, b.size, b.added_at, b.notes, m.title AS movie_title
 FROM blocklist b JOIN movies m ON m.id = b.movie_id
 ORDER BY b.added_at DESC
-LIMIT $1 OFFSET $2
+LIMIT ? OFFSET ?
 `
 
 type ListBlocklistParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 type ListBlocklistRow struct {
-	ID           string         `json:"id"`
-	MovieID      string         `json:"movieId"`
-	ReleaseGuid  string         `json:"releaseGuid"`
-	ReleaseTitle string         `json:"releaseTitle"`
-	IndexerID    sql.NullString `json:"indexerId"`
-	Protocol     string         `json:"protocol"`
-	Size         int64          `json:"size"`
-	AddedAt      time.Time      `json:"addedAt"`
-	Notes        string         `json:"notes"`
-	MovieTitle   string         `json:"movieTitle"`
+	ID           string  `json:"id"`
+	MovieID      string  `json:"movieId"`
+	ReleaseGuid  string  `json:"releaseGuid"`
+	ReleaseTitle string  `json:"releaseTitle"`
+	IndexerID    *string `json:"indexerId"`
+	Protocol     string  `json:"protocol"`
+	Size         int64   `json:"size"`
+	AddedAt      string  `json:"addedAt"`
+	Notes        string  `json:"notes"`
+	MovieTitle   string  `json:"movieTitle"`
 }
 
 func (q *Queries) ListBlocklist(ctx context.Context, arg ListBlocklistParams) ([]ListBlocklistRow, error) {

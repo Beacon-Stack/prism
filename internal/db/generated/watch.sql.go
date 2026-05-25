@@ -16,7 +16,7 @@ FROM movies m
 LEFT JOIN watch_history w ON w.movie_id = m.id
 LEFT JOIN movie_files mf ON mf.movie_id = m.id
 WHERE w.id IS NULL
-  AND m.added_at < $1
+  AND m.added_at < ?
 GROUP BY m.id, m.title, m.year, m.added_at
 HAVING COALESCE(SUM(mf.size_bytes), 0) > 0
 `
@@ -24,7 +24,7 @@ HAVING COALESCE(SUM(mf.size_bytes), 0) > 0
 type CleanupNeverWatchedRow struct {
 	ID         string      `json:"id"`
 	Title      string      `json:"title"`
-	Year       int32       `json:"year"`
+	Year       int64       `json:"year"`
 	AddedAt    string      `json:"addedAt"`
 	TotalBytes interface{} `json:"totalBytes"`
 }
@@ -66,19 +66,19 @@ FROM movies m
 JOIN watch_history w ON w.movie_id = m.id
 LEFT JOIN movie_files mf ON mf.movie_id = m.id
 GROUP BY m.id, m.title, m.year
-HAVING COUNT(w.id) = 1 AND MAX(w.watched_at) < $1
+HAVING COUNT(w.id) = 1 AND MAX(w.watched_at) < ?
 `
 
 type CleanupWatchedOnceRow struct {
 	ID          string      `json:"id"`
 	Title       string      `json:"title"`
-	Year        int32       `json:"year"`
+	Year        int64       `json:"year"`
 	LastWatched interface{} `json:"lastWatched"`
 	TotalBytes  interface{} `json:"totalBytes"`
 }
 
-func (q *Queries) CleanupWatchedOnce(ctx context.Context, watchedAt string) ([]CleanupWatchedOnceRow, error) {
-	rows, err := q.db.QueryContext(ctx, cleanupWatchedOnce, watchedAt)
+func (q *Queries) CleanupWatchedOnce(ctx context.Context) ([]CleanupWatchedOnceRow, error) {
+	rows, err := q.db.QueryContext(ctx, cleanupWatchedOnce)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (q *Queries) CleanupWatchedOnce(ctx context.Context, watchedAt string) ([]C
 }
 
 const getSyncState = `-- name: GetSyncState :one
-SELECT last_sync_at FROM watch_sync_state WHERE media_server_id = $1
+SELECT last_sync_at FROM watch_sync_state WHERE media_server_id = ?
 `
 
 func (q *Queries) GetSyncState(ctx context.Context, mediaServerID string) (string, error) {
@@ -119,14 +119,14 @@ func (q *Queries) GetSyncState(ctx context.Context, mediaServerID string) (strin
 
 const insertWatchEvent = `-- name: InsertWatchEvent :exec
 INSERT INTO watch_history (id, movie_id, tmdb_id, watched_at, user_name, source)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (?, ?, ?, ?, ?, ?)
 ON CONFLICT DO NOTHING
 `
 
 type InsertWatchEventParams struct {
 	ID        string `json:"id"`
 	MovieID   string `json:"movieId"`
-	TmdbID    int32  `json:"tmdbId"`
+	TmdbID    int64  `json:"tmdbId"`
 	WatchedAt string `json:"watchedAt"`
 	UserName  string `json:"userName"`
 	Source    string `json:"source"`
@@ -146,7 +146,7 @@ func (q *Queries) InsertWatchEvent(ctx context.Context, arg InsertWatchEventPara
 
 const upsertSyncState = `-- name: UpsertSyncState :exec
 INSERT INTO watch_sync_state (media_server_id, last_sync_at)
-VALUES ($1, $2)
+VALUES (?, ?)
 ON CONFLICT(media_server_id) DO UPDATE SET last_sync_at = excluded.last_sync_at
 `
 
@@ -222,7 +222,7 @@ SELECT
     MAX(watched_at) AS last_watched_at,
     MIN(watched_at) AS first_watched_at
 FROM watch_history
-WHERE movie_id = $1
+WHERE movie_id = ?
 `
 
 type WatchStatusForMovieRow struct {

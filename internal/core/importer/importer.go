@@ -185,17 +185,17 @@ func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, content
 	q := qualityFromGrab(grab)
 
 	fileFormat := mm.StandardMovieFormat
-	if lib.NamingFormat.Valid && lib.NamingFormat.String != "" {
-		fileFormat = lib.NamingFormat.String
+	if lib.NamingFormat != nil && *lib.NamingFormat != "" {
+		fileFormat = *lib.NamingFormat
 	}
 	folderFormat := mm.MovieFolderFormat
-	if lib.FolderFormat.Valid && lib.FolderFormat.String != "" {
-		folderFormat = lib.FolderFormat.String
+	if lib.FolderFormat != nil && *lib.FolderFormat != "" {
+		folderFormat = *lib.FolderFormat
 	}
 
 	var fileEdition string
-	if grab.ReleaseEdition.Valid {
-		fileEdition = grab.ReleaseEdition.String
+	if grab.ReleaseEdition != nil {
+		fileEdition = *grab.ReleaseEdition
 	}
 	rm := renamer.Movie{
 		Title:         mov.Title,
@@ -260,7 +260,7 @@ func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, content
 		}
 
 		if _, err := dbq.UpdateMoviePath(ctx, dbgen.UpdateMoviePathParams{
-			Path:      sql.NullString{String: destPath, Valid: true},
+			Path:      &destPath,
 			UpdatedAt: now,
 			ID:        grab.MovieID,
 		}); err != nil {

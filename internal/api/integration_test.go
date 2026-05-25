@@ -1752,7 +1752,7 @@ func TestIntegration_V3_Movies_ListAndGet(t *testing.T) {
 		OriginalTitle:       "Fight Club",
 		Year:                1999,
 		Overview:            "Test overview",
-		RuntimeMinutes:      sql.NullInt32{Int32: 139, Valid: true},
+		RuntimeMinutes:      int64Ptr(139),
 		GenresJson:          `["Drama","Thriller"]`,
 		LibraryID:           libID,
 		QualityProfileID:    qpID,
@@ -2223,3 +2223,7 @@ func mustDecode(t *testing.T, rec *httptest.ResponseRecorder, out any) {
 		t.Fatalf("decoding response body: %v (body was: %s)", err, rec.Body)
 	}
 }
+
+// int64Ptr returns a pointer to v. Used for nullable INTEGER columns which
+// sqlc-sqlite emits as *int64.
+func int64Ptr(v int64) *int64 { return &v }

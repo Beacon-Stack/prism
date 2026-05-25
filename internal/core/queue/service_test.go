@@ -2,7 +2,6 @@ package queue_test
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"io"
 	"log/slog"
@@ -87,12 +86,14 @@ func (d *stubDownloader) ClientFor(_ context.Context, _ string) (plugin.Download
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 func activeGrab(id, movieID string) dbgen.GrabHistory {
+	client := "haul-client"
+	item := "abc123infohash"
 	return dbgen.GrabHistory{
 		ID:               id,
 		MovieID:          movieID,
 		ReleaseTitle:     "Arrival 2016 PROPER 2160p BluRay REMUX",
-		DownloadClientID: sql.NullString{String: "haul-client", Valid: true},
-		ClientItemID:     sql.NullString{String: "abc123infohash", Valid: true},
+		DownloadClientID: &client,
+		ClientItemID:     &item,
 		DownloadStatus:   "downloading",
 		DownloadedBytes:  1000,
 		GrabbedAt:        "2026-04-13T10:23:36Z",
@@ -257,10 +258,12 @@ func TestPollAndUpdate_MultipleGrabsIndependentFates(t *testing.T) {
 	}
 
 	grabOK := activeGrab("g-ok", "movie-ok")
-	grabOK.ClientItemID = sql.NullString{String: "hash-ok", Valid: true}
+	hashOK := "hash-ok"
+	grabOK.ClientItemID = &hashOK
 
 	grabGone := activeGrab("g-gone", "movie-gone")
-	grabGone.ClientItemID = sql.NullString{String: "hash-gone", Valid: true}
+	hashGone := "hash-gone"
+	grabGone.ClientItemID = &hashGone
 
 	q := &stubQuerier{activeGrabs: []dbgen.GrabHistory{grabOK, grabGone}}
 	svc := queue.NewService(q, &stubDownloader{client: c}, nil, testLogger())

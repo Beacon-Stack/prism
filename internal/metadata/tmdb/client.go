@@ -1,9 +1,12 @@
 package tmdb
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -674,24 +677,69 @@ func (c *Client) get(ctx context.Context, path string, params url.Values, dst an
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response: %w", err)
+	}
+	// TMDB's CDN intermittently double-gzip-encodes responses while only
+	// advertising a single Content-Encoding: gzip. Go's HTTP transport
+	// transparently strips the outer layer; peelGzip removes any that
+	// remain so the JSON decoder isn't handed raw gzip bytes.
+	body, err = peelGzip(body)
+	if err != nil {
+		return fmt.Errorf("decompressing response: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		// Try to extract the TMDB error message for context.
 		var apiErr struct {
 			StatusMessage string `json:"status_message"`
 			StatusCode    int    `json:"status_code"`
 		}
-		_ = json.NewDecoder(resp.Body).Decode(&apiErr)
+		_ = json.Unmarshal(body, &apiErr)
 		if apiErr.StatusMessage != "" {
 			return fmt.Errorf("http %d: %s", resp.StatusCode, apiErr.StatusMessage)
 		}
 		return fmt.Errorf("http %d", resp.StatusCode)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(dst); err != nil {
+	if err := json.Unmarshal(body, dst); err != nil {
 		return fmt.Errorf("decoding response: %w", err)
 	}
 
 	return nil
+}
+
+// peelGzip strips any gzip layers still present in b. Go's HTTP transport
+// transparently decodes a single Content-Encoding: gzip layer, but TMDB's
+// CDN sometimes returns a body gzipped more than once while advertising
+// only one layer — which leaves the JSON decoder staring at gzip magic
+// bytes (0x1f 0x8b). Each iteration peels one layer; the loop stops once b
+// is no longer a gzip stream. b is returned unchanged when it isn't gzip.
+func peelGzip(b []byte) ([]byte, error) {
+	const maxLayers = 4
+	for layers := 0; len(b) >= 2 && b[0] == 0x1f && b[1] == 0x8b; layers++ {
+		if layers >= maxLayers {
+			return nil, fmt.Errorf("too many gzip layers (>%d)", maxLayers)
+		}
+		zr, err := gzip.NewReader(bytes.NewReader(b))
+		if err != nil {
+			return nil, fmt.Errorf("gzip reader: %w", err)
+		}
+		// Stop at the first member: a double-gzipped body has a stray
+		// trailing byte that is not a valid second member.
+		zr.Multistream(false)
+		out, err := io.ReadAll(zr)
+		if err != nil {
+			_ = zr.Close()
+			return nil, fmt.Errorf("gzip decode: %w", err)
+		}
+		if err := zr.Close(); err != nil {
+			return nil, fmt.Errorf("gzip close: %w", err)
+		}
+		b = out
+	}
+	return b, nil
 }
 
 // parseYear extracts the four-digit year from a "YYYY-MM-DD" date string.

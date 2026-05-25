@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const countEditionMismatches = `-- name: CountEditionMismatches :one
@@ -53,7 +52,7 @@ func (q *Queries) CountMovies(ctx context.Context) (int64, error) {
 }
 
 const countMoviesByLibrary = `-- name: CountMoviesByLibrary :one
-SELECT COUNT(*) FROM movies WHERE library_id = $1
+SELECT COUNT(*) FROM movies WHERE library_id = ?
 `
 
 func (q *Queries) CountMoviesByLibrary(ctx context.Context, libraryID string) (int64, error) {
@@ -72,38 +71,38 @@ INSERT INTO movies (
     added_at, updated_at, metadata_refreshed_at,
     minimum_availability, release_date
 ) VALUES (
-    $1, $2, $3, $4, $5,
-    $6, $7, $8, $9,
-    $10, $11, $12, $13,
-    $14, $15, $16,
-    $17, $18, $19,
-    $20, $21
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?,
+    ?, ?, ?,
+    ?, ?
 )
 RETURNING id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id
 `
 
 type CreateMovieParams struct {
-	ID                  string         `json:"id"`
-	TmdbID              int32          `json:"tmdbId"`
-	ImdbID              sql.NullString `json:"imdbId"`
-	Title               string         `json:"title"`
-	OriginalTitle       string         `json:"originalTitle"`
-	Year                int32          `json:"year"`
-	Overview            string         `json:"overview"`
-	RuntimeMinutes      sql.NullInt32  `json:"runtimeMinutes"`
-	GenresJson          string         `json:"genresJson"`
-	PosterUrl           sql.NullString `json:"posterUrl"`
-	FanartUrl           sql.NullString `json:"fanartUrl"`
-	Status              string         `json:"status"`
-	Monitored           bool           `json:"monitored"`
-	LibraryID           string         `json:"libraryId"`
-	QualityProfileID    string         `json:"qualityProfileId"`
-	Path                sql.NullString `json:"path"`
-	AddedAt             string         `json:"addedAt"`
-	UpdatedAt           string         `json:"updatedAt"`
-	MetadataRefreshedAt sql.NullString `json:"metadataRefreshedAt"`
-	MinimumAvailability string         `json:"minimumAvailability"`
-	ReleaseDate         string         `json:"releaseDate"`
+	ID                  string  `json:"id"`
+	TmdbID              int64   `json:"tmdbId"`
+	ImdbID              *string `json:"imdbId"`
+	Title               string  `json:"title"`
+	OriginalTitle       string  `json:"originalTitle"`
+	Year                int64   `json:"year"`
+	Overview            string  `json:"overview"`
+	RuntimeMinutes      *int64  `json:"runtimeMinutes"`
+	GenresJson          string  `json:"genresJson"`
+	PosterUrl           *string `json:"posterUrl"`
+	FanartUrl           *string `json:"fanartUrl"`
+	Status              string  `json:"status"`
+	Monitored           bool    `json:"monitored"`
+	LibraryID           string  `json:"libraryId"`
+	QualityProfileID    string  `json:"qualityProfileId"`
+	Path                *string `json:"path"`
+	AddedAt             string  `json:"addedAt"`
+	UpdatedAt           string  `json:"updatedAt"`
+	MetadataRefreshedAt *string `json:"metadataRefreshedAt"`
+	MinimumAvailability string  `json:"minimumAvailability"`
+	ReleaseDate         string  `json:"releaseDate"`
 }
 
 func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (Movie, error) {
@@ -164,21 +163,21 @@ INSERT INTO movie_files (
     id, movie_id, path, size_bytes, quality_json,
     edition, imported_at, indexed_at
 ) VALUES (
-    $1, $2, $3, $4, $5,
-    $6, $7, $8
+    ?, ?, ?, ?, ?,
+    ?, ?, ?
 )
 RETURNING id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at
 `
 
 type CreateMovieFileParams struct {
-	ID          string         `json:"id"`
-	MovieID     string         `json:"movieId"`
-	Path        string         `json:"path"`
-	SizeBytes   int64          `json:"sizeBytes"`
-	QualityJson string         `json:"qualityJson"`
-	Edition     sql.NullString `json:"edition"`
-	ImportedAt  string         `json:"importedAt"`
-	IndexedAt   string         `json:"indexedAt"`
+	ID          string  `json:"id"`
+	MovieID     string  `json:"movieId"`
+	Path        string  `json:"path"`
+	SizeBytes   int64   `json:"sizeBytes"`
+	QualityJson string  `json:"qualityJson"`
+	Edition     *string `json:"edition"`
+	ImportedAt  string  `json:"importedAt"`
+	IndexedAt   string  `json:"indexedAt"`
 }
 
 func (q *Queries) CreateMovieFile(ctx context.Context, arg CreateMovieFileParams) (MovieFile, error) {
@@ -209,7 +208,7 @@ func (q *Queries) CreateMovieFile(ctx context.Context, arg CreateMovieFileParams
 }
 
 const deleteMovie = `-- name: DeleteMovie :exec
-DELETE FROM movies WHERE id = $1
+DELETE FROM movies WHERE id = ?
 `
 
 func (q *Queries) DeleteMovie(ctx context.Context, id string) error {
@@ -218,7 +217,7 @@ func (q *Queries) DeleteMovie(ctx context.Context, id string) error {
 }
 
 const deleteMovieFile = `-- name: DeleteMovieFile :exec
-DELETE FROM movie_files WHERE id = $1
+DELETE FROM movie_files WHERE id = ?
 `
 
 func (q *Queries) DeleteMovieFile(ctx context.Context, id string) error {
@@ -227,7 +226,7 @@ func (q *Queries) DeleteMovieFile(ctx context.Context, id string) error {
 }
 
 const getMovie = `-- name: GetMovie :one
-SELECT id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id FROM movies WHERE id = $1
+SELECT id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id FROM movies WHERE id = ?
 `
 
 func (q *Queries) GetMovie(ctx context.Context, id string) (Movie, error) {
@@ -262,10 +261,10 @@ func (q *Queries) GetMovie(ctx context.Context, id string) (Movie, error) {
 }
 
 const getMovieByTMDBID = `-- name: GetMovieByTMDBID :one
-SELECT id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id FROM movies WHERE tmdb_id = $1
+SELECT id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id FROM movies WHERE tmdb_id = ?
 `
 
-func (q *Queries) GetMovieByTMDBID(ctx context.Context, tmdbID int32) (Movie, error) {
+func (q *Queries) GetMovieByTMDBID(ctx context.Context, tmdbID int64) (Movie, error) {
 	row := q.db.QueryRowContext(ctx, getMovieByTMDBID, tmdbID)
 	var i Movie
 	err := row.Scan(
@@ -297,7 +296,7 @@ func (q *Queries) GetMovieByTMDBID(ctx context.Context, tmdbID int32) (Movie, er
 }
 
 const getMovieFile = `-- name: GetMovieFile :one
-SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE id = $1
+SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE id = ?
 `
 
 func (q *Queries) GetMovieFile(ctx context.Context, id string) (MovieFile, error) {
@@ -319,7 +318,7 @@ func (q *Queries) GetMovieFile(ctx context.Context, id string) (MovieFile, error
 }
 
 const getMovieFileByPath = `-- name: GetMovieFileByPath :one
-SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE path = $1
+SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE path = ?
 `
 
 func (q *Queries) GetMovieFileByPath(ctx context.Context, path string) (MovieFile, error) {
@@ -344,15 +343,15 @@ const listAllTMDBIDs = `-- name: ListAllTMDBIDs :many
 SELECT tmdb_id FROM movies WHERE tmdb_id != 0
 `
 
-func (q *Queries) ListAllTMDBIDs(ctx context.Context) ([]int32, error) {
+func (q *Queries) ListAllTMDBIDs(ctx context.Context) ([]int64, error) {
 	rows, err := q.db.QueryContext(ctx, listAllTMDBIDs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []int32
+	var items []int64
 	for rows.Next() {
-		var tmdb_id int32
+		var tmdb_id int64
 		if err := rows.Scan(&tmdb_id); err != nil {
 			return nil, err
 		}
@@ -430,31 +429,31 @@ ORDER BY m.title ASC
 `
 
 type ListMonitoredMoviesWithFilesRow struct {
-	ID                  string         `json:"id"`
-	TmdbID              int32          `json:"tmdbId"`
-	ImdbID              sql.NullString `json:"imdbId"`
-	Title               string         `json:"title"`
-	OriginalTitle       string         `json:"originalTitle"`
-	Year                int32          `json:"year"`
-	Overview            string         `json:"overview"`
-	RuntimeMinutes      sql.NullInt32  `json:"runtimeMinutes"`
-	GenresJson          string         `json:"genresJson"`
-	PosterUrl           sql.NullString `json:"posterUrl"`
-	FanartUrl           sql.NullString `json:"fanartUrl"`
-	Status              string         `json:"status"`
-	Monitored           bool           `json:"monitored"`
-	LibraryID           string         `json:"libraryId"`
-	QualityProfileID    string         `json:"qualityProfileId"`
-	Path                sql.NullString `json:"path"`
-	AddedAt             string         `json:"addedAt"`
-	UpdatedAt           string         `json:"updatedAt"`
-	MetadataRefreshedAt sql.NullString `json:"metadataRefreshedAt"`
-	MinimumAvailability string         `json:"minimumAvailability"`
-	ReleaseDate         string         `json:"releaseDate"`
-	PreferredEdition    sql.NullString `json:"preferredEdition"`
-	RowID               sql.NullInt32  `json:"rowId"`
-	QualityJson         string         `json:"qualityJson"`
-	CutoffJson          string         `json:"cutoffJson"`
+	ID                  string  `json:"id"`
+	TmdbID              int64   `json:"tmdbId"`
+	ImdbID              *string `json:"imdbId"`
+	Title               string  `json:"title"`
+	OriginalTitle       string  `json:"originalTitle"`
+	Year                int64   `json:"year"`
+	Overview            string  `json:"overview"`
+	RuntimeMinutes      *int64  `json:"runtimeMinutes"`
+	GenresJson          string  `json:"genresJson"`
+	PosterUrl           *string `json:"posterUrl"`
+	FanartUrl           *string `json:"fanartUrl"`
+	Status              string  `json:"status"`
+	Monitored           bool    `json:"monitored"`
+	LibraryID           string  `json:"libraryId"`
+	QualityProfileID    string  `json:"qualityProfileId"`
+	Path                *string `json:"path"`
+	AddedAt             string  `json:"addedAt"`
+	UpdatedAt           string  `json:"updatedAt"`
+	MetadataRefreshedAt *string `json:"metadataRefreshedAt"`
+	MinimumAvailability string  `json:"minimumAvailability"`
+	ReleaseDate         string  `json:"releaseDate"`
+	PreferredEdition    *string `json:"preferredEdition"`
+	RowID               int64   `json:"rowId"`
+	QualityJson         string  `json:"qualityJson"`
+	CutoffJson          string  `json:"cutoffJson"`
 }
 
 func (q *Queries) ListMonitoredMoviesWithFiles(ctx context.Context) ([]ListMonitoredMoviesWithFilesRow, error) {
@@ -513,12 +512,12 @@ LEFT JOIN movie_files mf ON mf.movie_id = m.id
 WHERE m.monitored = TRUE
   AND mf.id IS NULL
 ORDER BY m.title ASC
-LIMIT $1 OFFSET $2
+LIMIT ? OFFSET ?
 `
 
 type ListMonitoredMoviesWithoutFileParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 func (q *Queries) ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMonitoredMoviesWithoutFileParams) ([]Movie, error) {
@@ -569,7 +568,7 @@ func (q *Queries) ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMo
 }
 
 const listMovieFiles = `-- name: ListMovieFiles :many
-SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE movie_id = $1 ORDER BY imported_at DESC
+SELECT id, movie_id, path, size_bytes, quality_json, edition, imported_at, indexed_at, mediainfo_json, mediainfo_scanned_at FROM movie_files WHERE movie_id = ? ORDER BY imported_at DESC
 `
 
 func (q *Queries) ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error) {
@@ -610,7 +609,7 @@ const listMovieFilesByLibrary = `-- name: ListMovieFilesByLibrary :many
 SELECT mf.id, mf.movie_id, mf.path, mf.size_bytes, mf.quality_json, mf.edition, mf.imported_at, mf.indexed_at, mf.mediainfo_json, mf.mediainfo_scanned_at
 FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id
-WHERE m.library_id = $1
+WHERE m.library_id = ?
 ORDER BY mf.path ASC
 `
 
@@ -654,9 +653,9 @@ SELECT id, tmdb_id, title, year, status FROM movies WHERE tmdb_id != 0
 
 type ListMovieSummariesRow struct {
 	ID     string `json:"id"`
-	TmdbID int32  `json:"tmdbId"`
+	TmdbID int64  `json:"tmdbId"`
 	Title  string `json:"title"`
-	Year   int32  `json:"year"`
+	Year   int64  `json:"year"`
 	Status string `json:"status"`
 }
 
@@ -692,12 +691,12 @@ func (q *Queries) ListMovieSummaries(ctx context.Context) ([]ListMovieSummariesR
 const listMovies = `-- name: ListMovies :many
 SELECT id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id FROM movies
 ORDER BY title ASC
-LIMIT $1 OFFSET $2
+LIMIT ? OFFSET ?
 `
 
 type ListMoviesParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 func (q *Queries) ListMovies(ctx context.Context, arg ListMoviesParams) ([]Movie, error) {
@@ -749,15 +748,15 @@ func (q *Queries) ListMovies(ctx context.Context, arg ListMoviesParams) ([]Movie
 
 const listMoviesByLibrary = `-- name: ListMoviesByLibrary :many
 SELECT id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id FROM movies
-WHERE library_id = $1
+WHERE library_id = ?
 ORDER BY title ASC
-LIMIT $2 OFFSET $3
+LIMIT ? OFFSET ?
 `
 
 type ListMoviesByLibraryParams struct {
 	LibraryID string `json:"libraryId"`
-	Limit     int32  `json:"limit"`
-	Offset    int32  `json:"offset"`
+	Limit     int64  `json:"limit"`
+	Offset    int64  `json:"offset"`
 }
 
 func (q *Queries) ListMoviesByLibrary(ctx context.Context, arg ListMoviesByLibraryParams) ([]Movie, error) {
@@ -815,20 +814,20 @@ WHERE m.preferred_edition IS NOT NULL
   AND m.preferred_edition != ''
   AND (mf.edition IS NULL OR mf.edition != m.preferred_edition)
 ORDER BY m.title ASC
-LIMIT $1 OFFSET $2
+LIMIT ? OFFSET ?
 `
 
 type ListMoviesWithEditionMismatchParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Limit  int64 `json:"limit"`
+	Offset int64 `json:"offset"`
 }
 
 type ListMoviesWithEditionMismatchRow struct {
-	ID               string         `json:"id"`
-	Title            string         `json:"title"`
-	Year             int32          `json:"year"`
-	PreferredEdition sql.NullString `json:"preferredEdition"`
-	FileEdition      sql.NullString `json:"fileEdition"`
+	ID               string  `json:"id"`
+	Title            string  `json:"title"`
+	Year             int64   `json:"year"`
+	PreferredEdition *string `json:"preferredEdition"`
+	FileEdition      *string `json:"fileEdition"`
 }
 
 func (q *Queries) ListMoviesWithEditionMismatch(ctx context.Context, arg ListMoviesWithEditionMismatchParams) ([]ListMoviesWithEditionMismatchRow, error) {
@@ -898,7 +897,7 @@ const sumMovieFileSizesByLibrary = `-- name: SumMovieFileSizesByLibrary :one
 SELECT COALESCE(SUM(mf.size_bytes), 0)
 FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id
-WHERE m.library_id = $1
+WHERE m.library_id = ?
 `
 
 func (q *Queries) SumMovieFileSizesByLibrary(ctx context.Context, libraryID string) (interface{}, error) {
@@ -910,42 +909,42 @@ func (q *Queries) SumMovieFileSizesByLibrary(ctx context.Context, libraryID stri
 
 const updateMovie = `-- name: UpdateMovie :one
 UPDATE movies SET
-    title                = $1,
-    original_title       = $2,
-    year                 = $3,
-    overview             = $4,
-    runtime_minutes      = $5,
-    genres_json          = $6,
-    poster_url           = $7,
-    fanart_url           = $8,
-    status               = $9,
-    monitored            = $10,
-    library_id           = $11,
-    quality_profile_id   = $12,
-    minimum_availability = $13,
-    release_date         = $14,
-    updated_at           = $15
-WHERE id = $16
+    title                = ?,
+    original_title       = ?,
+    year                 = ?,
+    overview             = ?,
+    runtime_minutes      = ?,
+    genres_json          = ?,
+    poster_url           = ?,
+    fanart_url           = ?,
+    status               = ?,
+    monitored            = ?,
+    library_id           = ?,
+    quality_profile_id   = ?,
+    minimum_availability = ?,
+    release_date         = ?,
+    updated_at           = ?
+WHERE id = ?
 RETURNING id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id
 `
 
 type UpdateMovieParams struct {
-	Title               string         `json:"title"`
-	OriginalTitle       string         `json:"originalTitle"`
-	Year                int32          `json:"year"`
-	Overview            string         `json:"overview"`
-	RuntimeMinutes      sql.NullInt32  `json:"runtimeMinutes"`
-	GenresJson          string         `json:"genresJson"`
-	PosterUrl           sql.NullString `json:"posterUrl"`
-	FanartUrl           sql.NullString `json:"fanartUrl"`
-	Status              string         `json:"status"`
-	Monitored           bool           `json:"monitored"`
-	LibraryID           string         `json:"libraryId"`
-	QualityProfileID    string         `json:"qualityProfileId"`
-	MinimumAvailability string         `json:"minimumAvailability"`
-	ReleaseDate         string         `json:"releaseDate"`
-	UpdatedAt           string         `json:"updatedAt"`
-	ID                  string         `json:"id"`
+	Title               string  `json:"title"`
+	OriginalTitle       string  `json:"originalTitle"`
+	Year                int64   `json:"year"`
+	Overview            string  `json:"overview"`
+	RuntimeMinutes      *int64  `json:"runtimeMinutes"`
+	GenresJson          string  `json:"genresJson"`
+	PosterUrl           *string `json:"posterUrl"`
+	FanartUrl           *string `json:"fanartUrl"`
+	Status              string  `json:"status"`
+	Monitored           bool    `json:"monitored"`
+	LibraryID           string  `json:"libraryId"`
+	QualityProfileID    string  `json:"qualityProfileId"`
+	MinimumAvailability string  `json:"minimumAvailability"`
+	ReleaseDate         string  `json:"releaseDate"`
+	UpdatedAt           string  `json:"updatedAt"`
+	ID                  string  `json:"id"`
 }
 
 func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (Movie, error) {
@@ -997,12 +996,12 @@ func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (Movie
 }
 
 const updateMovieFileEdition = `-- name: UpdateMovieFileEdition :exec
-UPDATE movie_files SET edition = $1 WHERE id = $2
+UPDATE movie_files SET edition = ? WHERE id = ?
 `
 
 type UpdateMovieFileEditionParams struct {
-	Edition sql.NullString `json:"edition"`
-	ID      string         `json:"id"`
+	Edition *string `json:"edition"`
+	ID      string  `json:"id"`
 }
 
 func (q *Queries) UpdateMovieFileEdition(ctx context.Context, arg UpdateMovieFileEditionParams) error {
@@ -1011,7 +1010,7 @@ func (q *Queries) UpdateMovieFileEdition(ctx context.Context, arg UpdateMovieFil
 }
 
 const updateMovieFileIndexed = `-- name: UpdateMovieFileIndexed :exec
-UPDATE movie_files SET indexed_at = $1 WHERE id = $2
+UPDATE movie_files SET indexed_at = ? WHERE id = ?
 `
 
 type UpdateMovieFileIndexedParams struct {
@@ -1026,15 +1025,15 @@ func (q *Queries) UpdateMovieFileIndexed(ctx context.Context, arg UpdateMovieFil
 
 const updateMovieFileMediainfo = `-- name: UpdateMovieFileMediainfo :exec
 UPDATE movie_files
-SET mediainfo_json       = $1,
-    mediainfo_scanned_at = $2
-WHERE id = $3
+SET mediainfo_json       = ?,
+    mediainfo_scanned_at = ?
+WHERE id = ?
 `
 
 type UpdateMovieFileMediainfoParams struct {
-	MediainfoJson      string       `json:"mediainfoJson"`
-	MediainfoScannedAt sql.NullTime `json:"mediainfoScannedAt"`
-	ID                 string       `json:"id"`
+	MediainfoJson      string  `json:"mediainfoJson"`
+	MediainfoScannedAt *string `json:"mediainfoScannedAt"`
+	ID                 string  `json:"id"`
 }
 
 func (q *Queries) UpdateMovieFileMediainfo(ctx context.Context, arg UpdateMovieFileMediainfoParams) error {
@@ -1043,7 +1042,7 @@ func (q *Queries) UpdateMovieFileMediainfo(ctx context.Context, arg UpdateMovieF
 }
 
 const updateMovieFilePath = `-- name: UpdateMovieFilePath :exec
-UPDATE movie_files SET path = $1 WHERE id = $2
+UPDATE movie_files SET path = ? WHERE id = ?
 `
 
 type UpdateMovieFilePathParams struct {
@@ -1057,13 +1056,13 @@ func (q *Queries) UpdateMovieFilePath(ctx context.Context, arg UpdateMovieFilePa
 }
 
 const updateMovieMetadataRefreshed = `-- name: UpdateMovieMetadataRefreshed :exec
-UPDATE movies SET metadata_refreshed_at = $1, updated_at = $2 WHERE id = $3
+UPDATE movies SET metadata_refreshed_at = ?, updated_at = ? WHERE id = ?
 `
 
 type UpdateMovieMetadataRefreshedParams struct {
-	MetadataRefreshedAt sql.NullString `json:"metadataRefreshedAt"`
-	UpdatedAt           string         `json:"updatedAt"`
-	ID                  string         `json:"id"`
+	MetadataRefreshedAt *string `json:"metadataRefreshedAt"`
+	UpdatedAt           string  `json:"updatedAt"`
+	ID                  string  `json:"id"`
 }
 
 func (q *Queries) UpdateMovieMetadataRefreshed(ctx context.Context, arg UpdateMovieMetadataRefreshedParams) error {
@@ -1072,13 +1071,13 @@ func (q *Queries) UpdateMovieMetadataRefreshed(ctx context.Context, arg UpdateMo
 }
 
 const updateMoviePath = `-- name: UpdateMoviePath :one
-UPDATE movies SET path = $1, updated_at = $2 WHERE id = $3 RETURNING id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id
+UPDATE movies SET path = ?, updated_at = ? WHERE id = ? RETURNING id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id
 `
 
 type UpdateMoviePathParams struct {
-	Path      sql.NullString `json:"path"`
-	UpdatedAt string         `json:"updatedAt"`
-	ID        string         `json:"id"`
+	Path      *string `json:"path"`
+	UpdatedAt string  `json:"updatedAt"`
+	ID        string  `json:"id"`
 }
 
 func (q *Queries) UpdateMoviePath(ctx context.Context, arg UpdateMoviePathParams) (Movie, error) {
@@ -1113,13 +1112,13 @@ func (q *Queries) UpdateMoviePath(ctx context.Context, arg UpdateMoviePathParams
 }
 
 const updateMoviePreferredEdition = `-- name: UpdateMoviePreferredEdition :exec
-UPDATE movies SET preferred_edition = $1, updated_at = $2 WHERE id = $3
+UPDATE movies SET preferred_edition = ?, updated_at = ? WHERE id = ?
 `
 
 type UpdateMoviePreferredEditionParams struct {
-	PreferredEdition sql.NullString `json:"preferredEdition"`
-	UpdatedAt        string         `json:"updatedAt"`
-	ID               string         `json:"id"`
+	PreferredEdition *string `json:"preferredEdition"`
+	UpdatedAt        string  `json:"updatedAt"`
+	ID               string  `json:"id"`
 }
 
 func (q *Queries) UpdateMoviePreferredEdition(ctx context.Context, arg UpdateMoviePreferredEditionParams) error {
@@ -1128,7 +1127,7 @@ func (q *Queries) UpdateMoviePreferredEdition(ctx context.Context, arg UpdateMov
 }
 
 const updateMovieStatus = `-- name: UpdateMovieStatus :one
-UPDATE movies SET status = $1, updated_at = $2 WHERE id = $3 RETURNING id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id
+UPDATE movies SET status = ?, updated_at = ? WHERE id = ? RETURNING id, tmdb_id, imdb_id, title, original_title, year, overview, runtime_minutes, genres_json, poster_url, fanart_url, status, monitored, library_id, quality_profile_id, path, added_at, updated_at, metadata_refreshed_at, minimum_availability, release_date, preferred_edition, row_id
 `
 
 type UpdateMovieStatusParams struct {
@@ -1169,11 +1168,11 @@ func (q *Queries) UpdateMovieStatus(ctx context.Context, arg UpdateMovieStatusPa
 }
 
 const updateMovieTMDBID = `-- name: UpdateMovieTMDBID :exec
-UPDATE movies SET tmdb_id = $1, updated_at = $2 WHERE id = $3
+UPDATE movies SET tmdb_id = ?, updated_at = ? WHERE id = ?
 `
 
 type UpdateMovieTMDBIDParams struct {
-	TmdbID    int32  `json:"tmdbId"`
+	TmdbID    int64  `json:"tmdbId"`
 	UpdatedAt string `json:"updatedAt"`
 	ID        string `json:"id"`
 }

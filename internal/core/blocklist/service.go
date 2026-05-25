@@ -51,7 +51,7 @@ func (s *Service) Add(ctx context.Context, movieID, releaseGUID, releaseTitle, i
 		IndexerID:    dbutil.NullStringFromString(indexerID),
 		Protocol:     protocol,
 		Size:         size,
-		AddedAt:      time.Now().UTC(),
+		AddedAt:      time.Now().UTC().Format(time.RFC3339Nano),
 		Notes:        notes,
 	})
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *Service) List(ctx context.Context, page, perPage int) ([]Entry, int64, 
 	if perPage < 1 {
 		perPage = 50
 	}
-	offset := int32((page - 1) * perPage)
+	offset := int64((page - 1) * perPage)
 
 	total, err := s.q.CountBlocklist(ctx)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *Service) List(ctx context.Context, page, perPage int) ([]Entry, int64, 
 	}
 
 	rows, err := s.q.ListBlocklist(ctx, dbgen.ListBlocklistParams{
-		Limit:  int32(perPage),
+		Limit:  int64(perPage),
 		Offset: offset,
 	})
 	if err != nil {
@@ -116,7 +116,7 @@ func (s *Service) List(ctx context.Context, page, perPage int) ([]Entry, int64, 
 			IndexerID:    dbutil.NullStringValue(r.IndexerID),
 			Protocol:     r.Protocol,
 			Size:         r.Size,
-			AddedAt:      r.AddedAt,
+			AddedAt:      parseRFC3339(r.AddedAt),
 			Notes:        r.Notes,
 		}
 	}
@@ -129,6 +129,20 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("deleting blocklist entry %q: %w", id, err)
 	}
 	return nil
+}
+
+// parseRFC3339 parses an RFC3339(Nano) timestamp string, returning the zero
+// time on any error. AddedAt is stored as TEXT in SQLite; the writer uses
+// RFC3339Nano so reads round-trip.
+func parseRFC3339(s string) time.Time {
+	if s == "" {
+		return time.Time{}
+	}
+	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+		return t
+	}
+	t, _ := time.Parse(time.RFC3339, s)
+	return t
 }
 
 // Clear removes all blocklist entries.

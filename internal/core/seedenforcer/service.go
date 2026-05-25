@@ -66,14 +66,14 @@ func (s *Service) handle(ctx context.Context, e events.Event) {
 	}
 
 	// Need indexer_id, download_client_id, and client_item_id.
-	if !grab.IndexerID.Valid || !grab.DownloadClientID.Valid || !grab.ClientItemID.Valid {
+	if grab.IndexerID == nil || grab.DownloadClientID == nil || grab.ClientItemID == nil {
 		return
 	}
 
-	criteria, err := s.indexerSvc.GetSeedCriteria(ctx, grab.IndexerID.String)
+	criteria, err := s.indexerSvc.GetSeedCriteria(ctx, *grab.IndexerID)
 	if err != nil {
 		s.logger.Debug("seedenforcer: could not load indexer seed criteria",
-			"indexer_id", grab.IndexerID.String, "error", err)
+			"indexer_id", *grab.IndexerID, "error", err)
 		return
 	}
 
@@ -82,24 +82,24 @@ func (s *Service) handle(ctx context.Context, e events.Event) {
 		return
 	}
 
-	client, err := s.dlSvc.ClientFor(ctx, grab.DownloadClientID.String)
+	client, err := s.dlSvc.ClientFor(ctx, *grab.DownloadClientID)
 	if err != nil {
 		s.logger.Warn("seedenforcer: could not get download client",
-			"client_id", grab.DownloadClientID.String, "error", err)
+			"client_id", *grab.DownloadClientID, "error", err)
 		return
 	}
 
 	limiter, ok := client.(plugin.SeedLimiter)
 	if !ok {
 		s.logger.Debug("seedenforcer: download client does not support seed limits",
-			"client_id", grab.DownloadClientID.String)
+			"client_id", *grab.DownloadClientID)
 		return
 	}
 
 	seedTimeSecs := criteria.SeedTimeMinutes * 60
-	if err := limiter.SetSeedLimits(ctx, grab.ClientItemID.String, criteria.SeedRatio, seedTimeSecs); err != nil {
+	if err := limiter.SetSeedLimits(ctx, *grab.ClientItemID, criteria.SeedRatio, seedTimeSecs); err != nil {
 		s.logger.Warn("seedenforcer: SetSeedLimits failed",
-			"client_item_id", grab.ClientItemID.String,
+			"client_item_id", *grab.ClientItemID,
 			"ratio", criteria.SeedRatio,
 			"time_minutes", criteria.SeedTimeMinutes,
 			"error", err,
@@ -108,7 +108,7 @@ func (s *Service) handle(ctx context.Context, e events.Event) {
 	}
 
 	s.logger.Info("seedenforcer: seed limits applied",
-		"client_item_id", grab.ClientItemID.String,
+		"client_item_id", *grab.ClientItemID,
 		"ratio", criteria.SeedRatio,
 		"time_minutes", criteria.SeedTimeMinutes,
 	)

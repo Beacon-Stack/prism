@@ -3,7 +3,7 @@
 -- ── Quality profiles ────────────────────────────────────────────────────────
 
 CREATE TABLE quality_profiles (
-    id                      TEXT NOT NULL PRIMARY KEY,
+    id                      TEXT NOT NULL UNIQUE,
     name                    TEXT NOT NULL,
     cutoff_json             TEXT NOT NULL DEFAULT '{}',
     qualities_json          TEXT NOT NULL DEFAULT '[]',
@@ -13,15 +13,20 @@ CREATE TABLE quality_profiles (
     updated_at              TEXT NOT NULL,
     min_custom_format_score INTEGER NOT NULL DEFAULT 0,
     upgrade_until_cf_score  INTEGER NOT NULL DEFAULT 0,
-    row_id                  SERIAL
+    row_id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    managed_by_pulse        BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE UNIQUE INDEX quality_profiles_name_unique ON quality_profiles(name);
 
+CREATE INDEX idx_quality_profiles_managed_by_pulse
+    ON quality_profiles(managed_by_pulse)
+    WHERE managed_by_pulse = TRUE;
+
 -- ── Libraries ───────────────────────────────────────────────────────────────
 
 CREATE TABLE libraries (
-    id                          TEXT NOT NULL PRIMARY KEY,
+    id                          TEXT NOT NULL UNIQUE,
     name                        TEXT NOT NULL,
     root_path                   TEXT NOT NULL,
     default_quality_profile_id  TEXT NOT NULL REFERENCES quality_profiles(id),
@@ -31,13 +36,13 @@ CREATE TABLE libraries (
     created_at                  TEXT NOT NULL,
     updated_at                  TEXT NOT NULL,
     folder_format               TEXT,
-    row_id                      SERIAL
+    row_id                      INTEGER PRIMARY KEY AUTOINCREMENT
 );
 
 -- ── Movies ──────────────────────────────────────────────────────────────────
 
 CREATE TABLE movies (
-    id                      TEXT NOT NULL PRIMARY KEY,
+    id                      TEXT NOT NULL UNIQUE,
     tmdb_id                 INTEGER NOT NULL DEFAULT 0,
     imdb_id                 TEXT,
     title                   TEXT NOT NULL,
@@ -59,7 +64,7 @@ CREATE TABLE movies (
     minimum_availability    TEXT NOT NULL DEFAULT 'released',
     release_date            TEXT NOT NULL DEFAULT '',
     preferred_edition       TEXT,
-    row_id                  SERIAL
+    row_id                  INTEGER PRIMARY KEY AUTOINCREMENT
 );
 
 CREATE UNIQUE INDEX movies_tmdb_id_unique ON movies(tmdb_id) WHERE tmdb_id != 0;
@@ -79,7 +84,7 @@ CREATE TABLE movie_files (
     imported_at          TEXT NOT NULL,
     indexed_at           TEXT NOT NULL,
     mediainfo_json       TEXT NOT NULL DEFAULT '',
-    mediainfo_scanned_at TIMESTAMPTZ
+    mediainfo_scanned_at TEXT
 );
 
 CREATE INDEX movie_files_movie_id ON movie_files(movie_id);
@@ -95,7 +100,8 @@ CREATE TABLE indexer_configs (
     priority    INTEGER NOT NULL DEFAULT 25,
     settings    TEXT    NOT NULL DEFAULT '{}',
     created_at  TEXT    NOT NULL,
-    updated_at  TEXT    NOT NULL
+    updated_at  TEXT    NOT NULL,
+    min_seeders INTEGER NOT NULL DEFAULT 5
 );
 
 -- ── Grab history ────────────────────────────────────────────────────────────
@@ -165,7 +171,7 @@ CREATE TABLE blocklist (
     indexer_id      TEXT,
     protocol        TEXT NOT NULL DEFAULT '',
     size            BIGINT NOT NULL DEFAULT 0,
-    added_at        TIMESTAMPTZ NOT NULL,
+    added_at        TEXT NOT NULL,
     notes           TEXT NOT NULL DEFAULT ''
 );
 
@@ -276,7 +282,7 @@ CREATE TABLE library_file_candidates (
 
 CREATE TABLE storage_snapshots (
     id           TEXT PRIMARY KEY,
-    captured_at  TIMESTAMPTZ NOT NULL,
+    captured_at  TEXT NOT NULL,
     total_bytes  BIGINT NOT NULL DEFAULT 0,
     file_count   BIGINT NOT NULL DEFAULT 0
 );
@@ -290,7 +296,7 @@ CREATE TABLE collections (
     name            TEXT    NOT NULL,
     person_id       BIGINT NOT NULL,
     person_type     TEXT    NOT NULL DEFAULT 'director',
-    created_at      TIMESTAMPTZ NOT NULL,
+    created_at      TEXT NOT NULL,
     total_items     INTEGER NOT NULL DEFAULT 0,
     in_library_items INTEGER NOT NULL DEFAULT 0
 );
@@ -425,8 +431,21 @@ CREATE TABLE watch_sync_state (
     last_sync_at    TEXT NOT NULL
 );
 
+-- ── Settings ────────────────────────────────────────────────────────────────
+
+-- Shared key-value store for runtime settings not owned by another table.
+-- Initial users: provider API key overrides (provider.tmdb.api_key,
+-- provider.trakt.client_id) that let operators rotate the baked-in
+-- defaults via the Settings UI.
+CREATE TABLE settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 -- +goose Down
 
+DROP TABLE IF EXISTS settings;
 DROP TABLE IF EXISTS watch_sync_state;
 DROP TABLE IF EXISTS watch_history;
 DROP TABLE IF EXISTS activity_log;

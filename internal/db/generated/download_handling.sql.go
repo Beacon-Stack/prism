@@ -11,7 +11,7 @@ import (
 
 const createRemotePathMapping = `-- name: CreateRemotePathMapping :one
 INSERT INTO remote_path_mappings (id, host, remote_path, local_path)
-VALUES ($1, $2, $3, $4)
+VALUES (?, ?, ?, ?)
 RETURNING id, host, remote_path, local_path
 `
 
@@ -40,7 +40,7 @@ func (q *Queries) CreateRemotePathMapping(ctx context.Context, arg CreateRemoteP
 }
 
 const deleteRemotePathMapping = `-- name: DeleteRemotePathMapping :exec
-DELETE FROM remote_path_mappings WHERE id = $1
+DELETE FROM remote_path_mappings WHERE id = ?
 `
 
 func (q *Queries) DeleteRemotePathMapping(ctx context.Context, id string) error {
@@ -99,17 +99,17 @@ func (q *Queries) ListRemotePathMappings(ctx context.Context) ([]RemotePathMappi
 
 const updateDownloadHandling = `-- name: UpdateDownloadHandling :one
 UPDATE download_handling
-SET enable_completed              = $1,
-    check_interval_minutes        = $2,
-    redownload_failed             = $3,
-    redownload_failed_interactive = $4
+SET enable_completed              = ?,
+    check_interval_minutes        = ?,
+    redownload_failed             = ?,
+    redownload_failed_interactive = ?
 WHERE id = 1
 RETURNING id, enable_completed, check_interval_minutes, redownload_failed, redownload_failed_interactive
 `
 
 type UpdateDownloadHandlingParams struct {
 	EnableCompleted             bool  `json:"enableCompleted"`
-	CheckIntervalMinutes        int32 `json:"checkIntervalMinutes"`
+	CheckIntervalMinutes        int64 `json:"checkIntervalMinutes"`
 	RedownloadFailed            bool  `json:"redownloadFailed"`
 	RedownloadFailedInteractive bool  `json:"redownloadFailedInteractive"`
 }

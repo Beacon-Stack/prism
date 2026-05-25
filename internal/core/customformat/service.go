@@ -181,7 +181,7 @@ func (s *Service) SetScores(ctx context.Context, profileID string, scores map[st
 		if err := s.q.SetCustomFormatScore(ctx, dbgen.SetCustomFormatScoreParams{
 			QualityProfileID: profileID,
 			CustomFormatID:   cfID,
-			Score:            int32(score),
+			Score:            int64(score),
 		}); err != nil {
 			return fmt.Errorf("setting score for format %q: %w", cfID, err)
 		}

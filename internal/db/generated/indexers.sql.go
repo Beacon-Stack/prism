@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createGrabHistory = `-- name: CreateGrabHistory :one
@@ -17,33 +16,33 @@ INSERT INTO grab_history (
     protocol, size, download_client_id, client_item_id, grabbed_at,
     download_status, downloaded_bytes, score_breakdown, release_edition
 ) VALUES (
-    $1, $2, $3, $4, $5,
-    $6, $7, $8, $9,
-    $10, $11, $12, $13, $14,
-    $15, $16, $17, $18
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?
 )
 RETURNING id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition
 `
 
 type CreateGrabHistoryParams struct {
-	ID                string         `json:"id"`
-	MovieID           string         `json:"movieId"`
-	IndexerID         sql.NullString `json:"indexerId"`
-	ReleaseGuid       string         `json:"releaseGuid"`
-	ReleaseTitle      string         `json:"releaseTitle"`
-	ReleaseSource     string         `json:"releaseSource"`
-	ReleaseResolution string         `json:"releaseResolution"`
-	ReleaseCodec      string         `json:"releaseCodec"`
-	ReleaseHdr        string         `json:"releaseHdr"`
-	Protocol          string         `json:"protocol"`
-	Size              int64          `json:"size"`
-	DownloadClientID  sql.NullString `json:"downloadClientId"`
-	ClientItemID      sql.NullString `json:"clientItemId"`
-	GrabbedAt         string         `json:"grabbedAt"`
-	DownloadStatus    string         `json:"downloadStatus"`
-	DownloadedBytes   int64          `json:"downloadedBytes"`
-	ScoreBreakdown    string         `json:"scoreBreakdown"`
-	ReleaseEdition    sql.NullString `json:"releaseEdition"`
+	ID                string  `json:"id"`
+	MovieID           string  `json:"movieId"`
+	IndexerID         *string `json:"indexerId"`
+	ReleaseGuid       string  `json:"releaseGuid"`
+	ReleaseTitle      string  `json:"releaseTitle"`
+	ReleaseSource     string  `json:"releaseSource"`
+	ReleaseResolution string  `json:"releaseResolution"`
+	ReleaseCodec      string  `json:"releaseCodec"`
+	ReleaseHdr        string  `json:"releaseHdr"`
+	Protocol          string  `json:"protocol"`
+	Size              int64   `json:"size"`
+	DownloadClientID  *string `json:"downloadClientId"`
+	ClientItemID      *string `json:"clientItemId"`
+	GrabbedAt         string  `json:"grabbedAt"`
+	DownloadStatus    string  `json:"downloadStatus"`
+	DownloadedBytes   int64   `json:"downloadedBytes"`
+	ScoreBreakdown    string  `json:"scoreBreakdown"`
+	ReleaseEdition    *string `json:"releaseEdition"`
 }
 
 func (q *Queries) CreateGrabHistory(ctx context.Context, arg CreateGrabHistoryParams) (GrabHistory, error) {
@@ -93,7 +92,7 @@ func (q *Queries) CreateGrabHistory(ctx context.Context, arg CreateGrabHistoryPa
 
 const createIndexerConfig = `-- name: CreateIndexerConfig :one
 INSERT INTO indexer_configs (id, name, kind, enabled, priority, settings, min_seeders, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders
 `
 
@@ -102,9 +101,9 @@ type CreateIndexerConfigParams struct {
 	Name       string `json:"name"`
 	Kind       string `json:"kind"`
 	Enabled    bool   `json:"enabled"`
-	Priority   int32  `json:"priority"`
+	Priority   int64  `json:"priority"`
 	Settings   string `json:"settings"`
-	MinSeeders int32  `json:"minSeeders"`
+	MinSeeders int64  `json:"minSeeders"`
 	CreatedAt  string `json:"createdAt"`
 	UpdatedAt  string `json:"updatedAt"`
 }
@@ -137,7 +136,7 @@ func (q *Queries) CreateIndexerConfig(ctx context.Context, arg CreateIndexerConf
 }
 
 const deleteIndexerConfig = `-- name: DeleteIndexerConfig :exec
-DELETE FROM indexer_configs WHERE id = $1
+DELETE FROM indexer_configs WHERE id = ?
 `
 
 func (q *Queries) DeleteIndexerConfig(ctx context.Context, id string) error {
@@ -147,13 +146,13 @@ func (q *Queries) DeleteIndexerConfig(ctx context.Context, id string) error {
 
 const getGrabByClientItemID = `-- name: GetGrabByClientItemID :one
 SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history
-WHERE download_client_id = $1 AND client_item_id = $2
+WHERE download_client_id = ? AND client_item_id = ?
 LIMIT 1
 `
 
 type GetGrabByClientItemIDParams struct {
-	DownloadClientID sql.NullString `json:"downloadClientId"`
-	ClientItemID     sql.NullString `json:"clientItemId"`
+	DownloadClientID *string `json:"downloadClientId"`
+	ClientItemID     *string `json:"clientItemId"`
 }
 
 func (q *Queries) GetGrabByClientItemID(ctx context.Context, arg GetGrabByClientItemIDParams) (GrabHistory, error) {
@@ -183,7 +182,7 @@ func (q *Queries) GetGrabByClientItemID(ctx context.Context, arg GetGrabByClient
 }
 
 const getGrabByID = `-- name: GetGrabByID :one
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE id = $1
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE id = ?
 `
 
 func (q *Queries) GetGrabByID(ctx context.Context, id string) (GrabHistory, error) {
@@ -213,7 +212,7 @@ func (q *Queries) GetGrabByID(ctx context.Context, id string) (GrabHistory, erro
 }
 
 const getIndexerConfig = `-- name: GetIndexerConfig :one
-SELECT id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders FROM indexer_configs WHERE id = $1
+SELECT id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders FROM indexer_configs WHERE id = ?
 `
 
 func (q *Queries) GetIndexerConfig(ctx context.Context, id string) (IndexerConfig, error) {
@@ -320,10 +319,10 @@ func (q *Queries) ListEnabledIndexers(ctx context.Context) ([]IndexerConfig, err
 }
 
 const listGrabHistory = `-- name: ListGrabHistory :many
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history ORDER BY grabbed_at DESC LIMIT $1
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history ORDER BY grabbed_at DESC LIMIT ?
 `
 
-func (q *Queries) ListGrabHistory(ctx context.Context, limit int32) ([]GrabHistory, error) {
+func (q *Queries) ListGrabHistory(ctx context.Context, limit int64) ([]GrabHistory, error) {
 	rows, err := q.db.QueryContext(ctx, listGrabHistory, limit)
 	if err != nil {
 		return nil, err
@@ -366,7 +365,7 @@ func (q *Queries) ListGrabHistory(ctx context.Context, limit int32) ([]GrabHisto
 }
 
 const listGrabHistoryByMovie = `-- name: ListGrabHistoryByMovie :many
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE movie_id = $1 ORDER BY grabbed_at DESC
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE movie_id = ? ORDER BY grabbed_at DESC
 `
 
 func (q *Queries) ListGrabHistoryByMovie(ctx context.Context, movieID string) ([]GrabHistory, error) {
@@ -412,12 +411,12 @@ func (q *Queries) ListGrabHistoryByMovie(ctx context.Context, movieID string) ([
 }
 
 const listGrabHistoryByProtocol = `-- name: ListGrabHistoryByProtocol :many
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE protocol = $1 ORDER BY grabbed_at DESC LIMIT $2
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE protocol = ? ORDER BY grabbed_at DESC LIMIT ?
 `
 
 type ListGrabHistoryByProtocolParams struct {
 	Protocol string `json:"protocol"`
-	Limit    int32  `json:"limit"`
+	Limit    int64  `json:"limit"`
 }
 
 func (q *Queries) ListGrabHistoryByProtocol(ctx context.Context, arg ListGrabHistoryByProtocolParams) ([]GrabHistory, error) {
@@ -463,12 +462,12 @@ func (q *Queries) ListGrabHistoryByProtocol(ctx context.Context, arg ListGrabHis
 }
 
 const listGrabHistoryByStatus = `-- name: ListGrabHistoryByStatus :many
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE download_status = $1 ORDER BY grabbed_at DESC LIMIT $2
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE download_status = ? ORDER BY grabbed_at DESC LIMIT ?
 `
 
 type ListGrabHistoryByStatusParams struct {
 	DownloadStatus string `json:"downloadStatus"`
-	Limit          int32  `json:"limit"`
+	Limit          int64  `json:"limit"`
 }
 
 func (q *Queries) ListGrabHistoryByStatus(ctx context.Context, arg ListGrabHistoryByStatusParams) ([]GrabHistory, error) {
@@ -514,13 +513,13 @@ func (q *Queries) ListGrabHistoryByStatus(ctx context.Context, arg ListGrabHisto
 }
 
 const listGrabHistoryByStatusAndProtocol = `-- name: ListGrabHistoryByStatusAndProtocol :many
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE download_status = $1 AND protocol = $2 ORDER BY grabbed_at DESC LIMIT $3
+SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE download_status = ? AND protocol = ? ORDER BY grabbed_at DESC LIMIT ?
 `
 
 type ListGrabHistoryByStatusAndProtocolParams struct {
 	DownloadStatus string `json:"downloadStatus"`
 	Protocol       string `json:"protocol"`
-	Limit          int32  `json:"limit"`
+	Limit          int64  `json:"limit"`
 }
 
 func (q *Queries) ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg ListGrabHistoryByStatusAndProtocolParams) ([]GrabHistory, error) {
@@ -567,22 +566,21 @@ func (q *Queries) ListGrabHistoryByStatusAndProtocol(ctx context.Context, arg Li
 
 const listGrabHistoryByStatusSince = `-- name: ListGrabHistoryByStatusSince :many
 SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history
-WHERE download_status = $1::text
-  AND grabbed_at > $2::text
+WHERE download_status = ?1
+  AND grabbed_at > ?2
 ORDER BY grabbed_at DESC
-LIMIT $3
+LIMIT ?3
 `
 
 type ListGrabHistoryByStatusSinceParams struct {
 	Status string `json:"status"`
 	Since  string `json:"since"`
-	Limit  int32  `json:"limit"`
+	Limit  int64  `json:"limit"`
 }
 
 // Powers the Activity-page "Needs attention" rail: returns recent
-// failed/removed/stalled grabs within a time window. The ::text casts
-// make the types explicit to the planner; grab_history.grabbed_at is
-// TEXT-encoded RFC3339 so the comparison is lexicographic but
+// failed/removed/stalled grabs within a time window. grab_history.grabbed_at
+// is TEXT-encoded RFC3339 so the comparison is lexicographic but
 // order-preserving.
 func (q *Queries) ListGrabHistoryByStatusSince(ctx context.Context, arg ListGrabHistoryByStatusSinceParams) ([]GrabHistory, error) {
 	rows, err := q.db.QueryContext(ctx, listGrabHistoryByStatusSince, arg.Status, arg.Since, arg.Limit)
@@ -664,7 +662,7 @@ func (q *Queries) ListIndexerConfigs(ctx context.Context) ([]IndexerConfig, erro
 }
 
 const markGrabRemoved = `-- name: MarkGrabRemoved :exec
-UPDATE grab_history SET download_status = 'removed' WHERE id = $1
+UPDATE grab_history SET download_status = 'removed' WHERE id = ?
 `
 
 func (q *Queries) MarkGrabRemoved(ctx context.Context, id string) error {
@@ -674,14 +672,14 @@ func (q *Queries) MarkGrabRemoved(ctx context.Context, id string) error {
 
 const updateGrabDownloadClient = `-- name: UpdateGrabDownloadClient :exec
 UPDATE grab_history
-SET download_client_id = $1, client_item_id = $2, download_status = 'queued'
-WHERE id = $3
+SET download_client_id = ?, client_item_id = ?, download_status = 'queued'
+WHERE id = ?
 `
 
 type UpdateGrabDownloadClientParams struct {
-	DownloadClientID sql.NullString `json:"downloadClientId"`
-	ClientItemID     sql.NullString `json:"clientItemId"`
-	ID               string         `json:"id"`
+	DownloadClientID *string `json:"downloadClientId"`
+	ClientItemID     *string `json:"clientItemId"`
+	ID               string  `json:"id"`
 }
 
 func (q *Queries) UpdateGrabDownloadClient(ctx context.Context, arg UpdateGrabDownloadClientParams) error {
@@ -691,8 +689,8 @@ func (q *Queries) UpdateGrabDownloadClient(ctx context.Context, arg UpdateGrabDo
 
 const updateGrabStatus = `-- name: UpdateGrabStatus :exec
 UPDATE grab_history
-SET download_status = $1, downloaded_bytes = $2
-WHERE id = $3
+SET download_status = ?, downloaded_bytes = ?
+WHERE id = ?
 `
 
 type UpdateGrabStatusParams struct {
@@ -708,14 +706,14 @@ func (q *Queries) UpdateGrabStatus(ctx context.Context, arg UpdateGrabStatusPara
 
 const updateIndexerConfig = `-- name: UpdateIndexerConfig :one
 UPDATE indexer_configs SET
-    name        = $1,
-    kind        = $2,
-    enabled     = $3,
-    priority    = $4,
-    settings    = $5,
-    min_seeders = $6,
-    updated_at  = $7
-WHERE id = $8
+    name        = ?,
+    kind        = ?,
+    enabled     = ?,
+    priority    = ?,
+    settings    = ?,
+    min_seeders = ?,
+    updated_at  = ?
+WHERE id = ?
 RETURNING id, name, kind, enabled, priority, settings, created_at, updated_at, min_seeders
 `
 
@@ -723,9 +721,9 @@ type UpdateIndexerConfigParams struct {
 	Name       string `json:"name"`
 	Kind       string `json:"kind"`
 	Enabled    bool   `json:"enabled"`
-	Priority   int32  `json:"priority"`
+	Priority   int64  `json:"priority"`
 	Settings   string `json:"settings"`
-	MinSeeders int32  `json:"minSeeders"`
+	MinSeeders int64  `json:"minSeeders"`
 	UpdatedAt  string `json:"updatedAt"`
 	ID         string `json:"id"`
 }

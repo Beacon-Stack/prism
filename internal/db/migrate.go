@@ -16,13 +16,13 @@ var gooseInit sync.Once
 
 // Migrate runs all pending database migrations.
 // It is safe to call on every startup — goose is idempotent.
-func Migrate(sqlDB *sql.DB, driver string) error {
+func Migrate(sqlDB *sql.DB) error {
 	// goose global state (SetBaseFS, SetDialect) is not goroutine-safe,
 	// so initialise it exactly once.
 	var initErr error
 	gooseInit.Do(func() {
 		goose.SetBaseFS(migrationsFS)
-		initErr = goose.SetDialect("postgres")
+		initErr = goose.SetDialect("sqlite3")
 	})
 	if initErr != nil {
 		return fmt.Errorf("setting goose dialect: %w", initErr)
