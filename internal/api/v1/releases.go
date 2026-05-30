@@ -27,9 +27,14 @@ import (
 // ── Request / response shapes ────────────────────────────────────────────────
 
 type releaseBody struct {
-	GUID           string                `json:"guid"`
-	Title          string                `json:"title"`
-	Indexer        string                `json:"indexer"`
+	GUID    string `json:"guid"`
+	Title   string `json:"title"`
+	Indexer string `json:"indexer"`
+	// IndexerID is the UUID of the indexer config that returned the
+	// release. The grab endpoint needs this to attribute the row in
+	// grab_history; without it the Top Indexers stats card stays
+	// permanently empty even after successful downloads.
+	IndexerID      string                `json:"indexer_id,omitempty"`
 	Protocol       string                `json:"protocol"`
 	DownloadURL    string                `json:"download_url"`
 	InfoURL        string                `json:"info_url,omitempty"`
@@ -170,6 +175,7 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 		GUID:           r.GUID,
 		Title:          r.Title,
 		Indexer:        r.Indexer,
+		IndexerID:      r.IndexerID,
 		Protocol:       string(r.Protocol),
 		DownloadURL:    r.DownloadURL,
 		InfoURL:        r.InfoURL,

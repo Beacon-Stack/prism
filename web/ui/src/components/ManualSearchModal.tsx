@@ -449,6 +449,10 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
         movieId,
         guid: release.guid,
         title: release.title,
+        // Forward the indexer UUID so grab_history rows are attributed.
+        // Without this, Top Indexers stats stay permanently empty even
+        // after successful downloads.
+        indexer_id: release.indexer_id,
         protocol: release.protocol,
         download_url: release.download_url,
         size: release.size,

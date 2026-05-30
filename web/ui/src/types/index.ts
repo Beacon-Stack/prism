@@ -134,6 +134,11 @@ export interface Release {
   guid: string;
   title: string;
   indexer: string;
+  // UUID of the indexer config that returned the release. Forwarded to
+  // the grab endpoint so grab_history rows are attributed and Top
+  // Indexers stats populate. Optional on the wire to stay loose, but
+  // the backend always sets it on real search responses.
+  indexer_id?: string;
   protocol: string;
   download_url: string;
   info_url?: string;
