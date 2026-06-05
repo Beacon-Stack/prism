@@ -73,18 +73,37 @@ type SearchResult struct {
 	FilterReasons []string
 }
 
+// maxConcurrentIndexerSearches bounds in-flight indexer HTTP searches across
+// the whole service so a bulk auto-search (many movies, each fanning out to
+// every enabled indexer) can't open an unbounded number of outbound
+// connections at once. Shared so the bound holds across concurrent calls.
+const maxConcurrentIndexerSearches = 8
+
+// perIndexerSearchTimeout bounds how long a single indexer call may run (and
+// thus hold a semaphore slot). It inherits any earlier deadline on the parent
+// context, so a tight per-request budget still wins; this only stops one hung
+// indexer from starving the pool or stalling the whole fan-out.
+const perIndexerSearchTimeout = 25 * time.Second
+
 // Service manages indexer configuration and search orchestration.
 type Service struct {
 	q     dbgen.Querier
 	reg   *registry.Registry
 	bus   *events.Bus
 	rl    *ratelimit.Registry
-	cache sync.Map // config ID → plugin.Indexer
+	cache sync.Map      // config ID → plugin.Indexer
+	sem   chan struct{} // bounds concurrent indexer searches
 }
 
 // NewService creates a new Service.
 func NewService(q dbgen.Querier, reg *registry.Registry, bus *events.Bus, rl *ratelimit.Registry) *Service {
-	return &Service{q: q, reg: reg, bus: bus, rl: rl}
+	return &Service{
+		q:   q,
+		reg: reg,
+		bus: bus,
+		rl:  rl,
+		sem: make(chan struct{}, maxConcurrentIndexerSearches),
+	}
 }
 
 // cachedIndexer returns a cached or freshly-created indexer for the given config.
@@ -298,7 +317,22 @@ func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedI
 		go func(row dbgen.IndexerConfig) {
 			defer wg.Done()
 			cfg, _ := rowToConfig(row)
-			if err := s.rl.Wait(ctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
+
+			// Bound global concurrency and cap each indexer's runtime so one
+			// slow provider can't stall the fan-out or starve the pool.
+			if s.sem != nil {
+				select {
+				case s.sem <- struct{}{}:
+					defer func() { <-s.sem }()
+				case <-ctx.Done():
+					resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: ctx.Err()}
+					return
+				}
+			}
+			sctx, cancel := context.WithTimeout(ctx, perIndexerSearchTimeout)
+			defer cancel()
+
+			if err := s.rl.Wait(sctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
 				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
 				return
 			}
@@ -307,7 +341,7 @@ func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedI
 				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
 				return
 			}
-			releases, err := idx.Search(ctx, query)
+			releases, err := idx.Search(sctx, query)
 			resultsCh <- indexerResult{
 				indexerID:   cfg.ID,
 				indexerName: cfg.Name,
@@ -421,7 +455,21 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 		go func(row dbgen.IndexerConfig) {
 			defer wg.Done()
 			cfg, _ := rowToConfig(row)
-			if err := s.rl.Wait(ctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
+
+			// Same global concurrency bound and per-indexer timeout as Search.
+			if s.sem != nil {
+				select {
+				case s.sem <- struct{}{}:
+					defer func() { <-s.sem }()
+				case <-ctx.Done():
+					resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: ctx.Err()}
+					return
+				}
+			}
+			sctx, cancel := context.WithTimeout(ctx, perIndexerSearchTimeout)
+			defer cancel()
+
+			if err := s.rl.Wait(sctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
 				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
 				return
 			}
@@ -430,7 +478,7 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
 				return
 			}
-			releases, err := idx.GetRecent(ctx)
+			releases, err := idx.GetRecent(sctx)
 			resultsCh <- indexerResult{
 				indexerID:   cfg.ID,
 				indexerName: cfg.Name,
