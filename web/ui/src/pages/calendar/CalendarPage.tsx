@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMovies } from "@/api/movies";
+import { useAllMovies } from "@/api/movies";
 import { Poster } from "@/components/Poster";
 import type { Movie } from "@/types";
 
@@ -153,7 +153,7 @@ export default function CalendarPage() {
   const [month, setMonth] = useState(now.getMonth()); // 0-indexed
 
   // Fetch all movies for client-side filtering by release date.
-  const { data, isLoading } = useMovies({ per_page: 10000, page: 1 });
+  const { data, isLoading } = useAllMovies();
   const allMovies = data?.movies ?? [];
   const totalMovies = data?.total ?? 0;
   const truncated = allMovies.length < totalMovies;

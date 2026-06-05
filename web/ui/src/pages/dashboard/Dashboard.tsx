@@ -4,7 +4,7 @@ import { LayoutGrid, List } from "lucide-react";
 import { Poster } from "@/components/Poster";
 import { toast } from "sonner";
 import {
-  useMovies,
+  useAllMovies,
   useAddMovie,
   useLookupMovies,
   useUpdateMovie,
@@ -1458,7 +1458,7 @@ export default function Dashboard() {
     setSelectedIds(new Set());
   }
 
-  const { data, isLoading, error } = useMovies({ per_page: 2000 });
+  const { data, isLoading, error } = useAllMovies();
   const { data: libraries } = useLibraries();
   const hasQualityFilter = !!(qualityResolution || qualitySource);
   const { data: qualityMovieIds } = useQualityMovies(

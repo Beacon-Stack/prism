@@ -30,6 +30,39 @@ export function useMovies(filters?: MovieFilters) {
   });
 }
 
+// useAllMovies loads the entire library by accumulating pages. The server
+// clamps per_page to 250, so requesting a huge page (the old `per_page: 10000`
+// approach) silently truncated large libraries — the Calendar and Dashboard
+// filter client-side and need every movie. Chunked at 250 (the server max).
+export function useAllMovies(filters?: { library_id?: string }) {
+  return useQuery({
+    queryKey: ["movies", "all", filters],
+    queryFn: async () => {
+      const perPage = 250;
+      const base = new URLSearchParams();
+      if (filters?.library_id) base.set("library_id", filters.library_id);
+      base.set("per_page", String(perPage));
+
+      const fetchPage = (page: number) => {
+        const p = new URLSearchParams(base);
+        p.set("page", String(page));
+        return apiFetch<MovieListResponse>(`/movies?${p.toString()}`);
+      };
+
+      const first = await fetchPage(1);
+      const movies = [...first.movies];
+      let page = 2;
+      while (movies.length < first.total) {
+        const next = await fetchPage(page);
+        if (next.movies.length === 0) break;
+        movies.push(...next.movies);
+        page += 1;
+      }
+      return { ...first, movies, per_page: movies.length };
+    },
+  });
+}
+
 export function useMovie(id: string) {
   return useQuery({
     queryKey: ["movies", id],
