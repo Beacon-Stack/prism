@@ -144,8 +144,14 @@ type Querier interface {
 	ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error)
 	ListMovieFilesByLibrary(ctx context.Context, libraryID string) ([]MovieFile, error)
 	ListMovieGenresJSON(ctx context.Context) ([]string, error)
+	// Batched tmdb_id -> library movie id lookup, so Discover can flag which
+	// results are already in the library in one query instead of one per result.
+	ListMovieIDsByTMDBIDs(ctx context.Context, tmdbIds []int64) ([]ListMovieIDsByTMDBIDsRow, error)
 	ListMovieSummaries(ctx context.Context) ([]ListMovieSummariesRow, error)
 	ListMovieTagIDs(ctx context.Context, movieID string) ([]string, error)
+	// Batched movie->tag mapping for a page of movies, so the movie list can
+	// resolve all tags in one round-trip instead of one query per movie.
+	ListMovieTagIDsForMovies(ctx context.Context, movieIds []string) ([]MovieTag, error)
 	ListMovies(ctx context.Context, arg ListMoviesParams) ([]Movie, error)
 	ListMoviesByLibrary(ctx context.Context, arg ListMoviesByLibraryParams) ([]Movie, error)
 	ListMoviesWithEditionMismatch(ctx context.Context, arg ListMoviesWithEditionMismatchParams) ([]ListMoviesWithEditionMismatchRow, error)

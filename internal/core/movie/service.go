@@ -813,6 +813,29 @@ func (s *Service) GetByTMDBID(ctx context.Context, tmdbID int) (Movie, error) {
 	return rowToMovie(row)
 }
 
+// LibraryIDsByTMDBIDs maps TMDB IDs to library movie IDs for the subset that
+// exist in the library, in a single query. Used by Discover to flag
+// already-added results without an N+1 of GetByTMDBID per result. TMDB IDs not
+// in the library are simply absent from the returned map.
+func (s *Service) LibraryIDsByTMDBIDs(ctx context.Context, tmdbIDs []int) (map[int]string, error) {
+	out := make(map[int]string, len(tmdbIDs))
+	if len(tmdbIDs) == 0 {
+		return out, nil
+	}
+	ids := make([]int64, len(tmdbIDs))
+	for i, id := range tmdbIDs {
+		ids[i] = int64(id)
+	}
+	rows, err := s.q.ListMovieIDsByTMDBIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("looking up movies by tmdb_ids: %w", err)
+	}
+	for _, r := range rows {
+		out[int(r.TmdbID)] = r.ID
+	}
+	return out, nil
+}
+
 // GetByFilePath returns the movie that owns the given file path, or
 // ErrNotFound if no movie_files row exists for that path. If the
 // movie_files row exists but the parent movie has been deleted

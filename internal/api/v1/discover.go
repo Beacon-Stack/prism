@@ -111,6 +111,17 @@ type discoverMovieDetailOutput struct {
 // RegisterDiscoverRoutes registers the /api/v1/discover/* endpoints.
 func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *tmdb.Client) {
 	enrich := func(ctx context.Context, results []tmdb.SearchResult) []discoverResultBody {
+		// Resolve library membership for the whole page in one query rather
+		// than one GetByTMDBID per result.
+		var inLibrary map[int]string
+		if movieSvc != nil && len(results) > 0 {
+			ids := make([]int, len(results))
+			for i, r := range results {
+				ids[i] = r.ID
+			}
+			inLibrary, _ = movieSvc.LibraryIDsByTMDBIDs(ctx, ids)
+		}
+
 		out := make([]discoverResultBody, 0, len(results))
 		for _, r := range results {
 			item := discoverResultBody{
@@ -121,11 +132,9 @@ func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *t
 				PosterPath: r.PosterPath,
 				Rating:     r.Popularity, // PaginatedResults stores vote_average here
 			}
-			if movieSvc != nil {
-				if m, err := movieSvc.GetByTMDBID(ctx, r.ID); err == nil {
-					item.InLibrary = true
-					item.LibraryMovieID = m.ID
-				}
+			if movieID, ok := inLibrary[r.ID]; ok {
+				item.InLibrary = true
+				item.LibraryMovieID = movieID
 			}
 			out = append(out, item)
 		}

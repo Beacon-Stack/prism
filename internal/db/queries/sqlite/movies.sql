@@ -184,3 +184,8 @@ SELECT tmdb_id FROM movies WHERE tmdb_id != 0;
 
 -- name: ListMovieSummaries :many
 SELECT id, tmdb_id, title, year, status FROM movies WHERE tmdb_id != 0;
+
+-- name: ListMovieIDsByTMDBIDs :many
+-- Batched tmdb_id -> library movie id lookup, so Discover can flag which
+-- results are already in the library in one query instead of one per result.
+SELECT id, tmdb_id FROM movies WHERE tmdb_id IN (sqlc.slice('tmdb_ids'));

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const addDownloadClientTag = `-- name: AddDownloadClientTag :exec
@@ -283,6 +284,45 @@ func (q *Queries) ListMovieTagIDs(ctx context.Context, movieID string) ([]string
 			return nil, err
 		}
 		items = append(items, tag_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMovieTagIDsForMovies = `-- name: ListMovieTagIDsForMovies :many
+SELECT movie_id, tag_id FROM movie_tags WHERE movie_id IN (/*SLICE:movie_ids*/?)
+`
+
+// Batched movie->tag mapping for a page of movies, so the movie list can
+// resolve all tags in one round-trip instead of one query per movie.
+func (q *Queries) ListMovieTagIDsForMovies(ctx context.Context, movieIds []string) ([]MovieTag, error) {
+	query := listMovieTagIDsForMovies
+	var queryParams []interface{}
+	if len(movieIds) > 0 {
+		for _, v := range movieIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:movie_ids*/?", strings.Repeat(",?", len(movieIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:movie_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MovieTag
+	for rows.Next() {
+		var i MovieTag
+		if err := rows.Scan(&i.MovieID, &i.TagID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

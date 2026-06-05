@@ -130,6 +130,25 @@ func (s *Service) MovieTagIDs(ctx context.Context, movieID string) ([]string, er
 	return ids, nil
 }
 
+// MovieTagIDsForMovies returns tag IDs keyed by movie ID for a set of movies
+// in a single query, so list endpoints avoid an N+1 over MovieTagIDs. Movies
+// with no tags are absent from the map; callers should default to an empty
+// slice.
+func (s *Service) MovieTagIDsForMovies(ctx context.Context, movieIDs []string) (map[string][]string, error) {
+	out := make(map[string][]string, len(movieIDs))
+	if len(movieIDs) == 0 {
+		return out, nil
+	}
+	rows, err := s.q.ListMovieTagIDsForMovies(ctx, movieIDs)
+	if err != nil {
+		return nil, fmt.Errorf("listing movie tags for movies: %w", err)
+	}
+	for _, r := range rows {
+		out[r.MovieID] = append(out[r.MovieID], r.TagID)
+	}
+	return out, nil
+}
+
 // SetIndexerTags replaces all tags for an indexer.
 func (s *Service) SetIndexerTags(ctx context.Context, indexerID string, tagIDs []string) error {
 	if err := s.q.SetIndexerTags(ctx, indexerID); err != nil {

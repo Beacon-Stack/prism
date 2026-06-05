@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"strings"
 )
 
 const countEditionMismatches = `-- name: CountEditionMismatches :one
@@ -634,6 +635,50 @@ func (q *Queries) ListMovieFilesByLibrary(ctx context.Context, libraryID string)
 			&i.MediainfoJson,
 			&i.MediainfoScannedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMovieIDsByTMDBIDs = `-- name: ListMovieIDsByTMDBIDs :many
+SELECT id, tmdb_id FROM movies WHERE tmdb_id IN (/*SLICE:tmdb_ids*/?)
+`
+
+type ListMovieIDsByTMDBIDsRow struct {
+	ID     string `json:"id"`
+	TmdbID int64  `json:"tmdbId"`
+}
+
+// Batched tmdb_id -> library movie id lookup, so Discover can flag which
+// results are already in the library in one query instead of one per result.
+func (q *Queries) ListMovieIDsByTMDBIDs(ctx context.Context, tmdbIds []int64) ([]ListMovieIDsByTMDBIDsRow, error) {
+	query := listMovieIDsByTMDBIDs
+	var queryParams []interface{}
+	if len(tmdbIds) > 0 {
+		for _, v := range tmdbIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:tmdb_ids*/?", strings.Repeat(",?", len(tmdbIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:tmdb_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMovieIDsByTMDBIDsRow
+	for rows.Next() {
+		var i ListMovieIDsByTMDBIDsRow
+		if err := rows.Scan(&i.ID, &i.TmdbID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

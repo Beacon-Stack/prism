@@ -281,11 +281,22 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to list movies", err)
 		}
 
+		var tagsByMovie map[string][]string
+		if tagSvc != nil && len(result.Movies) > 0 {
+			ids := make([]string, len(result.Movies))
+			for i, m := range result.Movies {
+				ids[i] = m.ID
+			}
+			tagsByMovie, _ = tagSvc.MovieTagIDsForMovies(ctx, ids)
+		}
+
 		bodies := make([]*movieBody, len(result.Movies))
 		for i, m := range result.Movies {
 			b := movieToBody(m)
-			if tagSvc != nil {
-				b.TagIDs, _ = tagSvc.MovieTagIDs(ctx, m.ID)
+			if ids := tagsByMovie[m.ID]; ids != nil {
+				b.TagIDs = ids
+			} else {
+				b.TagIDs = []string{}
 			}
 			bodies[i] = b
 		}

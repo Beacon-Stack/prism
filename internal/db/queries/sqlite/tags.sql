@@ -41,6 +41,11 @@ INSERT INTO movie_tags (movie_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING;
 -- name: ListMovieTagIDs :many
 SELECT tag_id FROM movie_tags WHERE movie_id = ?;
 
+-- name: ListMovieTagIDsForMovies :many
+-- Batched movie->tag mapping for a page of movies, so the movie list can
+-- resolve all tags in one round-trip instead of one query per movie.
+SELECT movie_id, tag_id FROM movie_tags WHERE movie_id IN (sqlc.slice('movie_ids'));
+
 -- Indexer tag operations.
 
 -- name: SetIndexerTags :exec
