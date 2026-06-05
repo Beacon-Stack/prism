@@ -5,17 +5,17 @@
 **Before creating any GitHub release**, you MUST query GitHub for the current latest release:
 
 ```sh
-gh release list --repo luminarr/luminarr --limit 5
+gh release list --repo Beacon-Stack/prism --limit 5
 ```
 
 Use the actual latest version from GitHub to determine the next version number. **Never rely on local `git tag`** — local tags can be out of sync with GitHub.
 
 ## GitHub
 
-All `gh` commands MUST target `luminarr/luminarr`:
+All `gh` commands MUST target `Beacon-Stack/prism`:
 
 ```sh
-gh <command> --repo luminarr/luminarr
+gh <command> --repo Beacon-Stack/prism
 ```
 
 ## Branching
