@@ -1,4 +1,4 @@
-# Luminarr — Claude Code Rules
+# Prism — Claude Code Rules
 
 ## Releases
 
