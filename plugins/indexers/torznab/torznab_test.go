@@ -654,3 +654,92 @@ func TestParseAgeDays(t *testing.T) {
 		})
 	}
 }
+
+// ── Torznab <error> document handling ───────────────────────────────────────
+
+// torznabErrorDoc is the exact document Pulse returned during the
+// 2026-08-16 incident: the upstream Prowlarr definition for an indexer was
+// removed, and Pulse answered every request with this HTTP-200 error
+// document. Decoding it blindly into the RSS struct reported the useless
+// `expected element type <rss> but have <error>` — hiding the actual
+// reason the indexer was broken.
+const torznabErrorDoc = `<?xml version="1.0" encoding="UTF-8"?>` +
+	`<error code="100" description="No catalog definition found for indexer &#34;X&#34; — it may have been removed from Prowlarr"></error>`
+
+func errorDocIndexer(t *testing.T) (*Indexer, *httptest.Server) {
+	t.Helper()
+	return newTestIndexer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(torznabErrorDoc))
+	})
+}
+
+// Regression guard: a torznab <error> document (the protocol's standard
+// failure signaling, served with HTTP 200) MUST surface its code and
+// description, never an XML type-mismatch about <rss>.
+func TestSearch_ErrorDocumentSurfacesDescription(t *testing.T) {
+	idx, srv := errorDocIndexer(t)
+	defer srv.Close()
+
+	_, err := idx.Search(context.Background(), plugin.SearchQuery{Query: "Inception", Year: 2010})
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "indexer reported error 100") {
+		t.Errorf("error %q should contain the torznab error code", msg)
+	}
+	if !strings.Contains(msg, "No catalog definition found") {
+		t.Errorf("error %q should contain the indexer's description", msg)
+	}
+	if strings.Contains(msg, "expected element type") {
+		t.Errorf("error %q leaks the raw XML mismatch — the error doc was not parsed", msg)
+	}
+}
+
+// The connectivity Test must also surface the description — this is the
+// message shown verbatim in the UI's per-indexer Test button, so it is the
+// most direct place a user can diagnose a broken indexer.
+func TestTest_ErrorDocumentSurfacesDescription(t *testing.T) {
+	idx, srv := errorDocIndexer(t)
+	defer srv.Close()
+
+	err := idx.Test(context.Background())
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "No catalog definition found") {
+		t.Errorf("error %q should contain the indexer's description", msg)
+	}
+	if strings.Contains(msg, "wrong URL?") {
+		t.Errorf("error %q gives the misleading wrong-URL hint for a parsed error doc", msg)
+	}
+}
+
+func TestCapabilities_ErrorDocumentSurfacesDescription(t *testing.T) {
+	idx, srv := errorDocIndexer(t)
+	defer srv.Close()
+
+	_, err := idx.Capabilities(context.Background())
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+	if !strings.Contains(err.Error(), "No catalog definition found") {
+		t.Errorf("error %q should contain the indexer's description", err)
+	}
+}
+
+// Preserved behavior: an HTTP-200 empty body still passes Test — some
+// Prowlarr-backed indexers return no caps document while serving search
+// results fine.
+func TestTest_EmptyBodyStillPasses(t *testing.T) {
+	idx, srv := newTestIndexer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	defer srv.Close()
+
+	if err := idx.Test(context.Background()); err != nil {
+		t.Fatalf("Test() on empty 200 body = %v, want nil", err)
+	}
+}
