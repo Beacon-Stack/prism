@@ -110,7 +110,10 @@ export default function LogViewer({ serviceName, liveTailIntervalMs = 2000 }: Lo
         if (debouncedSearch) qs.set("q", debouncedSearch);
         qs.set("limit", "500");
         const r = await apiFetch<LogListResponse>(`/system/logs?${qs}`);
-        setEntries(r.entries ?? []);
+        // Reverse to show newest first — the backend buffer is ascending
+        // chronological; users expect a tail-like view with the latest
+        // entry at the top.
+        setEntries((r.entries ?? []).slice().reverse());
         setTotal(r.total);
         setDockerReason(null);
       } else {
@@ -130,7 +133,7 @@ export default function LogViewer({ serviceName, liveTailIntervalMs = 2000 }: Lo
             const min = levelOrdinal(levelFilter);
             filtered = filtered.filter((e) => levelOrdinal(e.level) >= min);
           }
-          setEntries(filtered);
+          setEntries(filtered.slice().reverse());
           setTotal(filtered.length);
           setDockerReason(null);
         }

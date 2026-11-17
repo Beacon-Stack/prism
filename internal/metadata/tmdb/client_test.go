@@ -428,10 +428,44 @@ func TestGet_DoubleGzippedResponse(t *testing.T) {
 	}
 }
 
+// TestGet_TruncatedGzipTrailer reproduces TMDB's CDN terminating a gzip
+// response without its 8-byte trailer. Go's transport surfaces this as
+// io.ErrUnexpectedEOF even though the JSON payload is complete — the
+// client must tolerate the error and still decode the body.
+func TestGet_TruncatedGzipTrailer(t *testing.T) {
+	payload := mustMarshal(t, map[string]any{
+		"results": []map[string]any{
+			{"id": 27205, "title": "Inception", "release_date": "2010-07-16"},
+		},
+	})
+	full := gzipBytes(t, payload)
+	truncated := full[:len(full)-8] // drop the CRC32 + ISIZE trailer
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(truncated)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	results, err := c.SearchMovies(context.Background(), "Inception", 0)
+	if err != nil {
+		t.Fatalf("SearchMovies() error = %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("len(results) = %d, want 1", len(results))
+	}
+	if results[0].Title != "Inception" {
+		t.Errorf("Title = %q, want Inception", results[0].Title)
+	}
+}
+
 func TestPeelGzip(t *testing.T) {
 	plain := []byte(`{"ok":true}`)
 	once := gzipBytes(t, plain)
 	twice := gzipBytes(t, once)
+	truncated := once[:len(once)-8] // drop the CRC32 + ISIZE trailer
 
 	cases := []struct {
 		name string
@@ -441,6 +475,7 @@ func TestPeelGzip(t *testing.T) {
 		{"plain JSON unchanged", plain, string(plain)},
 		{"single gzip layer", once, string(plain)},
 		{"double gzip layer", twice, string(plain)},
+		{"truncated gzip trailer", truncated, string(plain)},
 		{"empty input", []byte{}, ""},
 	}
 	for _, tc := range cases {

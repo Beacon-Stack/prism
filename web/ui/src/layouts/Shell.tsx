@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import {
   Activity,
   ArrowDownToLine,
@@ -29,7 +29,7 @@ import {
   SlidersHorizontal,
   LayoutDashboard,
 } from "lucide-react";
-import Shell, { type NavItem } from "@beacon-shared/Shell";
+import Shell, { SidebarStateContext, type NavItem } from "@beacon-shared/Shell";
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
 import { applyTheme } from "@/theme";
@@ -74,6 +74,8 @@ const settingsNav: NavItem[] = [
 // to Prism's health API contract.
 function HealthDot() {
   const { data: health } = useSystemHealth();
+  const { collapsed, isMobile } = useContext(SidebarStateContext);
+  const showLabel = isMobile || !collapsed;
   const allOk = !health || health.status === "healthy";
   const color = allOk ? "var(--color-success)" : "var(--color-danger)";
   const label = allOk ? "All systems healthy" : "Health issues detected";
@@ -83,6 +85,7 @@ function HealthDot() {
       style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: showLabel ? "flex-start" : "center",
         gap: "8px",
         padding: "0 12px",
         height: "36px",
@@ -92,7 +95,7 @@ function HealthDot() {
       title={label}
     >
       <Activity size={16} strokeWidth={1.5} style={{ color, flexShrink: 0 }} />
-      <span style={{ color }}>{label}</span>
+      {showLabel && <span style={{ color }}>{label}</span>}
     </div>
   );
 }
@@ -122,6 +125,8 @@ function AppIcon() {
 // project-domain link. The shared Shell's generic docs link works
 // for the case where the URL is the only thing that varies.
 function DocsLink() {
+  const { collapsed, isMobile } = useContext(SidebarStateContext);
+  const showLabel = isMobile || !collapsed;
   return (
     <a
       href="https://prism.video/docs"
@@ -130,6 +135,7 @@ function DocsLink() {
       style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: showLabel ? "flex-start" : "center",
         gap: "8px",
         padding: "0 12px",
         height: "36px",
@@ -138,9 +144,10 @@ function DocsLink() {
         textDecoration: "none",
         borderRadius: "6px",
       }}
+      title={showLabel ? undefined : "Documentation"}
     >
       <BookOpen size={16} strokeWidth={1.5} style={{ flexShrink: 0 }} />
-      <span>Docs</span>
+      {showLabel && <span>Docs</span>}
     </a>
   );
 }

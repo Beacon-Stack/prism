@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -677,11 +678,16 @@ func (c *Client) get(ctx context.Context, path string, params url.Values, dst an
 	}
 	defer resp.Body.Close()
 
+	// TMDB's CDN frequently terminates responses without a clean gzip
+	// trailer, which surfaces as io.ErrUnexpectedEOF even though the JSON
+	// payload itself arrived intact (curl tolerates it; Go does not).
+	// Keep the bytes read so far and let json.Unmarshal below be the real
+	// arbiter of completeness — a genuinely truncated body fails to parse.
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return fmt.Errorf("reading response: %w", err)
 	}
-	// TMDB's CDN intermittently double-gzip-encodes responses while only
+	// The CDN also intermittently double-gzip-encodes responses while only
 	// advertising a single Content-Encoding: gzip. Go's HTTP transport
 	// transparently strips the outer layer; peelGzip removes any that
 	// remain so the JSON decoder isn't handed raw gzip bytes.
@@ -730,12 +736,12 @@ func peelGzip(b []byte) ([]byte, error) {
 		// trailing byte that is not a valid second member.
 		zr.Multistream(false)
 		out, err := io.ReadAll(zr)
-		if err != nil {
-			_ = zr.Close()
+		_ = zr.Close()
+		// A CDN-truncated gzip trailer yields ErrUnexpectedEOF with the
+		// decompressed content otherwise intact — tolerate it and let the
+		// JSON decoder judge the result.
+		if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
 			return nil, fmt.Errorf("gzip decode: %w", err)
-		}
-		if err := zr.Close(); err != nil {
-			return nil, fmt.Errorf("gzip close: %w", err)
 		}
 		b = out
 	}
