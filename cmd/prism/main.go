@@ -24,6 +24,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/customformat"
 	"github.com/beacon-stack/prism/internal/core/downloader"
 	"github.com/beacon-stack/prism/internal/core/downloadhandling"
+	"github.com/beacon-stack/prism/internal/core/firstrun"
 	"github.com/beacon-stack/prism/internal/core/health"
 	"github.com/beacon-stack/prism/internal/core/importer"
 	"github.com/beacon-stack/prism/internal/core/importlist"
@@ -322,6 +323,9 @@ func run() error {
 	}
 
 	librarySvc := library.NewService(queries, bus, tmdbClient)
+	if err := firstrun.Run(context.Background(), qualitySvc, librarySvc, firstrun.Options{}, logger); err != nil {
+		logger.Warn("first-run defaults failed", "error", err)
+	}
 	movieSvc := movie.NewService(queries, tmdbClient, bus, logger, movie.WithDB(database.SQL))
 	blocklistSvc := blocklist.NewService(queries)
 	indexerRL := ratelimit.New()
