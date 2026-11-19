@@ -3,11 +3,14 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Star, Clock, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useDiscoverMovie } from "@/api/discover";
-import { useAddMovie } from "@/api/movies";
+import { useAddMovie, useAutoSearch } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import { Poster } from "@/components/Poster";
 import Modal from "@beacon-shared/Modal";
+import { ManualSearchModal } from "@/components/ManualSearchModal";
+
+type PostAddAction = "none" | "interactive" | "auto";
 
 function formatRuntime(minutes: number): string {
   if (!minutes) return "";
@@ -20,10 +23,14 @@ function formatRuntime(minutes: number): string {
 
 function QuickAddModal({
   movie,
+  action,
   onClose,
+  onAdded,
 }: {
   movie: { tmdb_id: number; title: string; year: number };
+  action: PostAddAction;
   onClose: () => void;
+  onAdded: (movieId: string, action: PostAddAction) => void;
 }) {
   const { data: libraries } = useLibraries();
   const { data: profiles } = useQualityProfiles();
@@ -35,6 +42,11 @@ function QuickAddModal({
   const lib = libraryId || libraries?.[0]?.id || "";
   const prof = profileId || profiles?.[0]?.id || "";
 
+  const submitLabel =
+    action === "interactive" ? "Add & Interactive Search"
+    : action === "auto" ? "Add & Auto Search"
+    : "Add Movie";
+
   function handleAdd() {
     if (!lib || !prof) return;
     addMovie.mutate(
@@ -45,9 +57,9 @@ function QuickAddModal({
         monitored: true,
       },
       {
-        onSuccess: () => {
+        onSuccess: (added) => {
           toast.success(`Added ${movie.title}`);
-          onClose();
+          onAdded(added.id, action);
         },
         onError: (err) => toast.error((err as Error).message),
       }
@@ -126,7 +138,7 @@ function QuickAddModal({
               cursor: !lib || !prof || addMovie.isPending ? "not-allowed" : "pointer",
             }}
           >
-            {addMovie.isPending ? "Adding..." : "Add Movie"}
+            {addMovie.isPending ? "Adding..." : submitLabel}
           </button>
         </div>
       </div>
@@ -140,7 +152,35 @@ export default function DiscoverDetailPage() {
   const { tmdbId } = useParams<{ tmdbId: string }>();
   const navigate = useNavigate();
   const { data: movie, isLoading, error } = useDiscoverMovie(Number(tmdbId) || 0);
-  const [showAdd, setShowAdd] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PostAddAction | null>(null);
+  const [manualSearchFor, setManualSearchFor] = useState<{ id: string; title: string } | null>(null);
+  const autoSearch = useAutoSearch();
+
+  function handleAdded(movieId: string, action: PostAddAction) {
+    setPendingAction(null);
+    if (action === "interactive") {
+      setManualSearchFor({ id: movieId, title: movie?.title ?? "" });
+      return;
+    }
+    if (action === "auto") {
+      autoSearch.mutate(movieId, {
+        onSuccess: (data) => {
+          switch (data.result) {
+            case "grabbed":
+              toast.success(`Grabbed: ${data.grab?.release_title ?? "release"}`);
+              break;
+            case "no_match":
+              toast.info(data.reason ?? "No suitable release found");
+              break;
+            case "skipped":
+              toast.info(data.reason ?? "Already downloading");
+              break;
+          }
+        },
+        onError: (err) => toast.error((err as Error).message),
+      });
+    }
+  }
 
   if (isLoading) {
     return (
@@ -246,21 +286,55 @@ export default function DiscoverDetailPage() {
               Excluded
             </span>
           ) : (
-            <button
-              onClick={() => setShowAdd(true)}
-              style={{
-                padding: "7px 16px",
-                borderRadius: 6,
-                border: "none",
-                background: "var(--color-accent)",
-                color: "var(--color-accent-fg)",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              + Add to Library
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setPendingAction("none")}
+                style={{
+                  padding: "7px 16px",
+                  borderRadius: 6,
+                  border: "none",
+                  background: "var(--color-accent)",
+                  color: "var(--color-accent-fg)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                + Add to Library
+              </button>
+              <button
+                onClick={() => setPendingAction("interactive")}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 6,
+                  border: "1px solid var(--color-border-default)",
+                  background: "var(--color-bg-elevated)",
+                  color: "var(--color-text-secondary)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                Interactive Search
+              </button>
+              <button
+                onClick={() => setPendingAction("auto")}
+                disabled={autoSearch.isPending}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 6,
+                  border: "1px solid var(--color-border-default)",
+                  background: "var(--color-bg-elevated)",
+                  color: "var(--color-text-secondary)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: autoSearch.isPending ? "not-allowed" : "pointer",
+                  opacity: autoSearch.isPending ? 0.6 : 1,
+                }}
+              >
+                {autoSearch.isPending ? "Searching…" : "Auto Search"}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -446,10 +520,21 @@ export default function DiscoverDetailPage() {
       )}
 
       {/* Add modal */}
-      {showAdd && movie && (
+      {pendingAction !== null && movie && (
         <QuickAddModal
           movie={movie}
-          onClose={() => setShowAdd(false)}
+          action={pendingAction}
+          onClose={() => setPendingAction(null)}
+          onAdded={handleAdded}
+        />
+      )}
+
+      {/* Interactive search modal — opens after add succeeds */}
+      {manualSearchFor && (
+        <ManualSearchModal
+          movieId={manualSearchFor.id}
+          movieTitle={manualSearchFor.title}
+          onClose={() => setManualSearchFor(null)}
         />
       )}
     </div>
