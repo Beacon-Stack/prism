@@ -3,6 +3,7 @@ import { useMediaManagement, useUpdateMediaManagement } from "@/api/media-manage
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
 import type { MediaManagement } from "@/types";
+import { hasQualityToken, setQualityToken } from "@/lib/qualityToken";
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -57,6 +58,9 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
       </div>
       <button
         type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
         onClick={() => onChange(!checked)}
         style={{
           flexShrink: 0,
@@ -198,6 +202,13 @@ export default function MediaManagementPage() {
           description="Rename imported movie files using the format template below"
           checked={form.rename_movies}
           onChange={(v) => set("rename_movies", v)}
+        />
+
+        <ToggleRow
+          label="Include Quality in File Names"
+          description="Add the quality (e.g. Bluray-1080p) to the end of movie file names"
+          checked={hasQualityToken(form.standard_movie_format)}
+          onChange={(v) => set("standard_movie_format", setQualityToken(form.standard_movie_format, v))}
         />
 
         <div style={formatFieldStyle}>
