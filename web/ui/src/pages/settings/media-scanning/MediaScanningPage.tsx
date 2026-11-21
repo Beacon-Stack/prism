@@ -65,7 +65,7 @@ export default function MediaScanningPage() {
             <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
               Install ffprobe to enable media scanning. See the{" "}
               <a
-                href="https://github.com/prism/prism/blob/main/docs/getting-started.md#ffprobe-optional"
+                href="https://github.com/beacon-stack/prism/blob/main/docs/GETTING_STARTED.md#media-scanning-with-ffprobe-optional"
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: "var(--color-accent)" }}

@@ -193,6 +193,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	})
 
 	v1.RegisterSystemRoutes(humaAPI, cfg.StartTime, cfg.DBType, cfg.DBPath, cfg.ConfigFile, cfg.AICommandService, cfg.TMDBKeyIsDefault, cfg.Auth.Value(), cfg.MovieService, cfg.Logger)
+	v1.RegisterUpdateRoutes(humaAPI)
 
 	if cfg.LogSystem != nil {
 		beaconlog.RegisterRoutesWithDocker(humaAPI, cfg.LogSystem, cfg.DockerLogs)

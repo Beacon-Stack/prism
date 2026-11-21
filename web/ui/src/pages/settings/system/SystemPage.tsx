@@ -1,21 +1,18 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState } from "react";
 import {
   useSystemStatus,
   useSystemHealth,
   useTasks,
   useRunTask,
-  useCheckForUpdates,
   useSystemLogs,
 } from "@/api/system";
 import { useMovies } from "@/api/movies";
 import { useQueue } from "@/api/queue";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
-import type { HealthStatus, UpdateCheck, LogEntry } from "@/types";
+import type { HealthStatus, LogEntry } from "@/types";
 import { card, sectionHeader } from "@/lib/styles";
 import Pill from "@/components/Pill";
-import Modal from "@beacon-shared/Modal";
 import TableScroll from "@beacon-shared/TableScroll";
+import UpdateCheck from "@beacon-shared/UpdateCheck";
 
 function formatUptime(seconds: number): string {
   const d = Math.floor(seconds / 86400);
@@ -120,249 +117,12 @@ function StatsStrip() {
   );
 }
 
-// ── Update Modal ──────────────────────────────────────────────────────────────
-
-const DOCKER_IMAGE = "ghcr.io/prism/prism";
-
-const composeCmd = `docker compose pull\ndocker compose up -d`;
-const dockerPullCmd = `docker pull ${DOCKER_IMAGE}:latest\ndocker stop prism\ndocker rm prism\ndocker run -d --name prism \\\n  -p 8282:8282 \\\n  -v prism-config:/config \\\n  ${DOCKER_IMAGE}:latest`;
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        });
-      }}
-      style={{
-        background: "none",
-        border: "none",
-        padding: "2px 6px",
-        fontSize: 11,
-        color: copied ? "var(--color-success)" : "var(--color-text-muted)",
-        cursor: "pointer",
-        borderRadius: 4,
-      }}
-      onMouseEnter={(e) => {
-        if (!copied) (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
-      }}
-      onMouseLeave={(e) => {
-        if (!copied) (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
-      }}
-    >
-      {copied ? "Copied!" : "Copy"}
-    </button>
-  );
-}
-
-function UpdateModal({ data, onClose }: { data: UpdateCheck; onClose: () => void }) {
-  const [method, setMethod] = useState<"compose" | "pull">("compose");
-
-  const renderedNotes = useMemo(() => {
-    if (!data.release_notes) return "";
-    const raw = marked.parse(data.release_notes, { async: false }) as string;
-    return DOMPurify.sanitize(raw);
-  }, [data.release_notes]);
-
-  return (
-    <Modal onClose={onClose} width={600} maxHeight="85vh" innerStyle={{ padding: 28, overflowY: "auto" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "var(--color-text-primary)" }}>
-            Update Available
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 18,
-              color: "var(--color-text-muted)",
-              cursor: "pointer",
-              padding: "4px 8px",
-              lineHeight: 1,
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Version badges */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <span style={{
-            padding: "4px 10px",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 500,
-            fontFamily: "var(--font-family-mono)",
-            background: "var(--color-bg-subtle)",
-            color: "var(--color-text-secondary)",
-          }}>
-            {data.current_version}
-          </span>
-          <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>→</span>
-          <span style={{
-            padding: "4px 10px",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 500,
-            fontFamily: "var(--font-family-mono)",
-            background: "color-mix(in srgb, var(--color-success) 12%, transparent)",
-            color: "var(--color-success)",
-          }}>
-            {data.latest_version}
-          </span>
-          {data.published_at && (
-            <span style={{ fontSize: 12, color: "var(--color-text-muted)", marginLeft: "auto" }}>
-              {new Date(data.published_at).toLocaleDateString()}
-            </span>
-          )}
-        </div>
-
-        {/* Release notes */}
-        {renderedNotes && (
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ ...sectionHeader, marginBottom: 8 }}>Release Notes</p>
-            <div
-              className="release-notes"
-              dangerouslySetInnerHTML={{ __html: renderedNotes }}
-              style={{
-                background: "var(--color-bg-elevated)",
-                border: "1px solid var(--color-border-subtle)",
-                borderRadius: 6,
-                padding: 14,
-                fontSize: 13,
-                color: "var(--color-text-secondary)",
-                maxHeight: 240,
-                overflow: "auto",
-              }}
-            />
-          </div>
-        )}
-
-        {/* How to update */}
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ ...sectionHeader, marginBottom: 10 }}>How to Update</p>
-
-          {/* Method tabs */}
-          <div style={{ display: "flex", gap: 0, marginBottom: 12, borderBottom: "1px solid var(--color-border-subtle)" }}>
-            {(["compose", "pull"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMethod(m)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  borderBottom: method === m ? "2px solid var(--color-accent)" : "2px solid transparent",
-                  padding: "6px 14px",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: method === m ? "var(--color-text-primary)" : "var(--color-text-muted)",
-                  cursor: "pointer",
-                  marginBottom: -1,
-                }}
-              >
-                {m === "compose" ? "Docker Compose" : "Docker Pull"}
-              </button>
-            ))}
-          </div>
-
-          {/* Command block */}
-          <div style={{ position: "relative" }}>
-            <pre style={{
-              background: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border-subtle)",
-              borderRadius: 6,
-              padding: 14,
-              fontSize: 12,
-              fontFamily: "var(--font-family-mono)",
-              color: "var(--color-text-primary)",
-              whiteSpace: "pre-wrap",
-              margin: 0,
-            }}>
-              {method === "compose" ? composeCmd : dockerPullCmd}
-            </pre>
-            <div style={{ position: "absolute", top: 6, right: 6 }}>
-              <CopyButton text={method === "compose" ? composeCmd : dockerPullCmd} />
-            </div>
-          </div>
-
-          {method === "pull" && (
-            <p style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 6, marginBottom: 0 }}>
-              Adjust the port, volume, and container name to match your setup.
-            </p>
-          )}
-        </div>
-
-        {/* Footer actions */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          {data.release_url && /^https?:\/\//i.test(data.release_url) && (
-            <a
-              href={data.release_url}
-              target="_blank"
-              rel="noreferrer"
-              style={{ fontSize: 13, color: "var(--color-accent)", textDecoration: "none" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "underline"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.textDecoration = "none"; }}
-            >
-              View on GitHub →
-            </a>
-          )}
-          <button
-            onClick={onClose}
-            style={{
-              background: "var(--color-bg-elevated)",
-              border: "1px solid var(--color-border-default)",
-              borderRadius: 6,
-              padding: "6px 16px",
-              fontSize: 13,
-              color: "var(--color-text-secondary)",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)";
-            }}
-          >
-            Close
-          </button>
-        </div>
-    </Modal>
-  );
-}
-
 // ── Section 1: Status ─────────────────────────────────────────────────────────
 
 function StatusSection() {
   const { data, isLoading } = useSystemStatus();
-  const checkUpdates = useCheckForUpdates();
-  const [updateResult, setUpdateResult] = useState<UpdateCheck | null>(null);
-  const [showModal, setShowModal] = useState(false);
-
-  const handleCheck = useCallback(() => {
-    checkUpdates.mutate(undefined, {
-      onSuccess: (result) => {
-        setUpdateResult(result);
-        if (result.update_available) {
-          setShowModal(true);
-        }
-      },
-    });
-  }, [checkUpdates]);
-
   return (
     <>
-      {showModal && updateResult?.update_available && (
-        <UpdateModal data={updateResult} onClose={() => setShowModal(false)} />
-      )}
       <div style={card}>
         <p style={sectionHeader}>Status</p>
         {isLoading ? (
@@ -387,57 +147,7 @@ function StatusSection() {
             </span>
 
             <span style={{ color: "var(--color-text-secondary)" }}>Updates</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <button
-                onClick={handleCheck}
-                disabled={checkUpdates.isPending}
-                style={{
-                  background: "var(--color-bg-elevated)",
-                  border: "1px solid var(--color-border-default)",
-                  borderRadius: 6,
-                  padding: "3px 10px",
-                  fontSize: 12,
-                  color: checkUpdates.isPending ? "var(--color-text-muted)" : "var(--color-text-secondary)",
-                  cursor: checkUpdates.isPending ? "not-allowed" : "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  if (!checkUpdates.isPending) {
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-primary)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.color =
-                    checkUpdates.isPending ? "var(--color-text-muted)" : "var(--color-text-secondary)";
-                }}
-              >
-                {checkUpdates.isPending ? "Checking…" : "Check for updates"}
-              </button>
-              {updateResult && !updateResult.update_available && (
-                <span style={{ fontSize: 12, color: "var(--color-success)" }}>Up to date ✓</span>
-              )}
-              {updateResult?.update_available && (
-                <button
-                  onClick={() => setShowModal(true)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    fontSize: 12,
-                    color: "var(--color-accent)",
-                    cursor: "pointer",
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.textDecoration = "underline"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.textDecoration = "none"; }}
-                >
-                  {updateResult.latest_version} available →
-                </button>
-              )}
-              {checkUpdates.isError && (
-                <span style={{ fontSize: 12, color: "var(--color-danger)" }}>
-                  {(checkUpdates.error as Error).message}
-                </span>
-              )}
-            </div>
+            <UpdateCheck app="Prism" service="prism" image="ghcr.io/beacon-stack/prism" />
 
             <span style={{ color: "var(--color-text-secondary)" }}>Go Version</span>
             <span style={{ color: "var(--color-text-primary)" }}>{data.go_version}</span>
