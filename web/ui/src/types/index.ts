@@ -31,15 +31,6 @@ export interface Task {
   interval: string;
 }
 
-export interface UpdateCheck {
-  update_available: boolean;
-  current_version: string;
-  latest_version: string;
-  release_url?: string;
-  release_notes?: string;
-  published_at?: string;
-}
-
 export interface LogEntry {
   time: string;
   level: string;

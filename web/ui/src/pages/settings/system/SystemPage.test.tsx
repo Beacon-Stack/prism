@@ -103,16 +103,20 @@ describe("StatusSection", () => {
     );
   });
 
-  it("opens update modal when update is available", async () => {
+  it("opens the update window with the newer commits and Prism's commands", async () => {
     server.use(
       http.get("/api/v1/system/updates", () =>
         HttpResponse.json({
           update_available: true,
-          current_version: "0.0.0-test",
-          latest_version: "1.0.0",
-          release_url: "https://github.com/prism/prism/releases/tag/v1.0.0",
-          release_notes: "## What's New\n- First release",
-          published_at: "2025-06-01T00:00:00Z",
+          current_version: "1111111",
+          latest_version: "2222222",
+          behind: 2,
+          release_url: "https://github.com/beacon-stack/prism/compare/1111111...2222222",
+          published_at: "2026-11-21T00:00:00Z",
+          commits: [
+            { sha: "2222222", subject: "feat: newer", url: "https://github.com/beacon-stack/prism/commit/2222222" },
+            { sha: "aaaaaaa", subject: "fix: older", url: "https://github.com/beacon-stack/prism/commit/aaaaaaa" },
+          ],
         })
       )
     );
@@ -126,22 +130,50 @@ describe("StatusSection", () => {
     await user.click(screen.getByText("Check for updates"));
 
     await waitFor(() =>
-      expect(screen.getByText("Update Available")).toBeInTheDocument()
+      expect(screen.getByText("Prism update available")).toBeInTheDocument()
     );
-    expect(screen.getByText("0.0.0-test")).toBeInTheDocument();
-    expect(screen.getByText("1.0.0")).toBeInTheDocument();
-    expect(screen.getByText("View on GitHub →")).toBeInTheDocument();
-    expect(screen.getByText("Docker Compose")).toBeInTheDocument();
-    expect(screen.getByText("Docker Pull")).toBeInTheDocument();
+    expect(screen.getByText("feat: newer")).toBeInTheDocument();
+    expect(screen.getByText("fix: older")).toBeInTheDocument();
+    expect(screen.getByText(/docker compose pull prism/)).toBeInTheDocument();
+    expect(screen.getByText("View on GitHub →")).toHaveAttribute(
+      "href",
+      "https://github.com/beacon-stack/prism/compare/1111111...2222222"
+    );
+    await user.click(screen.getByText("Docker"));
+    expect(screen.getByText(/docker pull ghcr.io\/beacon-stack\/prism:latest/)).toBeInTheDocument();
   });
 
-  it("closes update modal on Close button", async () => {
+  it("explains when it can't tell", async () => {
+    server.use(
+      http.get("/api/v1/system/updates", () =>
+        HttpResponse.json({
+          update_available: false,
+          current_version: "dev",
+          latest_version: "",
+          message: "This build has no version to compare (a local or development build), so Prism can't tell whether it's out of date.",
+        })
+      )
+    );
+
+    renderPage();
+    const user = userEvent.setup();
+    await waitFor(() =>
+      expect(screen.getByText("Check for updates")).toBeInTheDocument()
+    );
+    await user.click(screen.getByText("Check for updates"));
+    await waitFor(() =>
+      expect(screen.getByText(/can't tell whether it's out of date/)).toBeInTheDocument()
+    );
+    expect(screen.queryByText(/Up to date/)).not.toBeInTheDocument();
+  });
+
+  it("closes the update window", async () => {
     server.use(
       http.get("/api/v1/system/updates", () =>
         HttpResponse.json({
           update_available: true,
-          current_version: "0.0.0-test",
-          latest_version: "1.0.0",
+          current_version: "1111111",
+          latest_version: "2222222",
         })
       )
     );
@@ -155,12 +187,12 @@ describe("StatusSection", () => {
     await user.click(screen.getByText("Check for updates"));
 
     await waitFor(() =>
-      expect(screen.getByText("Update Available")).toBeInTheDocument()
+      expect(screen.getByText("Prism update available")).toBeInTheDocument()
     );
     await user.click(screen.getByText("Close"));
 
     await waitFor(() =>
-      expect(screen.queryByText("Update Available")).not.toBeInTheDocument()
+      expect(screen.queryByText("Prism update available")).not.toBeInTheDocument()
     );
   });
 });
