@@ -113,7 +113,6 @@ export const systemStatusFixture = {
   db_path: ":memory:",
   uptime_seconds: 3600,
   start_time: "2025-01-01T00:00:00Z",
-  ai_enabled: false,
   tmdb_enabled: true,
 } satisfies SystemStatus;
 

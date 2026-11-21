@@ -68,7 +68,6 @@ describe("StatusSection", () => {
     expect(screen.getByText("sqlite3")).toBeInTheDocument();
     expect(screen.getByText(":memory:")).toBeInTheDocument();
     expect(screen.getByText("1h 0m")).toBeInTheDocument();
-    expect(screen.getByText("Disabled")).toBeInTheDocument(); // ai_enabled: false
     expect(screen.getByText("Configured")).toBeInTheDocument(); // tmdb_enabled: true
   });
 

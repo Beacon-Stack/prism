@@ -52,21 +52,6 @@ auth:
 tmdb:
   api_key: ""
 
-# ── AI features (Claude) ─────────────────────────────────────────────────────
-# Optional. When configured, enables AI-assisted release matching,
-# scoring, and filtering via the Anthropic Claude API.
-#
-# If not configured, rule-based fallbacks are used automatically.
-# Get an API key at: https://console.anthropic.com
-ai:
-  api_key: ""
-
-  # Models used for each AI feature.
-  # Defaults shown below — only change if you know what you're doing.
-  # match_model:  "claude-sonnet-4-6"          # accuracy matters
-  # score_model:  "claude-haiku-4-5-20251001"  # high volume, latency matters
-  # filter_model: "claude-haiku-4-5-20251001"  # high volume, latency matters
-
 # ── Configurarr integration (optional) ──────────────────────────────────────
 # When configured, Prism registers itself with the Configurarr control plane
 # on startup. This enables auto-discovery of ecosystem services, shared config,

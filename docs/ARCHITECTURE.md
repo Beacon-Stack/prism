@@ -48,7 +48,7 @@ Luminarr is a single Go binary that embeds the React frontend as a static file s
 ├─────────────────────────────────────────────────────────┤
 │  Infrastructure                                        │
 │  SQLite/Postgres (sqlc) · Events bus · Scheduler       │
-│  TMDB client · Anthropic client · Radarr import       │
+│  TMDB client · Radarr import                           │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -66,9 +66,7 @@ internal/
   api/                 HTTP router, middleware, Huma setup
   api/v1/              REST handlers (one file per domain)
   config/              Config loading (Viper), Secret type
-  anthropic/           Minimal Claude Messages API client
   core/
-    aicommand/         AI command palette service (intent parsing, confirmation, execution)
     autosearch/        Automatic release search + grab pipeline
     blocklist/         Release blocklist management
     collection/        TMDB collection browsing + tracking
@@ -163,7 +161,6 @@ All settings can be set via `config.yaml` or environment variables. Environment 
 | `database.dsn` | — | `LUMINARR_DATABASE_DSN` | Postgres connection string |
 | `auth.api_key` | auto-generated | `LUMINARR_AUTH_API_KEY` | Required for all API calls |
 | `tmdb.api_key` | — | `LUMINARR_TMDB_API_KEY` | Movie metadata (optional) |
-| `ai.api_key` | — | `LUMINARR_AI_API_KEY` | Anthropic key for AI command palette (optional) |
 | `log.level` | `info` | `LUMINARR_LOG_LEVEL` | `debug`, `info`, `warn`, `error` |
 | `log.format` | `json` | `LUMINARR_LOG_FORMAT` | `json` or `text` |
 
@@ -203,7 +200,6 @@ Interactive docs with full request/response schemas are available at `/api/docs`
 | **Tags** | `GET/POST /api/v1/tags` · `DELETE /api/v1/tags/{id}` |
 | **Collections** | `GET /api/v1/collections` · `GET /api/v1/collections/{id}` |
 | **Import Lists** | `GET/POST /api/v1/import-lists` · `GET/PUT/DELETE /api/v1/import-lists/{id}` |
-| **AI** | `POST /api/v1/ai/command` · `POST /api/v1/ai/command/confirm` |
 | **Backup** | `GET /api/v1/system/backup` · `POST /api/v1/system/restore` |
 | **Import** | `POST /api/v1/import/radarr/preview` · `POST /api/v1/import/radarr/execute` |
 

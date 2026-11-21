@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Copy, Monitor, Moon, Sun } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
-import { useSystemStatus, useSystemConfig, useSaveConfig, useDisableAI, useRevealApiKey } from "@/api/system";
+import { useSystemStatus, useSystemConfig, useSaveConfig, useRevealApiKey } from "@/api/system";
 import {
   THEME_PRESETS,
   getStoredMode,
@@ -354,16 +354,9 @@ function ConfigSection() {
   const { data: status } = useSystemStatus();
   const { data: sysConfig } = useSystemConfig();
   const saveConfig = useSaveConfig();
-  const disableAI = useDisableAI();
   const [key, setKey] = useState("");
   const [show, setShow] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  // AI API key state
-  const [aiKey, setAiKey] = useState("");
-  const [showAiKey, setShowAiKey] = useState(false);
-  const [aiSaved, setAiSaved] = useState(false);
-  const [confirmDisable, setConfirmDisable] = useState(false);
 
   function handleSave() {
     if (!key.trim()) return;
@@ -374,20 +367,6 @@ function ConfigSection() {
           setSaved(true);
           setKey("");
           setTimeout(() => setSaved(false), 2000);
-        },
-      }
-    );
-  }
-
-  function handleAiSave() {
-    if (!aiKey.trim()) return;
-    saveConfig.mutate(
-      { ai_api_key: aiKey.trim() },
-      {
-        onSuccess: () => {
-          setAiSaved(true);
-          setAiKey("");
-          setTimeout(() => setAiSaved(false), 2000);
         },
       }
     );
@@ -494,147 +473,11 @@ function ConfigSection() {
         </div>
       </div>
 
-      {/* AI API Key */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, color: "var(--color-text-secondary)", minWidth: 100 }}>
-            Claude API Key
-          </span>
-          {status && (
-            <Pill
-              ok={status.ai_enabled}
-              labelTrue="Configured"
-              labelFalse="Not configured"
-            />
-          )}
-        </div>
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
-          Optional — enables AI-powered commands in the command palette (Cmd+K). Get a key from{" "}
-          <a
-            href="https://console.anthropic.com/settings/keys"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "var(--color-accent)" }}
-          >
-            console.anthropic.com
-          </a>. You can disable AI at any time.
+      {saveConfig.error && (
+        <p style={{ fontSize: 12, color: "var(--color-danger)", margin: 0 }}>
+          {saveConfig.error instanceof Error ? saveConfig.error.message : "Failed to save."}
         </p>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
-          <input
-            type={showAiKey ? "text" : "password"}
-            placeholder="sk-ant-..."
-            value={aiKey}
-            onChange={(e) => setAiKey(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAiSave()}
-            style={keyInputStyle}
-            onFocus={(e) => {
-              (e.currentTarget as HTMLInputElement).style.borderColor = "var(--color-accent)";
-            }}
-            onBlur={(e) => {
-              (e.currentTarget as HTMLInputElement).style.borderColor =
-                "var(--color-border-default)";
-            }}
-          />
-          <button onClick={() => setShowAiKey((s) => !s)} style={showHideBtnStyle}>
-            {showAiKey ? "hide" : "show"}
-          </button>
-          <button
-            disabled={!aiKey.trim() || saveConfig.isPending}
-            onClick={handleAiSave}
-            style={saveBtnStyle(!!aiKey.trim() && !saveConfig.isPending)}
-            onMouseEnter={(e) => {
-              if (aiKey.trim() && !saveConfig.isPending)
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  "var(--color-accent-hover)";
-            }}
-            onMouseLeave={(e) => {
-              if (aiKey.trim() && !saveConfig.isPending)
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
-            }}
-          >
-            {saveConfig.isPending ? "Saving…" : "Save"}
-          </button>
-          {aiSaved && (
-            <span style={{ fontSize: 12, color: "var(--color-success)" }}>Saved ✓</span>
-          )}
-        </div>
-
-        {/* Disable AI button — only shown when AI is currently active */}
-        {status?.ai_enabled && (
-          <div style={{ marginTop: 8 }}>
-            {!confirmDisable ? (
-              <button
-                onClick={() => setConfirmDisable(true)}
-                style={{
-                  background: "none",
-                  border: "1px solid var(--color-border-default)",
-                  borderRadius: 6,
-                  padding: "6px 14px",
-                  fontSize: 12,
-                  color: "var(--color-text-muted)",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-danger)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-danger)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-default)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)";
-                }}
-              >
-                Disable AI
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                  Remove your API key and disable all AI features?
-                </span>
-                <button
-                  onClick={() => {
-                    disableAI.mutate(undefined, {
-                      onSuccess: () => setConfirmDisable(false),
-                    });
-                  }}
-                  disabled={disableAI.isPending}
-                  style={{
-                    background: "var(--color-danger)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    padding: "5px 12px",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: disableAI.isPending ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {disableAI.isPending ? "Disabling…" : "Confirm"}
-                </button>
-                <button
-                  onClick={() => setConfirmDisable(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    fontSize: 12,
-                    color: "var(--color-text-muted)",
-                    cursor: "pointer",
-                    padding: "5px 8px",
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {saveConfig.error && (
-          <p style={{ fontSize: 12, color: "var(--color-danger)", margin: 0 }}>
-            {saveConfig.error instanceof Error ? saveConfig.error.message : "Failed to save."}
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 }
