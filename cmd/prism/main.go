@@ -12,12 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/beacon-stack/prism/internal/anthropic"
 	"github.com/beacon-stack/prism/internal/api"
 	"github.com/beacon-stack/prism/internal/api/ws"
 	"github.com/beacon-stack/prism/internal/config"
 	"github.com/beacon-stack/prism/internal/core/activity"
-	"github.com/beacon-stack/prism/internal/core/aicommand"
 	"github.com/beacon-stack/prism/internal/core/autosearch"
 	"github.com/beacon-stack/prism/internal/core/blocklist"
 	"github.com/beacon-stack/prism/internal/core/collection"
@@ -257,9 +255,6 @@ func run() error {
 			"hint", "set tmdb.api_key in config.yaml or PRISM_TMDB_API_KEY env var",
 		)
 	}
-	if cfg.AI.APIKey.IsEmpty() {
-		logger.Info("Claude API key not configured — AI features disabled, using rule-based fallbacks")
-	}
 
 	// ── Database ──────────────────────────────────────────────────────────────
 	database, err := db.Open(cfg.Database)
@@ -400,15 +395,6 @@ func run() error {
 		traktClient = trakt.New(cfg.Trakt.ClientID.Value(), logger)
 	}
 
-	// ── AI command service ──────────────────────────────────────────────────
-	// Always created; the Anthropic client is set only when an API key is
-	// configured (and can be hot-swapped via the settings UI).
-	var aiClient *anthropic.Client
-	if !cfg.AI.APIKey.IsEmpty() {
-		aiClient = anthropic.New(cfg.AI.APIKey.Value())
-	}
-	aiCmdSvc := aicommand.NewService(aiClient, movieSvc, statsSvc, autoSvc, librarySvc, qualitySvc, logger)
-
 	// ── Import list service ──────────────────────────────────────────────────
 	importListSvc := importlist.NewService(queries, registry.Default, movieSvc, autoSvc, rawTMDB, traktClient, logger)
 
@@ -474,7 +460,6 @@ func run() error {
 		TagService:               tagSvc,
 		CustomFormatService:      cfSvc,
 		AutoSearchService:        autoSvc,
-		AICommandService:         aiCmdSvc,
 		ActivityService:          activitySvc,
 		WatchSyncService:         watchSyncSvc,
 		ImportListService:        importListSvc,

@@ -9,7 +9,6 @@ export interface SystemStatus {
   db_path: string;
   uptime_seconds: number;
   start_time: string;
-  ai_enabled: boolean;
   tmdb_enabled: boolean;
 }
 

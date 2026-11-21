@@ -8,9 +8,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
-	"github.com/beacon-stack/prism/internal/anthropic"
 	"github.com/beacon-stack/prism/internal/config"
-	"github.com/beacon-stack/prism/internal/core/aicommand"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 	"github.com/beacon-stack/prism/internal/version"
@@ -26,7 +24,6 @@ type systemStatus struct {
 	DBPath        string `json:"db_path,omitempty"      doc:"SQLite database file path (sqlite only)"`
 	UptimeSeconds int64  `json:"uptime_seconds"         doc:"Seconds since startup"`
 	StartTime     string `json:"start_time"             doc:"UTC server start time"`
-	AIEnabled     bool   `json:"ai_enabled"             doc:"Whether Claude AI features are active"`
 	TMDBEnabled   bool   `json:"tmdb_enabled"           doc:"Whether TMDB metadata fetching is active"`
 }
 
@@ -50,7 +47,6 @@ type systemConfigOutput struct {
 type updateConfigInput struct {
 	Body struct {
 		TMDBAPIKey string `json:"tmdb_api_key,omitempty" doc:"TMDB API key to persist"`
-		AIAPIKey   string `json:"ai_api_key,omitempty"   doc:"Anthropic API key to persist"`
 	}
 }
 
@@ -65,8 +61,8 @@ type updateConfigOutput struct {
 }
 
 // RegisterSystemRoutes registers the /api/v1/system/* endpoints.
-// movieSvc/aiCmdSvc may be nil in test environments.
-func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, configFile string, aiCmdSvc *aicommand.Service, tmdbKeyIsDefault bool, apiKey string, movieSvc *movie.Service, logger *slog.Logger) {
+// movieSvc may be nil in test environments.
+func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, configFile string, tmdbKeyIsDefault bool, apiKey string, movieSvc *movie.Service, logger *slog.Logger) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-system-status",
 		Method:      "GET",
@@ -76,7 +72,6 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		Tags:        []string{"System"},
 	}, func(ctx context.Context, _ *struct{}) (*systemStatusOutput, error) {
 		tmdbEnabled := movieSvc != nil && movieSvc.HasMetadataProvider()
-		aiEnabled := aiCmdSvc != nil && aiCmdSvc.Enabled()
 		return &systemStatusOutput{
 			Body: &systemStatus{
 				AppName:       "Prism",
@@ -87,7 +82,6 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 				DBPath:        dbPath,
 				UptimeSeconds: int64(time.Since(startTime).Seconds()),
 				StartTime:     startTime.UTC().Format(time.RFC3339),
-				AIEnabled:     aiEnabled,
 				TMDBEnabled:   tmdbEnabled,
 			},
 		}, nil
@@ -145,29 +139,6 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		}, nil
 	})
 
-	// DELETE /api/v1/system/config/ai — clear the AI API key and disable AI features.
-	huma.Register(api, huma.Operation{
-		OperationID: "disable-ai",
-		Method:      http.MethodDelete,
-		Path:        "/api/v1/system/config/ai",
-		Summary:     "Disable AI features",
-		Description: "Clears the Claude API key from the config file and disables AI features immediately.",
-		Tags:        []string{"System"},
-	}, func(ctx context.Context, _ *struct{}) (*updateConfigOutput, error) {
-		writePath, err := config.WriteConfigKey(configFile, "ai.api_key", "")
-		if err != nil {
-			return nil, huma.NewError(http.StatusInternalServerError, "failed to clear AI config", err)
-		}
-		if aiCmdSvc != nil {
-			aiCmdSvc.SetClient(nil)
-		}
-		logger.Info("AI features disabled — API key cleared")
-		return &updateConfigOutput{Body: &updateConfigResult{
-			Saved:      true,
-			ConfigFile: writePath,
-		}}, nil
-	})
-
 	// PUT /api/v1/system/config — update config values and activate them immediately.
 	huma.Register(api, huma.Operation{
 		OperationID: "update-system-config",
@@ -177,7 +148,7 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 		Description: "Writes the supplied values to the config file and activates them immediately without a restart.",
 		Tags:        []string{"System"},
 	}, func(ctx context.Context, input *updateConfigInput) (*updateConfigOutput, error) {
-		if input.Body.TMDBAPIKey == "" && input.Body.AIAPIKey == "" {
+		if input.Body.TMDBAPIKey == "" {
 			return nil, huma.NewError(http.StatusBadRequest, "no config values provided")
 		}
 
@@ -192,17 +163,6 @@ func RegisterSystemRoutes(api huma.API, startTime time.Time, dbType, dbPath, con
 			// Wire up the new TMDB client immediately — no restart needed.
 			if movieSvc != nil {
 				movieSvc.SetMetadataProvider(tmdb.New(input.Body.TMDBAPIKey, logger))
-			}
-		}
-
-		if input.Body.AIAPIKey != "" {
-			writePath, err = config.WriteConfigKey(configFile, "ai.api_key", input.Body.AIAPIKey)
-			if err != nil {
-				return nil, huma.NewError(http.StatusInternalServerError, "failed to write AI config", err)
-			}
-			// Wire up the new Anthropic client immediately — no restart needed.
-			if aiCmdSvc != nil {
-				aiCmdSvc.SetClient(anthropic.New(input.Body.AIAPIKey))
 			}
 		}
 

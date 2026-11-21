@@ -18,7 +18,6 @@ import (
 	"github.com/beacon-stack/prism/internal/api/ws"
 	"github.com/beacon-stack/prism/internal/config"
 	"github.com/beacon-stack/prism/internal/core/activity"
-	"github.com/beacon-stack/prism/internal/core/aicommand"
 	"github.com/beacon-stack/prism/internal/core/autosearch"
 	"github.com/beacon-stack/prism/internal/core/blocklist"
 	"github.com/beacon-stack/prism/internal/core/collection"
@@ -84,7 +83,6 @@ type RouterConfig struct {
 	TagService               *tag.Service
 	CustomFormatService      *customformat.Service
 	AutoSearchService        *autosearch.Service
-	AICommandService         *aicommand.Service
 	ActivityService          *activity.Service
 	WatchSyncService         *watchsync.Service
 	ImportListService        *importlist.Service
@@ -192,7 +190,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		_ = huma.WriteErr(humaAPI, ctx, http.StatusUnauthorized, "A valid X-Api-Key header is required.")
 	})
 
-	v1.RegisterSystemRoutes(humaAPI, cfg.StartTime, cfg.DBType, cfg.DBPath, cfg.ConfigFile, cfg.AICommandService, cfg.TMDBKeyIsDefault, cfg.Auth.Value(), cfg.MovieService, cfg.Logger)
+	v1.RegisterSystemRoutes(humaAPI, cfg.StartTime, cfg.DBType, cfg.DBPath, cfg.ConfigFile, cfg.TMDBKeyIsDefault, cfg.Auth.Value(), cfg.MovieService, cfg.Logger)
 	v1.RegisterUpdateRoutes(humaAPI)
 
 	if cfg.LogSystem != nil {
@@ -313,10 +311,6 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	v1.RegisterFilesystemRoutes(humaAPI)
 	v1.RegisterParseRoutes(humaAPI)
-
-	if cfg.AICommandService != nil {
-		v1.RegisterAIRoutes(humaAPI, cfg.AICommandService)
-	}
 
 	if cfg.ActivityService != nil {
 		v1.RegisterActivityRoutes(humaAPI, cfg.ActivityService)

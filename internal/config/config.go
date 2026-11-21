@@ -9,7 +9,6 @@ type Config struct {
 	Log       LogConfig       `mapstructure:"log"`
 	TMDB      TMDBConfig      `mapstructure:"tmdb"`
 	Trakt     TraktConfig     `mapstructure:"trakt"`
-	AI        AIConfig        `mapstructure:"ai"`
 	Auth      AuthConfig      `mapstructure:"auth"`
 	MediaInfo MediaInfoConfig `mapstructure:"mediainfo"`
 	Pulse     PulseConfig     `mapstructure:"pulse"`
@@ -56,14 +55,6 @@ type LogConfig struct {
 // TMDBConfig holds The Movie Database API credentials.
 type TMDBConfig struct {
 	APIKey Secret `mapstructure:"api_key"`
-}
-
-// AIConfig holds Claude API credentials and model selection.
-type AIConfig struct {
-	APIKey      Secret `mapstructure:"api_key"`
-	MatchModel  string `mapstructure:"match_model"`
-	ScoreModel  string `mapstructure:"score_model"`
-	FilterModel string `mapstructure:"filter_model"`
 }
 
 // AuthConfig holds the Prism API key used to authenticate requests.

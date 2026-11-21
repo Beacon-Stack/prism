@@ -16,13 +16,10 @@ import (
 )
 
 const (
-	DefaultHost          = "0.0.0.0"
-	DefaultPort          = 8282
-	DefaultLogLevel      = "info"
-	DefaultLogFormat     = "json"
-	DefaultAIMatchModel  = "claude-sonnet-4-6"
-	DefaultAIScoreModel  = "claude-haiku-4-5-20251001"
-	DefaultAIFilterModel = "claude-haiku-4-5-20251001"
+	DefaultHost      = "0.0.0.0"
+	DefaultPort      = 8282
+	DefaultLogLevel  = "info"
+	DefaultLogFormat = "json"
 )
 
 // dataDir returns the default data directory: ~/.config/prism/
@@ -55,9 +52,6 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("database.path", filepath.Join(dir, "prism.db"))
 	v.SetDefault("log.level", DefaultLogLevel)
 	v.SetDefault("log.format", DefaultLogFormat)
-	v.SetDefault("ai.match_model", DefaultAIMatchModel)
-	v.SetDefault("ai.score_model", DefaultAIScoreModel)
-	v.SetDefault("ai.filter_model", DefaultAIFilterModel)
 	v.SetDefault("mediainfo.scan_timeout", "30s")
 	v.SetDefault("mediainfo.scan_on_import", true)
 
@@ -87,14 +81,10 @@ func Load(cfgFile string) (*Config, error) {
 	// not reliably resolved by AutomaticEnv alone.
 	_ = v.BindEnv("auth.api_key", "PRISM_AUTH_API_KEY")
 	_ = v.BindEnv("tmdb.api_key", "PRISM_TMDB_API_KEY")
-	_ = v.BindEnv("ai.api_key", "PRISM_AI_API_KEY")
 	_ = v.BindEnv("database.path", "PRISM_DATABASE_PATH")
 	_ = v.BindEnv("pulse.url", "PRISM_PULSE_URL")
 	_ = v.BindEnv("pulse.api_key", "PRISM_PULSE_API_KEY")
 	_ = v.BindEnv("pulse.api_key_file", "PRISM_PULSE_API_KEY_FILE")
-	_ = v.BindEnv("ai.match_model", "PRISM_AI_MATCH_MODEL")
-	_ = v.BindEnv("ai.score_model", "PRISM_AI_SCORE_MODEL")
-	_ = v.BindEnv("ai.filter_model", "PRISM_AI_FILTER_MODEL")
 
 	if err := v.ReadInConfig(); err != nil {
 		// Missing config file is not an error — we use defaults.
