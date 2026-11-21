@@ -140,7 +140,7 @@ describe("StatusSection", () => {
       "https://github.com/beacon-stack/prism/compare/1111111...2222222"
     );
     await user.click(screen.getByText("Docker"));
-    expect(screen.getByText(/docker pull ghcr.io\/beacon-stack\/prism:develop/)).toBeInTheDocument();
+    expect(screen.getByText(/docker pull ghcr.io\/beacon-stack\/prism:main/)).toBeInTheDocument();
   });
 
   it("explains when it can't tell", async () => {
