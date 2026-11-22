@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -53,6 +55,34 @@ type discoverPageInput struct {
 type discoverGenreInput struct {
 	ID   string `path:"id"   doc:"TMDB genre ID"`
 	Page int    `query:"page" default:"1" doc:"Page number (1-based)"`
+}
+
+type discoverBrowseInput struct {
+	Category  string  `query:"category" default:"trending" enum:"trending,popular,top-rated,new,coming-soon" doc:"Which list"`
+	Page      int     `query:"page" default:"1" minimum:"1" maximum:"500" doc:"Page number (1-based)"`
+	Genre     int     `query:"genre" doc:"TMDB genre ID; 0 for any"`
+	Provider  int     `query:"provider" doc:"TMDB streaming service ID; 0 for any"`
+	MinRating float64 `query:"min_rating" minimum:"0" maximum:"10" doc:"Minimum TMDB rating (0-10)"`
+	Region    string  `query:"region" default:"US" doc:"Country for release dates and streaming services (ISO 3166-1)"`
+}
+
+type discoverRegionInput struct {
+	Region string `query:"region" default:"US" doc:"Country (ISO 3166-1)"`
+}
+
+type discoverSearchInput struct {
+	Query string `query:"q" maxLength:"200" doc:"Title to search for"`
+	Page  int    `query:"page" default:"1" minimum:"1" maximum:"500" doc:"Page number (1-based)"`
+}
+
+type providerBody struct {
+	ID       int    `json:"id"        doc:"TMDB watch provider ID"`
+	Name     string `json:"name"      doc:"Service name"`
+	LogoPath string `json:"logo_path" doc:"TMDB logo path"`
+}
+
+type providerListOutput struct {
+	Body []providerBody
 }
 
 type discoverMovieInput struct {
@@ -187,6 +217,89 @@ func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *t
 		func(ctx context.Context, page int) (*tmdb.PaginatedResults, error) {
 			return tmdbClient.FetchUpcoming(ctx, page)
 		})
+
+	// Browse with filters: one endpoint for every category, so genre,
+	// streaming service and rating can be combined with any of them.
+	huma.Register(api, huma.Operation{
+		OperationID: "discover-browse",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/discover/browse",
+		Summary:     "Browse movies by category with optional filters",
+		Description: "Categories: trending, popular, top-rated, new (released to streaming, rent or buy in the last 60 days), coming-soon. Filters are ignored for trending.",
+		Tags:        []string{"Discover"},
+	}, func(ctx context.Context, input *discoverBrowseInput) (*discoverListOutput, error) {
+		if tmdbClient == nil {
+			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB is not configured")
+		}
+		pr, err := tmdbClient.Browse(ctx, tmdb.BrowseFilter{
+			Category:   input.Category,
+			Page:       input.Page,
+			GenreID:    input.Genre,
+			ProviderID: input.Provider,
+			MinRating:  input.MinRating,
+			Region:     input.Region,
+			Today:      time.Now(),
+		})
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "unknown category") {
+				return nil, huma.NewError(http.StatusBadRequest, err.Error())
+			}
+			return nil, huma.NewError(http.StatusBadGateway, "TMDB request failed", err)
+		}
+		return &discoverListOutput{Body: &discoverListBody{
+			Results:    enrich(ctx, pr.Results),
+			Page:       pr.Page,
+			TotalPages: pr.TotalPages,
+		}}, nil
+	})
+
+	// Streaming services for the service filter.
+	huma.Register(api, huma.Operation{
+		OperationID: "discover-providers",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/discover/providers",
+		Summary:     "List streaming services in a country",
+		Tags:        []string{"Discover"},
+	}, func(ctx context.Context, input *discoverRegionInput) (*providerListOutput, error) {
+		if tmdbClient == nil {
+			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB is not configured")
+		}
+		ps, err := tmdbClient.WatchProviders(ctx, input.Region)
+		if err != nil {
+			return nil, huma.NewError(http.StatusBadGateway, "TMDB request failed", err)
+		}
+		out := make([]providerBody, 0, len(ps))
+		for _, p := range ps {
+			out = append(out, providerBody{ID: p.ID, Name: p.Name, LogoPath: p.LogoPath})
+		}
+		return &providerListOutput{Body: out}, nil
+	})
+
+	// Title search, marked with what's already in the library.
+	huma.Register(api, huma.Operation{
+		OperationID: "discover-search",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/discover/search",
+		Summary:     "Search movies by title",
+		Tags:        []string{"Discover"},
+	}, func(ctx context.Context, input *discoverSearchInput) (*discoverListOutput, error) {
+		if tmdbClient == nil {
+			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB is not configured")
+		}
+		q := strings.TrimSpace(input.Query)
+		if q == "" {
+			return &discoverListOutput{Body: &discoverListBody{Results: []discoverResultBody{}, Page: 1, TotalPages: 0}}, nil
+		}
+		pr, err := tmdbClient.SearchPaginated(ctx, q, input.Page)
+		if err != nil {
+			return nil, huma.NewError(http.StatusBadGateway, "TMDB request failed", err)
+		}
+		return &discoverListOutput{Body: &discoverListBody{
+			Results:    enrich(ctx, pr.Results),
+			Page:       pr.Page,
+			TotalPages: pr.TotalPages,
+		}}, nil
+	})
 
 	// Genre browse
 	huma.Register(api, huma.Operation{
