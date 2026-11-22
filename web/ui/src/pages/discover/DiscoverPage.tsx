@@ -3,28 +3,28 @@ import { useNavigate, Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useDiscover,
-  useDiscoverByGenre,
+  useDiscoverBrowse,
+  useDiscoverProviders,
+  useDiscoverSearch,
   useGenreList,
   type DiscoverResult,
 } from "@/api/discover";
+import PageHeader from "@/components/PageHeader";
+import { APIError } from "@beacon-shared/api";
+import {
+  DiscoverControls,
+  DiscoverEmpty,
+  DiscoverGrid,
+  DiscoverLoading,
+  DiscoverPager,
+  DiscoverUnavailable,
+} from "@beacon-shared/Discover";
+import { discoverRegion, useDiscoverState } from "@beacon-shared/discoverState";
 import { useAddMovie } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import { Poster } from "@/components/Poster";
 import Modal from "@beacon-shared/Modal";
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type Tab = "trending" | "popular" | "top-rated" | "upcoming" | "genre";
-
-const TABS: { value: Tab; label: string }[] = [
-  { value: "trending", label: "Trending" },
-  { value: "popular", label: "Popular" },
-  { value: "top-rated", label: "Top Rated" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "genre", label: "By Genre" },
-];
 
 // ── Add Movie Modal ─────────────────────────────────────────────────────────
 
@@ -338,270 +338,74 @@ function DiscoverCard({
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+const region = discoverRegion();
+
 export default function DiscoverPage() {
-  const [tab, setTab] = useState<Tab>("trending");
-  const [page, setPage] = useState(1);
-  const [genreId, setGenreId] = useState(0);
+  const s = useDiscoverState();
   const [addingMovie, setAddingMovie] = useState<DiscoverResult | null>(null);
-
-  // Reset page when switching tabs
-  function switchTab(t: Tab) {
-    setTab(t);
-    setPage(1);
-  }
-
-  const category = tab !== "genre" ? tab : undefined;
-  const listQuery = useDiscover(category ?? "trending", category ? page : 0);
-  const genreQuery = useDiscoverByGenre(
-    tab === "genre" ? genreId : 0,
-    tab === "genre" ? page : 0
-  );
+  const browse = useDiscoverBrowse({ category: s.category, page: s.page, region, ...s.filters }, !s.searching);
+  const search = useDiscoverSearch(s.query, s.page, s.searching);
   const { data: genres } = useGenreList();
+  const { data: providers } = useDiscoverProviders(region);
 
-  const activeQuery = tab === "genre" ? genreQuery : listQuery;
-  const data = activeQuery.data;
-  const isLoading = activeQuery.isLoading;
-  const isError = activeQuery.isError;
+  const active = s.searching ? search : browse;
+  const data = active.data;
+  const unavailable = active.error instanceof APIError && active.error.status === 503 ? active.error : null;
 
   return (
     <div style={{ padding: 24, maxWidth: 1200 }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1
-          style={{
-            fontSize: 20,
-            fontWeight: 600,
-            color: "var(--color-text-primary)",
-            margin: 0,
-            marginBottom: 4,
-            letterSpacing: "-0.01em",
-          }}
-        >
-          Discover
-        </h1>
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--color-text-secondary)",
-            margin: 0,
-          }}
-        >
-          Find movies to add to your library
-        </p>
-      </div>
+      <PageHeader title="Discover" description="Find movies to add to your library." />
 
-      {/* Tab pills */}
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          marginBottom: 20,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        {TABS.map((t) => {
-          const active = tab === t.value;
-          return (
-            <button
-              key={t.value}
-              onClick={() => switchTab(t.value)}
-              data-testid={`tab-${t.value}`}
-              style={{
-                padding: "5px 12px",
-                borderRadius: 6,
-                border: active
-                  ? "1px solid var(--color-accent)"
-                  : "1px solid var(--color-border-default)",
-                background: active
-                  ? "var(--color-accent-muted)"
-                  : "transparent",
-                color: active
-                  ? "var(--color-accent-hover)"
-                  : "var(--color-text-secondary)",
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+      <DiscoverControls
+        noun="movies"
+        query={s.query}
+        onQuery={s.setQuery}
+        busy={s.searching && search.isFetching}
+        category={s.category}
+        onCategory={s.setCategory}
+        filters={s.filters}
+        filterCount={s.filterCount}
+        onFilter={s.setFilter}
+        onClearFilters={s.clearFilters}
+        genres={genres}
+        providers={providers}
+        region={region}
+      />
 
-        {/* Genre dropdown */}
-        {tab === "genre" && genres && (
-          <select
-            value={genreId}
-            onChange={(e) => {
-              setGenreId(Number(e.target.value));
-              setPage(1);
-            }}
-            data-testid="genre-select"
-            style={{
-              padding: "5px 10px",
-              borderRadius: 6,
-              border: "1px solid var(--color-border-default)",
-              background: "var(--color-bg-elevated)",
-              color: "var(--color-text-primary)",
-              fontSize: 12,
-            }}
-          >
-            <option value={0}>Select genre...</option>
-            {genres.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      {/* Loading */}
-      {isLoading && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-            gap: 20,
-          }}
-        >
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div key={i}>
-              <div
-                className="skeleton"
-                style={{ paddingBottom: "150%", borderRadius: 8 }}
-              />
-              <div
-                className="skeleton"
-                style={{ height: 14, width: "80%", marginTop: 8, borderRadius: 4 }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Error */}
-      {isError && (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--color-danger)",
-            textAlign: "center",
-            padding: "48px 0",
-          }}
-        >
-          Failed to load movies. Check that TMDB is configured.
-        </p>
-      )}
-
-      {/* Empty */}
-      {data && data.results.length === 0 && (
-        <p
-          style={{
-            fontSize: 13,
-            color: "var(--color-text-muted)",
-            textAlign: "center",
-            padding: "48px 0",
-          }}
-          data-testid="empty-state"
-        >
-          {tab === "genre" && genreId === 0
-            ? "Select a genre to browse"
-            : "No movies found"}
-        </p>
-      )}
-
-      {/* Grid */}
-      {data && data.results.length > 0 && (
-        <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-              gap: 20,
-            }}
-            data-testid="discover-grid"
-          >
+      {unavailable ? (
+        <DiscoverUnavailable app="Prism" message={unavailable.detail} />
+      ) : active.isLoading ? (
+        <DiscoverLoading />
+      ) : active.isError ? (
+        <DiscoverEmpty title="Couldn't load this list" hint="TMDB didn't answer. Try again in a moment." />
+      ) : data && data.results.length === 0 ? (
+        s.searching ? (
+          <DiscoverEmpty title="No movies found" hint="Try a different title." />
+        ) : (
+          <DiscoverEmpty
+            title="Nothing matches these filters"
+            hint={s.filterCount ? "Try fewer filters or a different list." : undefined}
+            action={
+              s.filterCount ? (
+                <button type="button" onClick={s.clearFilters} style={{ background: "none", border: "none", color: "var(--color-accent)", fontSize: 13, cursor: "pointer" }}>
+                  Clear filters
+                </button>
+              ) : undefined
+            }
+          />
+        )
+      ) : data ? (
+        <div style={{ opacity: active.isPlaceholderData ? 0.6 : 1, transition: "opacity 120ms" }}>
+          <DiscoverGrid>
             {data.results.map((movie) => (
-              <DiscoverCard
-                key={movie.tmdb_id}
-                movie={movie}
-                onAdd={setAddingMovie}
-              />
+              <DiscoverCard key={movie.tmdb_id} movie={movie} onAdd={setAddingMovie} />
             ))}
-          </div>
+          </DiscoverGrid>
+          <DiscoverPager page={data.page} totalPages={data.total_pages} onPage={s.setPage} />
+        </div>
+      ) : null}
 
-          {/* Pagination */}
-          {data.total_pages > 1 && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 12,
-                marginTop: 32,
-              }}
-            >
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 6,
-                  border: "1px solid var(--color-border-default)",
-                  background: "transparent",
-                  color:
-                    page <= 1
-                      ? "var(--color-text-muted)"
-                      : "var(--color-text-secondary)",
-                  fontSize: 12,
-                  cursor: page <= 1 ? "not-allowed" : "pointer",
-                }}
-              >
-                Previous
-              </button>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "var(--color-text-muted)",
-                  alignSelf: "center",
-                }}
-              >
-                Page {data.page} of {data.total_pages}
-              </span>
-              <button
-                onClick={() =>
-                  setPage((p) => Math.min(data.total_pages, p + 1))
-                }
-                disabled={page >= data.total_pages}
-                data-testid="next-page"
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 6,
-                  border: "1px solid var(--color-border-default)",
-                  background: "transparent",
-                  color:
-                    page >= data.total_pages
-                      ? "var(--color-text-muted)"
-                      : "var(--color-text-secondary)",
-                  fontSize: 12,
-                  cursor:
-                    page >= data.total_pages ? "not-allowed" : "pointer",
-                }}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Add modal */}
-      {addingMovie && (
-        <QuickAddModal
-          movie={addingMovie}
-          onClose={() => setAddingMovie(null)}
-        />
-      )}
+      {addingMovie && <QuickAddModal movie={addingMovie} onClose={() => setAddingMovie(null)} />}
     </div>
   );
 }

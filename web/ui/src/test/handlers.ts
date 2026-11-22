@@ -67,6 +67,18 @@ export const handlers = [
   ),
 
   // Discover
+  http.get("/api/v1/discover/browse", () =>
+    HttpResponse.json({ results: [], page: 1, total_pages: 0 })
+  ),
+  http.get("/api/v1/discover/search", () =>
+    HttpResponse.json({ results: [], page: 1, total_pages: 0 })
+  ),
+  http.get("/api/v1/discover/providers", () =>
+    HttpResponse.json([
+      { id: 8, name: "Netflix", logo_path: "/n.jpg" },
+      { id: 9, name: "Prime Video", logo_path: "/p.jpg" },
+    ])
+  ),
   http.get("/api/v1/discover/trending", () =>
     HttpResponse.json({ results: [], page: 1, total_pages: 0 })
   ),
