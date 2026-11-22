@@ -30,6 +30,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import Shell, { type NavItem } from "@beacon-shared/Shell";
+import UpdatedNotice from "@beacon-shared/UpdatedNotice";
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
 import { applyTheme } from "@/theme";
@@ -167,9 +168,10 @@ export default function PrismShell() {
         </>
       }
       overlay={
-        commandPalette.isOpen && (
-          <CommandPalette onClose={commandPalette.close} />
-        )
+        <>
+          {commandPalette.isOpen && <CommandPalette onClose={commandPalette.close} />}
+          <UpdatedNotice app="Prism" />
+        </>
       }
     />
   );
