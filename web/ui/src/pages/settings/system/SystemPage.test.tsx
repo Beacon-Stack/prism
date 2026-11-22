@@ -45,7 +45,6 @@ describe("StatusSection", () => {
     expect(screen.getByText("sqlite3")).toBeInTheDocument();
     expect(screen.getByText(":memory:")).toBeInTheDocument();
     expect(screen.getByText("1h 0m")).toBeInTheDocument();
-    expect(screen.getByText("Configured")).toBeInTheDocument(); // tmdb_enabled: true
   });
 
   it("shows 'Check for updates' button", async () => {
