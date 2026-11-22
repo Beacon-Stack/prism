@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/handlers";
@@ -11,29 +11,6 @@ import SystemPage from "./SystemPage";
 function renderPage() {
   return renderWithProviders(createElement(SystemPage));
 }
-
-// ── StatsStrip ───────────────────────────────────────────────────────────────
-
-describe("StatsStrip", () => {
-  it("renders movie count and queue count", async () => {
-    server.use(
-      http.get("/api/v1/movies", () =>
-        HttpResponse.json({ movies: [], total: 42, page: 1, per_page: 1 })
-      ),
-      http.get("/api/v1/queue", () =>
-        HttpResponse.json([{ id: "q-1" }, { id: "q-2" }])
-      )
-    );
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("42")).toBeInTheDocument());
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("Total Movies")).toBeInTheDocument();
-    expect(screen.getByText("Downloading")).toBeInTheDocument();
-  });
-});
-
-// ── StatusSection ────────────────────────────────────────────────────────────
 
 describe("StatusSection", () => {
   it("shows skeletons while loading", () => {
@@ -61,14 +38,13 @@ describe("StatusSection", () => {
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/Prism 0\.0\.0-test/)).toBeInTheDocument()
+      expect(screen.getByText("0.0.0-test")).toBeInTheDocument()
     );
 
     expect(screen.getByText("go1.23.0")).toBeInTheDocument();
     expect(screen.getByText("sqlite3")).toBeInTheDocument();
     expect(screen.getByText(":memory:")).toBeInTheDocument();
     expect(screen.getByText("1h 0m")).toBeInTheDocument();
-    expect(screen.getByText("Configured")).toBeInTheDocument(); // tmdb_enabled: true
   });
 
   it("shows 'Check for updates' button", async () => {
@@ -259,45 +235,45 @@ describe("TasksSection", () => {
     server.use(
       http.get("/api/v1/tasks", () =>
         HttpResponse.json([
-          { name: "refresh-metadata", interval: "24h" },
-          { name: "check-downloads", interval: "5m" },
+          { name: "refresh_metadata", interval: "24h" },
+          { name: "check_downloads", interval: "5m" },
         ])
       )
     );
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText("refresh-metadata")).toBeInTheDocument()
+      expect(screen.getByText("Refresh metadata")).toBeInTheDocument()
     );
-    expect(screen.getByText("24h")).toBeInTheDocument();
-    expect(screen.getByText("check-downloads")).toBeInTheDocument();
-    expect(screen.getByText("5m")).toBeInTheDocument();
+    expect(screen.getByText("every 24h")).toBeInTheDocument();
+    expect(screen.getByText("Check downloads")).toBeInTheDocument();
+    expect(screen.getByText("every 5m")).toBeInTheDocument();
   });
 
-  it("shows Run Now buttons for each task", async () => {
+  it("shows Run now buttons for each task", async () => {
     server.use(
       http.get("/api/v1/tasks", () =>
         HttpResponse.json([
-          { name: "refresh-metadata", interval: "24h" },
+          { name: "refresh_metadata", interval: "24h" },
         ])
       )
     );
 
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText("Run Now")).toBeInTheDocument()
+      expect(screen.getByText("Run now")).toBeInTheDocument()
     );
   });
 
-  it("triggers task and shows 'Triggered' confirmation", async () => {
+  it("triggers task and shows 'Running' confirmation", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     server.use(
       http.get("/api/v1/tasks", () =>
         HttpResponse.json([
-          { name: "refresh-metadata", interval: "24h" },
+          { name: "refresh_metadata", interval: "24h" },
         ])
       ),
-      http.post("/api/v1/tasks/refresh-metadata/run", () =>
+      http.post("/api/v1/tasks/refresh_metadata/run", () =>
         new HttpResponse(null, { status: 202 })
       )
     );
@@ -306,141 +282,32 @@ describe("TasksSection", () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
     await waitFor(() =>
-      expect(screen.getByText("Run Now")).toBeInTheDocument()
+      expect(screen.getByText("Run now")).toBeInTheDocument()
     );
-    await user.click(screen.getByText("Run Now"));
+    await user.click(screen.getByText("Run now"));
 
     await waitFor(() =>
-      expect(screen.getByText(/Triggered/)).toBeInTheDocument()
+      expect(screen.getByText(/Running ✓/)).toBeInTheDocument()
     );
 
     vi.useRealTimers();
   });
 });
 
-// ── LogsSection ──────────────────────────────────────────────────────────────
-
-describe("LogsSection", () => {
-  it("shows 'No log entries' when empty", async () => {
-    server.use(
-      http.get("/api/v1/system/logs", () => HttpResponse.json([]))
-    );
-
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("No log entries.")).toBeInTheDocument()
-    );
-  });
-
-  it("renders log entries with time, level, and message", async () => {
-    const logs = [
-      {
-        time: "2025-01-01T12:34:56Z",
-        level: "INFO",
-        message: "Server started",
-      },
-      {
-        time: "2025-01-01T12:35:00Z",
-        level: "ERROR",
-        message: "Database connection failed",
-        fields: { db: "sqlite3", error: "locked" },
-      },
-    ];
-    server.use(
-      http.get("/api/v1/system/logs", () => HttpResponse.json(logs))
-    );
-
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("Server started")).toBeInTheDocument()
-    );
-    // "INFO" also appears in the level filter dropdown, so use getAllByText
-    expect(screen.getAllByText("INFO").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("ERROR").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Database connection failed")).toBeInTheDocument();
-  });
-
-  it("shows error message on fetch failure", async () => {
-    server.use(
-      http.get("/api/v1/system/logs", () =>
-        HttpResponse.json({ error: "fail" }, { status: 500 })
-      )
-    );
-
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("Failed to load logs.")).toBeInTheDocument()
-    );
-  });
-
-  it("has level filter dropdown", async () => {
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("Level:")).toBeInTheDocument()
-    );
-
-    const select = screen.getByRole("combobox");
-    expect(select).toBeInTheDocument();
-
-    // Check options
-    const options = within(select).getAllByRole("option");
-    expect(options).toHaveLength(5);
-    expect(options.map((o) => o.textContent)).toEqual([
-      "All",
-      "DEBUG",
-      "INFO",
-      "WARN",
-      "ERROR",
-    ]);
-  });
-
-  it("expands log entry fields on click", async () => {
-    const logs = [
-      {
-        time: "2025-01-01T12:00:00Z",
-        level: "ERROR",
-        message: "Something broke",
-        fields: { component: "scheduler", error: "timeout" },
-      },
-    ];
-    server.use(
-      http.get("/api/v1/system/logs", () => HttpResponse.json(logs))
-    );
-
-    renderPage();
-    const user = userEvent.setup();
-
-    await waitFor(() =>
-      expect(screen.getByText("Something broke")).toBeInTheDocument()
-    );
-
-    // Click the row to expand fields
-    await user.click(screen.getByText("Something broke"));
-
-    await waitFor(() =>
-      expect(screen.getByText(/"component": "scheduler"/)).toBeInTheDocument()
-    );
-  });
-});
-
-// ── Page-level ───────────────────────────────────────────────────────────────
-
 describe("SystemPage", () => {
   it("renders heading and description", async () => {
     renderPage();
     expect(screen.getByText("System")).toBeInTheDocument();
     expect(
-      screen.getByText("Runtime status, health checks, and configuration.")
+      screen.getByText("What's running and how it's doing.")
     ).toBeInTheDocument();
   });
 
-  it("renders all four section headers", async () => {
+  it("renders the shared sections: About, Health, Tasks", async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByText("Status")).toBeInTheDocument()
-    );
-    expect(screen.getByText("Health")).toBeInTheDocument();
-    expect(screen.getByText("Tasks")).toBeInTheDocument();
-    expect(screen.getByText("Logs")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "About" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Health" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Tasks" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Logs" })).not.toBeInTheDocument();
   });
 });
