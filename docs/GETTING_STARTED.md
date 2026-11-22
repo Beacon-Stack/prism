@@ -239,7 +239,6 @@ sudo pacman -S ffmpeg
 
 The default `latest` image is Alpine-based and includes ffprobe — no extra setup needed.
 
-A `latest-minimal` tag is also available (scratch-based, ~20 MB) for users who don't need media scanning or prefer the smallest possible image. It does not include ffprobe.
 
 ### Verify it works
 
