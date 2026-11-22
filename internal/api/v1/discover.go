@@ -154,9 +154,13 @@ func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *t
 
 		out := make([]discoverResultBody, 0, len(results))
 		for _, r := range results {
+			title, ok := displayTitle(r.Title, r.OriginalTitle)
+			if !ok {
+				continue
+			}
 			item := discoverResultBody{
 				TMDBID:     r.ID,
-				Title:      r.Title,
+				Title:      title,
 				Year:       r.Year,
 				Overview:   r.Overview,
 				PosterPath: r.PosterPath,
