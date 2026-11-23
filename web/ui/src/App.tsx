@@ -15,7 +15,7 @@ import QualityProfileList from "@/pages/settings/quality-profiles/QualityProfile
 import QualityDefinitionsPage from "@/pages/settings/quality-definitions/QualityDefinitionsPage";
 import IndexerList from "@/pages/settings/indexers/IndexerList";
 import DownloadClientList from "@/pages/settings/download-clients/DownloadClientList";
-import NotificationList from "@/pages/settings/notifications/NotificationList";
+import Notifications from "@beacon-shared/Notifications";
 import MediaServerList from "@/pages/settings/media-servers/MediaServerList";
 import ImportListList from "@/pages/settings/import-lists/ImportListList";
 import ImportExclusions from "@/pages/settings/import-lists/ImportExclusions";
@@ -82,7 +82,7 @@ export default function App() {
                 <Route path="custom-formats" element={<RouteEB><CustomFormatsPage /></RouteEB>} />
                 <Route path="indexers" element={<RouteEB><IndexerList /></RouteEB>} />
                 <Route path="download-clients" element={<RouteEB><DownloadClientList /></RouteEB>} />
-                <Route path="notifications" element={<RouteEB><NotificationList /></RouteEB>} />
+                <Route path="notifications" element={<RouteEB><Notifications /></RouteEB>} />
                 <Route path="media-servers" element={<RouteEB><MediaServerList /></RouteEB>} />
                 <Route path="import-lists" element={<RouteEB><ImportListList /></RouteEB>} />
                 <Route path="import-exclusions" element={<RouteEB><ImportExclusions /></RouteEB>} />

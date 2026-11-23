@@ -33,7 +33,6 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	"github.com/beacon-stack/prism/internal/core/notification"
 	"github.com/beacon-stack/prism/internal/core/provider"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/queue"
@@ -48,6 +47,8 @@ import (
 	"github.com/beacon-stack/prism/internal/version"
 	"github.com/beacon-stack/prism/web"
 	beaconlog "github.com/beacon-stack/pulse/pkg/log"
+	"github.com/beacon-stack/pulse/pkg/notify"
+	"github.com/beacon-stack/pulse/pkg/notify/notifyapi"
 )
 
 // RouterConfig holds everything the router needs to function.
@@ -70,7 +71,8 @@ type RouterConfig struct {
 	BlocklistService         *blocklist.Service
 	QueueService             *queue.Service
 	Scheduler                *scheduler.Scheduler
-	NotificationService      *notification.Service
+	NotifyStore              *notify.Store
+	NotifyOutbox             *notify.Outbox
 	HealthService            *health.Service
 	MediaManagementService   *mediamanagement.Service
 	DownloadHandlingService  *downloadhandling.Service
@@ -257,8 +259,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		v1.RegisterTaskRoutes(humaAPI, cfg.Scheduler)
 	}
 
-	if cfg.NotificationService != nil {
-		v1.RegisterNotificationRoutes(humaAPI, cfg.NotificationService, cfg.TagService)
+	if cfg.NotifyStore != nil && cfg.NotifyOutbox != nil {
+		notifyapi.Register(humaAPI, notifyapi.Options{App: "Prism", Store: cfg.NotifyStore, Outbox: cfg.NotifyOutbox})
 	}
 
 	if cfg.MediaServerService != nil {

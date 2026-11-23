@@ -13,9 +13,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/beacon-stack/pulse/pkg/notify"
 
 	"github.com/beacon-stack/prism/internal/api"
 	"github.com/beacon-stack/prism/internal/config"
@@ -29,7 +32,6 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	"github.com/beacon-stack/prism/internal/core/notification"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/queue"
 	"github.com/beacon-stack/prism/internal/core/stats"
@@ -70,11 +72,6 @@ func registerTestPlugins(reg *registry.Registry) {
 	})
 	reg.RegisterDownloaderSanitizer("qbittorrent", func(s json.RawMessage) json.RawMessage { return s })
 
-	reg.RegisterNotifier("webhook", func(_ json.RawMessage) (plugin.Notifier, error) {
-		return &testNotifier{}, nil
-	})
-	reg.RegisterNotifierSanitizer("webhook", func(s json.RawMessage) json.RawMessage { return s })
-
 	reg.RegisterMediaServer("plex", func(_ json.RawMessage) (plugin.MediaServer, error) {
 		return &testMediaServer{}, nil
 	})
@@ -110,12 +107,6 @@ func (m *testDownloadClient) Status(_ context.Context, id string) (plugin.QueueI
 func (m *testDownloadClient) GetQueue(_ context.Context) ([]plugin.QueueItem, error) { return nil, nil }
 func (m *testDownloadClient) Remove(_ context.Context, _ string, _ bool) error       { return nil }
 
-type testNotifier struct{}
-
-func (m *testNotifier) Name() string                                               { return "test-webhook" }
-func (m *testNotifier) Notify(_ context.Context, _ plugin.NotificationEvent) error { return nil }
-func (m *testNotifier) Test(_ context.Context) error                               { return nil }
-
 type testMediaServer struct{}
 
 func (m *testMediaServer) Name() string                                     { return "test-plex" }
@@ -138,7 +129,6 @@ func newIntegrationRouterFromDB(t *testing.T, q *dbgen.Queries, sqlDBs ...*sql.D
 	idxSvc := indexer.NewService(q, reg, bus, ratelimit.New())
 	dlSvc := downloader.NewService(q, reg, bus)
 	queueSvc := queue.NewService(q, dlSvc, bus, logger)
-	notifSvc := notification.NewService(q, reg)
 	healthSvc := health.NewService(libSvc, dlSvc, idxSvc, logger)
 	blockSvc := blocklist.NewService(q)
 	statsSvc := stats.NewService(q, movieSvc)
@@ -152,6 +142,21 @@ func newIntegrationRouterFromDB(t *testing.T, q *dbgen.Queries, sqlDBs ...*sql.D
 	var sqlDB *sql.DB
 	if len(sqlDBs) > 0 {
 		sqlDB = sqlDBs[0]
+	}
+	// Notifications keep their own tables; give them a database of their own
+	// when the test didn't pass one.
+	notifyDB := sqlDB
+	if notifyDB == nil {
+		var err error
+		notifyDB, err = sql.Open("sqlite", filepath.Join(t.TempDir(), "notify.db"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = notifyDB.Close() })
+	}
+	notifyStore, err := notify.NewStore(context.Background(), notifyDB)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	return api.NewRouter(api.RouterConfig{
@@ -169,7 +174,8 @@ func newIntegrationRouterFromDB(t *testing.T, q *dbgen.Queries, sqlDBs ...*sql.D
 		BlocklistService:         blockSvc,
 		QueueService:             queueSvc,
 		Scheduler:                sched,
-		NotificationService:      notifSvc,
+		NotifyStore:              notifyStore,
+		NotifyOutbox:             &notify.Outbox{App: "Prism", Store: notifyStore},
 		HealthService:            healthSvc,
 		StatsService:             statsSvc,
 		MediaManagementService:   mmSvc,
@@ -773,127 +779,74 @@ func TestIntegration_DownloadClients_MissingURL_Rejected(t *testing.T) {
 	}
 }
 
-// ── /api/v1/notifications ────────────────────────────────────────────────────
+// ── /api/v1/notifications (shared, pulse/pkg/notify/notifyapi) ─────────────
 
 func TestIntegration_Notifications_ListEmpty(t *testing.T) {
 	h := newIntegrationRouter(t)
-	rec := do(t, h, http.MethodGet, "/api/v1/notifications", nil)
+	rec := do(t, h, http.MethodGet, "/api/v1/notifications/channels", nil)
 	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /api/v1/notifications = %d; body: %s", rec.Code, rec.Body)
+		t.Fatalf("GET channels = %d; body: %s", rec.Code, rec.Body)
 	}
 	var list []map[string]any
 	mustDecode(t, rec, &list)
 	if len(list) != 0 {
 		t.Fatalf("expected empty list, got %d", len(list))
 	}
+	rec = do(t, h, http.MethodGet, "/api/v1/notifications/status", nil)
+	var st struct {
+		App   string `json:"app"`
+		Route struct {
+			ViaPulse bool `json:"via_pulse"`
+		} `json:"route"`
+	}
+	mustDecode(t, rec, &st)
+	if st.App != "Prism" || st.Route.ViaPulse {
+		t.Errorf("status %+v", st)
+	}
 }
 
 func TestIntegration_Notifications_CRUD(t *testing.T) {
 	h := newIntegrationRouter(t)
-
-	// Create.
-	rec := do(t, h, http.MethodPost, "/api/v1/notifications", map[string]any{
-		"name":    "Test Webhook",
-		"kind":    "webhook",
-		"enabled": true,
-		"settings": map[string]any{
-			"url": "http://example.com/hook",
-		},
-		"on_events": []string{"grab_started", "download_done"},
+	rec := do(t, h, http.MethodPost, "/api/v1/notifications/channels", map[string]any{
+		"name": "My Hook", "kind": "webhook", "enabled": true,
+		"settings": map[string]any{"url": "http://example.com/hook"},
+		"events":   []string{"imported", "import_failed"},
 	})
 	if rec.Code != http.StatusCreated {
-		t.Fatalf("POST /api/v1/notifications = %d; body: %s", rec.Code, rec.Body)
+		t.Fatalf("POST channel = %d; body: %s", rec.Code, rec.Body)
 	}
-	var created map[string]any
+	var created struct {
+		ID       string         `json:"id"`
+		Settings map[string]any `json:"settings"`
+		Events   []string       `json:"events"`
+	}
 	mustDecode(t, rec, &created)
-	id, _ := created["id"].(string)
-	if id == "" {
-		t.Fatal("created notification has no id")
+	if created.ID == "" || created.Settings["url"] != "***" || len(created.Events) != 2 {
+		t.Fatalf("created %+v", created)
 	}
-	if created["name"] != "Test Webhook" {
-		t.Errorf("name = %v, want Test Webhook", created["name"])
-	}
-
-	// List — must contain the created notification.
-	rec = do(t, h, http.MethodGet, "/api/v1/notifications", nil)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /api/v1/notifications = %d; body: %s", rec.Code, rec.Body)
-	}
-	var list []map[string]any
-	mustDecode(t, rec, &list)
-	if len(list) != 1 {
-		t.Fatalf("expected 1 notification, got %d", len(list))
-	}
-
-	// Get by ID.
-	rec = do(t, h, http.MethodGet, "/api/v1/notifications/"+id, nil)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /api/v1/notifications/%s = %d; body: %s", id, rec.Code, rec.Body)
-	}
-
-	// Update.
-	rec = do(t, h, http.MethodPut, "/api/v1/notifications/"+id, map[string]any{
-		"name":    "Updated Webhook",
-		"kind":    "webhook",
-		"enabled": false,
-		"settings": map[string]any{
-			"url": "http://example.com/hook2",
-		},
-		"on_events": []string{"grab_started"},
+	rec = do(t, h, http.MethodPut, "/api/v1/notifications/channels/"+created.ID, map[string]any{
+		"name": "Renamed", "kind": "webhook", "enabled": false,
+		"settings": map[string]any{"url": "***"}, "events": []string{"imported"},
 	})
 	if rec.Code != http.StatusOK {
-		t.Fatalf("PUT /api/v1/notifications/%s = %d; body: %s", id, rec.Code, rec.Body)
+		t.Fatalf("PUT channel = %d; body: %s", rec.Code, rec.Body)
 	}
-	var updatedNotif map[string]any
-	mustDecode(t, rec, &updatedNotif)
-	if updatedNotif["name"] != "Updated Webhook" {
-		t.Errorf("name = %v, want Updated Webhook", updatedNotif["name"])
-	}
-
-	// Delete.
-	rec = do(t, h, http.MethodDelete, "/api/v1/notifications/"+id, nil)
+	rec = do(t, h, http.MethodDelete, "/api/v1/notifications/channels/"+created.ID, nil)
 	if rec.Code != http.StatusNoContent {
-		t.Fatalf("DELETE /api/v1/notifications/%s = %d; body: %s", id, rec.Code, rec.Body)
+		t.Fatalf("DELETE channel = %d; body: %s", rec.Code, rec.Body)
 	}
-
-	// Verify gone.
-	rec = do(t, h, http.MethodGet, "/api/v1/notifications/"+id, nil)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("GET deleted notification = %d, want 404", rec.Code)
+	if rec := do(t, h, http.MethodDelete, "/api/v1/notifications/channels/"+created.ID, nil); rec.Code != http.StatusNotFound {
+		t.Errorf("second DELETE = %d", rec.Code)
 	}
 }
 
-func TestIntegration_Notifications_GetNotFound(t *testing.T) {
+func TestIntegration_Notifications_NoScripts(t *testing.T) {
 	h := newIntegrationRouter(t)
-	rec := do(t, h, http.MethodGet, "/api/v1/notifications/nonexistent", nil)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("GET /api/v1/notifications/nonexistent = %d, want 404", rec.Code)
-	}
-}
-
-func TestIntegration_Notifications_Test(t *testing.T) {
-	h := newIntegrationRouter(t)
-
-	// Create a notification first.
-	rec := do(t, h, http.MethodPost, "/api/v1/notifications", map[string]any{
-		"name":    "Hook for Test",
-		"kind":    "webhook",
-		"enabled": true,
-		"settings": map[string]any{
-			"url": "http://example.com/hook",
-		},
+	rec := do(t, h, http.MethodPost, "/api/v1/notifications/channels", map[string]any{
+		"name": "Script", "kind": "command", "enabled": true, "settings": map[string]any{"path": "/x.sh"},
 	})
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("POST notification = %d; body: %s", rec.Code, rec.Body)
-	}
-	var created map[string]any
-	mustDecode(t, rec, &created)
-	id, _ := created["id"].(string)
-
-	// Test it.
-	rec = do(t, h, http.MethodPost, "/api/v1/notifications/"+id+"/test", nil)
-	if rec.Code != http.StatusNoContent {
-		t.Fatalf("POST /api/v1/notifications/%s/test = %d, want 204; body: %s", id, rec.Code, rec.Body)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("custom scripts must be refused: %d %s", rec.Code, rec.Body)
 	}
 }
 
@@ -1968,7 +1921,6 @@ func newEmptyKeyRouter(t *testing.T) http.Handler {
 	idxSvc := indexer.NewService(q, reg, bus, ratelimit.New())
 	dlSvc := downloader.NewService(q, reg, bus)
 	queueSvc := queue.NewService(q, dlSvc, bus, logger)
-	notifSvc := notification.NewService(q, reg)
 	healthSvc := health.NewService(libSvc, dlSvc, idxSvc, logger)
 	blockSvc := blocklist.NewService(q)
 	statsSvc := stats.NewService(q, movieSvc)
@@ -1992,7 +1944,6 @@ func newEmptyKeyRouter(t *testing.T) http.Handler {
 		BlocklistService:         blockSvc,
 		QueueService:             queueSvc,
 		Scheduler:                sched,
-		NotificationService:      notifSvc,
 		HealthService:            healthSvc,
 		StatsService:             statsSvc,
 		MediaManagementService:   mmSvc,
