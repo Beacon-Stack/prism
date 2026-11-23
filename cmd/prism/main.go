@@ -54,6 +54,7 @@ import (
 	"github.com/beacon-stack/prism/internal/scheduler/jobs"
 	"github.com/beacon-stack/prism/internal/trakt"
 	"github.com/beacon-stack/prism/internal/version"
+	"github.com/beacon-stack/pulse/pkg/healthcheck"
 	beaconlog "github.com/beacon-stack/pulse/pkg/log"
 	"github.com/beacon-stack/pulse/pkg/log/plugins/file"
 	"github.com/beacon-stack/pulse/pkg/log/plugins/loki"
@@ -94,6 +95,9 @@ import (
 )
 
 func main() {
+	// "prism healthcheck" (and the wget link) answer the container health
+	// check and exit; the image has no shell or wget of its own.
+	healthcheck.Run(os.Args, "http://127.0.0.1:"+envOr("PRISM_SERVER_PORT", "8282")+"/health")
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -537,4 +541,12 @@ func pulseSyncHandler(integration *pulse.Integration, indexerSvc *indexer.Servic
 		return nil
 	}
 	return integration.SyncHandler(indexerSvc, dlSvc)
+}
+
+// envOr returns the environment variable, or def when it's unset.
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
