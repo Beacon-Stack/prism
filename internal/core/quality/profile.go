@@ -256,6 +256,18 @@ func (p *Profile) AllowedQualities() []plugin.Quality {
 // An empty Qualities list means "accept any quality", allowing a simple
 // catch-all "Any" profile without enumerating every quality combination.
 func (p *Profile) isAllowed(q plugin.Quality) bool {
+	// Theater recordings (CAM, telesync, workprint) score the same as an
+	// unknown source, so a score match would let them in through any profile
+	// that accepts unknown-source releases. Only take them when the profile
+	// lists that exact source; an empty profile does not count as opting in.
+	if IsTheaterRecording(q.Source) {
+		for _, allowed := range p.Qualities {
+			if allowed.Source == q.Source && allowed.Score() == q.Score() {
+				return true
+			}
+		}
+		return false
+	}
 	if len(p.Qualities) == 0 {
 		return true
 	}
@@ -266,4 +278,11 @@ func (p *Profile) isAllowed(q plugin.Quality) bool {
 		}
 	}
 	return false
+}
+
+// IsTheaterRecording reports whether s is a release filmed or captured in a
+// cinema (CAM, telesync) or an unfinished workprint. Profiles reject these
+// unless they explicitly list the source.
+func IsTheaterRecording(s plugin.Source) bool {
+	return s == plugin.SourceCAM || s == plugin.SourceTelesync || s == plugin.SourceWorkprint
 }
