@@ -445,3 +445,46 @@ func TestRejectReason_consistentWithWantRelease(t *testing.T) {
 		}
 	}
 }
+
+// ── theater recordings ───────────────────────────────────────────────────────
+
+func TestWantRelease_RejectsTheaterRecordingsByDefault(t *testing.T) {
+	unknown1080 := plugin.Quality{Resolution: plugin.Resolution1080p, Source: plugin.SourceUnknown, Codec: plugin.CodecX264}
+	profiles := map[string]*quality.Profile{
+		"standard": standardProfile(true, nil),
+		// Accepting unknown-source 1080p used to let CAM-1080p in, since both
+		// have the same score.
+		"unknown source allowed":  {Cutoff: unknown1080, Qualities: []plugin.Quality{unknown1080}},
+		"empty (accept anything)": {Cutoff: unknown1080},
+	}
+	for _, src := range []plugin.Source{plugin.SourceCAM, plugin.SourceTelesync, plugin.SourceWorkprint} {
+		rel := plugin.Quality{Resolution: plugin.Resolution1080p, Source: src, Codec: plugin.CodecX264}
+		for name, p := range profiles {
+			if p.WantRelease(rel, nil) {
+				t.Errorf("%s profile wanted a %s release", name, src)
+			}
+			if got := p.RejectReason(rel, nil); got != "quality_not_in_profile" {
+				t.Errorf("%s profile, %s: RejectReason = %q, want quality_not_in_profile", name, src, got)
+			}
+		}
+	}
+	// Unknown-source releases are still accepted where they were before.
+	if !profiles["unknown source allowed"].WantRelease(unknown1080, nil) {
+		t.Error("unknown-source 1080p should still be wanted")
+	}
+	if !profiles["empty (accept anything)"].WantRelease(unknown1080, nil) {
+		t.Error("an empty profile should still accept unknown-source releases")
+	}
+}
+
+func TestWantRelease_TheaterRecordingWhenExplicitlyListed(t *testing.T) {
+	cam := plugin.Quality{Resolution: plugin.Resolution1080p, Source: plugin.SourceCAM, Codec: plugin.CodecX264}
+	ts := plugin.Quality{Resolution: plugin.Resolution1080p, Source: plugin.SourceTelesync, Codec: plugin.CodecX264}
+	p := &quality.Profile{Cutoff: q1080pWEB(), Qualities: []plugin.Quality{q1080pWEB(), cam}}
+	if !p.WantRelease(cam, nil) {
+		t.Error("a profile that lists CAM-1080p should accept it")
+	}
+	if p.WantRelease(ts, nil) {
+		t.Error("listing CAM should not also allow telesync")
+	}
+}
