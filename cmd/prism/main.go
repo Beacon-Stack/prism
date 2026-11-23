@@ -317,6 +317,11 @@ func run() error {
 	blocklistSvc := blocklist.NewService(queries)
 	indexerRL := ratelimit.New()
 	indexerSvc := indexer.NewService(queries, registry.Default, bus, indexerRL)
+	// Remember which indexers keep missing across restarts, so the first
+	// searches after a deploy don't give them the full wait again.
+	if err := indexerSvc.LoadHealth(context.Background()); err != nil {
+		logger.Warn("could not restore indexer health; starting fresh", "error", err)
+	}
 	downloaderSvc := downloader.NewService(queries, registry.Default, bus)
 	queueSvc := queue.NewService(queries, downloaderSvc, bus, logger)
 

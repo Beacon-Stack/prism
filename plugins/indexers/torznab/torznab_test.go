@@ -5,7 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sort"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -74,13 +77,38 @@ func buildFeedXML() string {
 // SSRF-blocking safe dialer so tests can connect to 127.0.0.1.
 func newTestIndexer(t *testing.T, handlerFn http.HandlerFunc) (*Indexer, *httptest.Server) {
 	t.Helper()
-	srv := httptest.NewServer(handlerFn)
+	// Searches send their ID and title requests at the same time; one
+	// handler call at a time keeps the tests' request logs simple.
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		handlerFn(w, r)
+	}))
 	idx := New(Config{
 		URL:    srv.URL,
 		APIKey: "testapikey",
 	})
 	idx.client = &http.Client{Timeout: 30 * time.Second} // bypass safedialer for tests
 	return idx, srv
+}
+
+// idFirst drops the caps request a search makes first and orders the
+// rest with the ID (t=movie) search first, since the two searches now run
+// at the same time. (These tests' servers answer caps with a feed, which
+// isn't a caps document, so the search falls back to the TMDB ID.)
+func idFirst(urls []string) []string {
+	out := urls[:0]
+	for _, u := range urls {
+		if !strings.Contains(u, "t=caps") {
+			out = append(out, u)
+		}
+	}
+	urls = out
+	sort.SliceStable(urls, func(i, j int) bool {
+		return strings.Contains(urls[i], "t=movie") && !strings.Contains(urls[j], "t=movie")
+	})
+	return urls
 }
 
 // queryParams parses the query string of a URL string. Panics on malformed input.
@@ -118,6 +146,7 @@ func TestSearch_WithTMDBID(t *testing.T) {
 	}
 
 	// Both the tmdbid lookup AND the text search must run.
+	capturedURLs = idFirst(capturedURLs)
 	if len(capturedURLs) != 2 {
 		t.Fatalf("expected 2 requests (tmdbid + text), got %d", len(capturedURLs))
 	}
@@ -247,6 +276,7 @@ func TestSearch_IndexerIgnoresTMDBID(t *testing.T) {
 		t.Fatalf("Search returned error: %v", err)
 	}
 
+	capturedURLs = idFirst(capturedURLs)
 	if len(capturedURLs) != 2 {
 		t.Fatalf("expected 2 requests, got %d", len(capturedURLs))
 	}
@@ -283,7 +313,7 @@ func TestSearch_TMDBFallback(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		// Return an empty feed for the first (movie) request; return results
 		// for the second (search) request so we can verify the fallback.
-		if len(capturedURLs) == 1 {
+		if r.URL.Query().Get("t") == "movie" {
 			_, _ = w.Write([]byte(`<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>`))
 		} else {
 			_, _ = w.Write([]byte(feedXML))
@@ -300,6 +330,7 @@ func TestSearch_TMDBFallback(t *testing.T) {
 		t.Fatalf("Search returned error: %v", err)
 	}
 
+	capturedURLs = idFirst(capturedURLs)
 	if len(capturedURLs) != 2 {
 		t.Fatalf("expected 2 requests (movie then search), got %d", len(capturedURLs))
 	}
@@ -652,5 +683,101 @@ func TestParseAgeDays(t *testing.T) {
 				t.Errorf("parseAgeDays(%q) = %f, want [%f, %f]", tc.pubDate, got, tc.wantMin, tc.wantMax)
 			}
 		})
+	}
+}
+
+func capsDoc(movieParams, available string) string {
+	return `<?xml version="1.0"?><caps><searching>
+<search available="yes" supportedParams="q"/>
+<movie-search available="` + available + `" supportedParams="` + movieParams + `"/>
+</searching><categories/></caps>`
+}
+
+// The ID search carries only the IDs the indexer lists, runs alongside the
+// title search, and caps are asked for once.
+func TestSearch_IDsFromCaps(t *testing.T) {
+	cases := []struct {
+		name, params, available string
+		wantIMDB, wantTMDB      string
+		wantIDSearch            bool
+	}{
+		{"imdb only", "q,imdbid", "yes", "tt1375666", "", true},
+		{"both", "q,imdbid,tmdbid", "yes", "tt1375666", "27205", true},
+		{"no ids listed", "q", "yes", "", "", false},
+		{"movie search off", "q,imdbid", "no", "", "", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var urls []string
+			caps := 0
+			idx, srv := newTestIndexer(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("t") == "caps" {
+					caps++
+					_, _ = w.Write([]byte(capsDoc(c.params, c.available)))
+					return
+				}
+				urls = append(urls, r.URL.String())
+				_, _ = w.Write([]byte(feedXML))
+			})
+			defer srv.Close()
+			q := plugin.SearchQuery{TMDBID: 27205, IMDBID: "tt1375666", Query: "Inception", Year: 2010}
+			for i := 0; i < 2; i++ {
+				if _, err := idx.Search(context.Background(), q); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if caps != 1 {
+				t.Errorf("caps asked %d times; want once (cached)", caps)
+			}
+			urls = idFirst(urls)
+			perSearch := 1
+			if c.wantIDSearch {
+				perSearch = 2
+			}
+			if len(urls) != 2*perSearch {
+				t.Fatalf("requests %v", urls)
+			}
+			if !c.wantIDSearch {
+				if p := queryParams(srv.URL + urls[0]); p.Get("t") != "search" {
+					t.Errorf("only the title search should run: %v", urls)
+				}
+				return
+			}
+			p := queryParams(srv.URL + urls[0])
+			if p.Get("t") != "movie" || p.Get("imdbid") != c.wantIMDB || p.Get("tmdbid") != c.wantTMDB {
+				t.Errorf("ID search %v", p)
+			}
+		})
+	}
+}
+
+// The ID and title searches overlap instead of running back to back.
+func TestSearch_RunsBothAtOnce(t *testing.T) {
+	inFlight, maxInFlight := int32(0), int32(0)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("t") == "caps" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		n := atomic.AddInt32(&inFlight, 1)
+		for {
+			m := atomic.LoadInt32(&maxInFlight)
+			if n <= m || atomic.CompareAndSwapInt32(&maxInFlight, m, n) {
+				break
+			}
+		}
+		time.Sleep(150 * time.Millisecond)
+		atomic.AddInt32(&inFlight, -1)
+		_, _ = w.Write([]byte(feedXML))
+	}))
+	defer srv.Close()
+	idx := New(Config{URL: srv.URL, APIKey: "k"})
+	idx.client = &http.Client{Timeout: 5 * time.Second}
+	start := time.Now()
+	if _, err := idx.Search(context.Background(), plugin.SearchQuery{TMDBID: 27205, Query: "Inception", Year: 2010}); err != nil {
+		t.Fatal(err)
+	}
+	if maxInFlight != 2 || time.Since(start) > 280*time.Millisecond {
+		t.Errorf("searches overlapped %d at most, took %v; want both at once (~150ms)", maxInFlight, time.Since(start))
 	}
 }

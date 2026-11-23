@@ -120,6 +120,27 @@ export interface QualityConflict {
   summary: string;
 }
 
+// How one indexer did in a release search.
+export interface IndexerSearchOutcome {
+  indexer_id: string;
+  indexer_name: string;
+  results: number;
+  error?: string;
+  // Its scrape is still running server-side (Cloudflare solving) and will
+  // be cached; searching again shortly returns its results. Shown as
+  // "still searching", never as a failure.
+  pending?: boolean;
+  // No answer yet: only while a search is still streaming.
+  searching?: boolean;
+}
+
+export interface ReleaseSearchResponse {
+  releases: Release[];
+  indexers?: IndexerSearchOutcome[];
+  // False on the partial results sent while indexers are still answering.
+  done?: boolean;
+}
+
 export interface Release {
   guid: string;
   title: string;

@@ -19,7 +19,6 @@ import (
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/core/quality"
-	"github.com/beacon-stack/prism/internal/core/titlematch"
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
@@ -209,83 +208,21 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 		Summary:     "Search for releases for a movie across all enabled indexers",
 		Tags:        []string{"Releases"},
 	}, func(ctx context.Context, input *releasesSearchInput) (*releaseListOutput, error) {
-		m, err := movieSvc.Get(ctx, input.MovieID)
+		rs, err := newReleaseSearch(ctx, input.MovieID, indexerSvc, movieSvc, qualitySvc)
 		if err != nil {
-			if errors.Is(err, movie.ErrNotFound) {
-				return nil, huma.Error404NotFound("movie not found")
-			}
-			return nil, huma.NewError(http.StatusInternalServerError, "failed to get movie", err)
+			return nil, err
 		}
-
-		query := plugin.SearchQuery{
-			TMDBID: m.TMDBID,
-			IMDBID: m.IMDBID,
-			Query:  m.Title,
-			Year:   m.Year,
-		}
-
-		results, searchErr := indexerSvc.Search(ctx, query, nil)
-
-		// Filter out releases whose title/year don't match the target movie.
-		// Indexers sometimes return unrelated results (e.g. "The Firm 1993"
-		// for "Big" 1988). Applying the same filter as the auto-search path
-		// keeps the manual search modal from showing obviously wrong hits.
-		filtered := results[:0:0]
-		for _, r := range results {
-			if titlematch.Matches(r.Title, m.Title, m.Year) {
-				filtered = append(filtered, r)
-			}
-		}
-		results = filtered
-
-		// Load quality profile once so we can compute breakdown per release.
-		var prof *quality.Profile
-		if qualitySvc != nil {
-			if p, err := qualitySvc.Get(ctx, m.QualityProfileID); err == nil {
-				prof = &p
-			}
-		}
-
-		// Load current file quality for conflict detection.
-		var currentQuality *plugin.Quality
-		var currentEdition string
-		if files, fErr := movieSvc.ListFiles(ctx, input.MovieID); fErr == nil && len(files) > 0 {
-			best := bestFileQuality(files)
-			currentQuality = &best
-			currentEdition = bestFileEdition(files)
-		}
-
-		// Build a guid → most-recent grab map so we can badge releases
-		// the user has already grabbed before. Cheap: one query per
-		// search, hash-map lookup per release. Guardrail covers the
-		// common forgot-and-re-grabbed case without gating the action.
-		var grabsByGUID map[string]dbgen.GrabHistory
-		if grabRows, gErr := indexerSvc.GrabHistory(ctx, input.MovieID); gErr == nil {
-			grabsByGUID = indexLatestGrabsByGUID(grabRows)
-		}
-
-		bodies := make([]*releaseBody, len(results))
-		for i, r := range results {
-			if prof != nil {
-				r.QualityScore, r.ScoreBreakdown = prof.ScoreWithBreakdown(r.Quality)
-			}
-			bodies[i] = indexerResultToBody(r)
-			if currentQuality != nil {
-				bodies[i].Conflicts = conflict.Compare(*currentQuality, r.Quality, currentEdition, r.Edition)
-			}
-			if prior, ok := grabsByGUID[r.GUID]; ok {
-				bodies[i].AlreadyGrabbedAt = prior.GrabbedAt
-				bodies[i].AlreadyGrabbedID = prior.ID
-				bodies[i].AlreadyGrabbedStatus = prior.DownloadStatus
-			}
-		}
-
+		results, searchErr := indexerSvc.Search(ctx, rs.query, nil)
+		bodies := rs.bodies(results)
 		if len(bodies) == 0 && searchErr != nil {
 			return nil, huma.NewError(http.StatusBadGateway, searchErr.Error())
 		}
-
 		return &releaseListOutput{Body: bodies}, nil
 	})
+
+	// GET /api/v1/movies/{id}/releases/stream: the same search, sent as
+	// it happens, for the search window.
+	registerReleaseStream(api, indexerSvc, movieSvc, qualitySvc)
 
 	// POST /api/v1/movies/{id}/releases/grab
 	huma.Register(api, huma.Operation{
