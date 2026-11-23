@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, fireEvent } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "@/test/handlers";
 import { renderWithProviders } from "@/test/helpers";
@@ -97,5 +97,34 @@ describe("ManualSearchModal streaming", () => {
     renderWithProviders(<Window />);
     expect(await screen.findByText("No releases found.")).toBeInTheDocument();
     expect(screen.getByText("Broken: HTTP 403")).toBeInTheDocument();
+  });
+});
+
+describe("ManualSearchModal theater recordings", () => {
+  const cam = {
+    ...releaseFixture,
+    guid: "cam",
+    title: "Fight.Club.1999.HDCAM.x264",
+    quality: { ...releaseFixture.quality, source: "cam", name: "CAM-1080p" },
+  };
+  const indexers = [{ indexer_id: "a", indexer_name: "A", results: 2 }];
+
+  it("hides CAM releases until asked, then shows them", async () => {
+    serve([{ releases: [fastRelease, cam], indexers, done: true }]);
+    renderWithProviders(<Window />);
+    expect(await screen.findByText("Fight.Club.1999.1080p.BluRay.x264")).toBeInTheDocument();
+    expect(screen.queryByText("Fight.Club.1999.HDCAM.x264")).not.toBeInTheDocument();
+    expect(screen.getByText(/1 theater recording \(CAM\/TS\) hidden/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByText("Fight.Club.1999.HDCAM.x264")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hide" }));
+    expect(screen.queryByText("Fight.Club.1999.HDCAM.x264")).not.toBeInTheDocument();
+  });
+
+  it("says when only theater recordings were found", async () => {
+    serve([{ releases: [cam], indexers, done: true }]);
+    renderWithProviders(<Window />);
+    expect(await screen.findByText("Only theater recordings (CAM/TS) found.")).toBeInTheDocument();
   });
 });

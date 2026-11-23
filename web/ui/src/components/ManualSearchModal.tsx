@@ -95,6 +95,13 @@ function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
 
 // ── Release row ───────────────────────────────────────────────────────────────
 
+// Theater recordings: filmed or captured in a cinema (CAM, telesync) or an
+// unfinished workprint. Hidden from manual search unless asked for; quality
+// profiles already reject them for auto-grab.
+const THEATER_SOURCES = new Set(["cam", "telesync", "workprint"]);
+export const isTheaterRecording = (r: Release) =>
+  THEATER_SOURCES.has((r.quality?.source ?? "").toLowerCase());
+
 interface ReleaseRowProps {
   release: Release;
   grabbed: boolean;
@@ -107,7 +114,11 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
   const dead = (release.seeds ?? 0) === 0;
   const health = seedHealth(release.seeds);
   const hasConflicts = (release.conflicts?.length ?? 0) > 0;
-  const filtered = (release.filter_reasons?.length ?? 0) > 0;
+  const reasons = [
+    ...(release.filter_reasons ?? []),
+    ...(isTheaterRecording(release) ? ["theater recording (CAM/TS)"] : []),
+  ];
+  const filtered = reasons.length > 0;
   const alreadyGrabbed = !!release.already_grabbed_at;
   const grabbedAgeLabel = alreadyGrabbed
     ? formatAge((Date.now() - new Date(release.already_grabbed_at!).getTime()) / 86400000)
@@ -190,7 +201,7 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
           )}
           {filtered && (
             <span
-              title={release.filter_reasons!.join("; ")}
+              title={reasons.join("; ")}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -319,7 +330,7 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
             disabled={isPending}
             title={
               filtered
-                ? `Filtered: ${release.filter_reasons!.join("; ")} — grab anyway?`
+                ? `Filtered: ${reasons.join("; ")} — grab anyway?`
                 : dead
                 ? "No seeders — grab anyway?"
                 : "Grab this release"
@@ -355,7 +366,13 @@ interface ManualSearchModalProps {
 
 export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearchModalProps) {
   const { data, isLoading, error, refetch, isFetching } = useMovieReleases(movieId);
-  const releases = data?.releases;
+  const allReleases = data?.releases;
+  const [showTheater, setShowTheater] = useState(false);
+  const theaterCount = useMemo(() => (allReleases ?? []).filter(isTheaterRecording).length, [allReleases]);
+  const releases = useMemo(
+    () => (showTheater || !allReleases ? allReleases : allReleases.filter((r) => !isTheaterRecording(r))),
+    [allReleases, showTheater],
+  );
   const indexerOutcomes = data?.indexers ?? [];
   const failedIndexers = indexerOutcomes.filter((o) => o.error);
   const pendingIndexers = indexerOutcomes.filter((o) => o.pending && !o.error);
@@ -571,6 +588,27 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
               {releases.length} results · {liveCount} with seeders
             </div>
           )}
+          {!nothingYet && theaterCount > 0 && (
+            <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
+              {showTheater
+                ? `Showing ${theaterCount} theater recording${theaterCount === 1 ? "" : "s"} (CAM/TS) · `
+                : `${theaterCount} theater recording${theaterCount === 1 ? "" : "s"} (CAM/TS) hidden · `}
+              <button
+                onClick={() => setShowTheater((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  font: "inherit",
+                  color: "var(--color-accent)",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                {showTheater ? "Hide" : "Show"}
+              </button>
+            </div>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -744,7 +782,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
               color: "var(--color-text-muted)",
             }}
           >
-            No releases found.
+            {theaterCount > 0 ? "Only theater recordings (CAM/TS) found." : "No releases found."}
             {failedIndexers.length > 0 && (
               <span style={{ fontSize: 12, maxWidth: 520, textAlign: "center" }}>
                 {failedIndexers.map((o) => `${o.indexer_name}: ${o.error}`).join(" · ")}
