@@ -32,7 +32,6 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 	"github.com/beacon-stack/prism/internal/core/mediaserver"
 	"github.com/beacon-stack/prism/internal/core/movie"
-	"github.com/beacon-stack/prism/internal/core/notification"
 	"github.com/beacon-stack/prism/internal/core/provider"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/internal/core/queue"
@@ -58,6 +57,7 @@ import (
 	beaconlog "github.com/beacon-stack/pulse/pkg/log"
 	"github.com/beacon-stack/pulse/pkg/log/plugins/file"
 	"github.com/beacon-stack/pulse/pkg/log/plugins/loki"
+	"github.com/beacon-stack/pulse/pkg/notify"
 
 	// Blank-import built-in plugins so their init() functions register
 	// them with the default registry before any service is constructed.
@@ -72,15 +72,6 @@ import (
 	_ "github.com/beacon-stack/prism/plugins/mediaservers/emby"
 	_ "github.com/beacon-stack/prism/plugins/mediaservers/jellyfin"
 	_ "github.com/beacon-stack/prism/plugins/mediaservers/plex"
-	_ "github.com/beacon-stack/prism/plugins/notifications/command"
-	_ "github.com/beacon-stack/prism/plugins/notifications/discord"
-	_ "github.com/beacon-stack/prism/plugins/notifications/email"
-	_ "github.com/beacon-stack/prism/plugins/notifications/gotify"
-	_ "github.com/beacon-stack/prism/plugins/notifications/ntfy"
-	_ "github.com/beacon-stack/prism/plugins/notifications/pushover"
-	_ "github.com/beacon-stack/prism/plugins/notifications/slack"
-	_ "github.com/beacon-stack/prism/plugins/notifications/telegram"
-	_ "github.com/beacon-stack/prism/plugins/notifications/webhook"
 
 	// Import list plugins
 	_ "github.com/beacon-stack/prism/plugins/importlists/custom_list"
@@ -239,9 +230,6 @@ func run() error {
 	for _, kind := range registry.Default.DownloaderKinds() {
 		logger.Info("registered downloader plugin", "plugin", kind)
 	}
-	for _, kind := range registry.Default.NotifierKinds() {
-		logger.Info("registered notifier plugin", "plugin", kind)
-	}
 	for _, kind := range registry.Default.MediaServerKinds() {
 		logger.Info("registered media server plugin", "plugin", kind)
 	}
@@ -359,10 +347,6 @@ func run() error {
 	seedEnforcerSvc := seedenforcer.NewService(queries, indexerSvc, downloaderSvc, bus, logger)
 	seedEnforcerSvc.Subscribe()
 
-	notifSvc := notification.NewService(queries, registry.Default)
-	notifDispatcher := notifications.NewDispatcher(queries, registry.Default, bus, logger, movieSvc)
-	notifDispatcher.Subscribe()
-
 	mediaServerSvc := mediaserver.NewService(queries, registry.Default)
 	msDispatcher := mediaservers.NewDispatcher(queries, registry.Default, bus, logger)
 	msDispatcher.Subscribe()
@@ -426,6 +410,23 @@ func run() error {
 		defer cfgrrIntegration.Close()
 	}
 
+	// ── Notifications ─────────────────────────────────────────────────────────
+	// Through Pulse when connected to one that has channels, otherwise from
+	// Prism's own channels (pulse/pkg/notify).
+	notifyStore, notifyOutbox, err := notifications.Setup(context.Background(), notifications.Deps{
+		DB: database.SQL, Q: queries, Bus: bus, Log: logger,
+		Hub: func() notify.Hub {
+			if cfgrrIntegration == nil || cfgrrIntegration.Client == nil {
+				return nil
+			}
+			return cfgrrIntegration.Client.NotifyHub()
+		},
+	})
+	if err != nil {
+		logger.Error("notifications unavailable", "error", err)
+		os.Exit(1)
+	}
+
 	// ── HTTP router ───────────────────────────────────────────────────────────
 	startTime := time.Now()
 	router := api.NewRouter(api.RouterConfig{
@@ -433,6 +434,8 @@ func run() error {
 		Logger:                   logger,
 		StartTime:                startTime,
 		DB:                       database.SQL,
+		NotifyStore:              notifyStore,
+		NotifyOutbox:             notifyOutbox,
 		DBType:                   "sqlite",
 		DBPath:                   cfg.Database.Path,
 		ConfigFile:               cfg.ConfigFile,
@@ -447,7 +450,6 @@ func run() error {
 		BlocklistService:         blocklistSvc,
 		QueueService:             queueSvc,
 		Scheduler:                sched,
-		NotificationService:      notifSvc,
 		HealthService:            healthSvc,
 		MediaManagementService:   mmSvc,
 		DownloadHandlingService:  dhSvc,
@@ -492,6 +494,8 @@ func run() error {
 	}
 
 	go sched.Start(ctx)
+	go notifyOutbox.Run(ctx)
+	go (&notify.HealthWatcher{Outbox: notifyOutbox, Every: 15 * time.Minute, Check: notifications.HealthCheck(healthSvc.Check)}).Run(ctx)
 
 	serverErr := make(chan error, 1)
 	go func() {
