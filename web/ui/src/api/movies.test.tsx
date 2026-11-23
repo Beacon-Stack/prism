@@ -177,19 +177,27 @@ describe("useDeleteMovie", () => {
 });
 
 describe("useMovieReleases", () => {
-  it("fetches releases for a movie", async () => {
+  it("streams releases for a movie", async () => {
+    const lines = [
+      { releases: [], indexers: [{ indexer_id: "a", indexer_name: "A", results: 0, searching: true }], done: false },
+      { releases: [releaseFixture], indexers: [{ indexer_id: "a", indexer_name: "A", results: 1 }], done: true },
+    ];
     server.use(
-      http.get("/api/v1/movies/movie-1/releases", () =>
-        HttpResponse.json([releaseFixture])
+      http.get("/api/v1/movies/movie-1/releases/stream", () =>
+        new HttpResponse(lines.map((l) => JSON.stringify(l)).join("\n") + "\n", {
+          headers: { "Content-Type": "application/x-ndjson" },
+        })
       )
     );
 
     const { result } = renderHook(() => useMovieReleases("movie-1"), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data?.[0].title).toBe(releaseFixture.title);
-    expect(result.current.data?.[0].seeds).toBe(42);
+    expect(result.current.data?.done).toBe(true);
+    expect(result.current.data?.releases).toHaveLength(1);
+    expect(result.current.data?.releases[0].title).toBe(releaseFixture.title);
+    expect(result.current.data?.releases[0].seeds).toBe(42);
+    expect(result.current.data?.indexers?.[0].indexer_name).toBe("A");
   });
 
   it("does not fetch when movieId is empty", () => {

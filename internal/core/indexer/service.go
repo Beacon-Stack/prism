@@ -93,6 +93,9 @@ type Service struct {
 	rl    *ratelimit.Registry
 	cache sync.Map      // config ID → plugin.Indexer
 	sem   chan struct{} // bounds concurrent indexer searches
+
+	health       indexerHealth // which indexers keep missing (search.go)
+	healthSaveMu sync.Mutex
 }
 
 // NewService creates a new Service.
@@ -278,154 +281,10 @@ func (s *Service) Test(ctx context.Context, id string) error {
 // appears in the slice are searched (tag-based filtering). Pass nil to search
 // all enabled indexers.
 func (s *Service) Search(ctx context.Context, query plugin.SearchQuery, allowedIDs []string) ([]SearchResult, error) {
-	rows, err := s.q.ListEnabledIndexers(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("listing enabled indexers: %w", err)
-	}
-
-	if len(rows) == 0 {
-		return nil, nil
-	}
-
-	// Build allowed set for O(1) lookup when filtering by tags.
-	var allowedSet map[string]struct{}
-	if allowedIDs != nil {
-		allowedSet = make(map[string]struct{}, len(allowedIDs))
-		for _, id := range allowedIDs {
-			allowedSet[id] = struct{}{}
-		}
-	}
-
-	type indexerResult struct {
-		indexerID   string
-		indexerName string
-		releases    []plugin.Release
-		err         error
-	}
-
-	resultsCh := make(chan indexerResult, len(rows))
-	var wg sync.WaitGroup
-
-	for _, row := range rows {
-		// Skip indexers not in the allowed set.
-		if allowedSet != nil {
-			if _, ok := allowedSet[row.ID]; !ok {
-				continue
-			}
-		}
-		wg.Add(1)
-		go func(row dbgen.IndexerConfig) {
-			defer wg.Done()
-			cfg, _ := rowToConfig(row)
-
-			// Bound global concurrency and cap each indexer's runtime so one
-			// slow provider can't stall the fan-out or starve the pool.
-			if s.sem != nil {
-				select {
-				case s.sem <- struct{}{}:
-					defer func() { <-s.sem }()
-				case <-ctx.Done():
-					resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: ctx.Err()}
-					return
-				}
-			}
-			sctx, cancel := context.WithTimeout(ctx, perIndexerSearchTimeout)
-			defer cancel()
-
-			if err := s.rl.Wait(sctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
-				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
-				return
-			}
-			idx, err := s.cachedIndexer(cfg.Kind, cfg.ID, cfg.Settings)
-			if err != nil {
-				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
-				return
-			}
-			releases, err := idx.Search(sctx, query)
-			resultsCh <- indexerResult{
-				indexerID:   cfg.ID,
-				indexerName: cfg.Name,
-				releases:    releases,
-				err:         err,
-			}
-		}(row)
-	}
-
-	wg.Wait()
-	close(resultsCh)
-
-	var allResults []SearchResult
-	var errs []error
-
-	for res := range resultsCh {
-		if res.err != nil {
-			errs = append(errs, fmt.Errorf("indexer %q: %w", res.indexerName, res.err))
-			continue
-		}
-		for _, r := range res.releases {
-			// Prefer the per-item indexer name from Prowlarr/Jackett; fall back
-			// to the user-configured name from the database.
-			if r.Indexer == "" {
-				r.Indexer = res.indexerName
-			}
-			// Unified parse: quality, edition, release group in one call.
-			parsed := parser.Parse(r.Title)
-			if r.Quality.Source == "" || r.Quality.Source == plugin.SourceUnknown {
-				r.Quality = parsed.Quality()
-			}
-			if r.Edition == "" && parsed.Edition != "" {
-				r.Edition = parsed.Edition
-			}
-			if r.ReleaseGroup == "" {
-				r.ReleaseGroup = parsed.ReleaseGroup
-			}
-			allResults = append(allResults, SearchResult{
-				Release:      r,
-				IndexerID:    res.indexerID,
-				QualityScore: r.Quality.Score(),
-			})
-		}
-	}
-
-	// Tag low-seed releases per the per-indexer min_seeders threshold.
-	// Tagging (not dropping) preserves user agency — see filter.go.
-	// MUST run before dedup so the merged "winning" row inherits any
-	// FilterReasons accumulated by its constituents (we don't want a
-	// release to silently survive merge just because the highest-quality
-	// representative happened to be the only one above threshold).
-	minByIndexer := make(map[string]int, len(rows))
-	for _, r := range rows {
-		minByIndexer[r.ID] = int(r.MinSeeders)
-	}
-	applyMinSeedersFilter(allResults, minByIndexer)
-
-	// Sort by quality score descending, then by seeds descending.
-	sort.Slice(allResults, func(i, j int) bool {
-		si, sj := allResults[i].QualityScore, allResults[j].QualityScore
-		if si != sj {
-			return si > sj
-		}
-		return allResults[i].Seeds > allResults[j].Seeds
-	})
-
-	// Collapse cross-indexer duplicates of the same torrent (by info_hash)
-	// into a single row showing the MEDIAN seed count. Without this, an
-	// indexer that publishes inflated seed counts (e.g. TorrentGalaxyClone
-	// reporting 159 when the swarm has ~50) outranks the same release from
-	// indexers reporting accurate numbers, and the search dialog shows 4
-	// near-identical rows fighting for the top spot.
-	allResults = dedupeByInfoHash(allResults)
-
-	var combinedErr error
-	if len(errs) > 0 {
-		msgs := make([]string, len(errs))
-		for i, e := range errs {
-			msgs[i] = e.Error()
-		}
-		combinedErr = fmt.Errorf("%d indexer(s) failed: %v", len(errs), msgs)
-	}
-
-	return allResults, combinedErr
+	// Automatic searches give every indexer the full wait, so they don't
+	// lose a slow indexer's results (nobody re-searches for them).
+	snap, err := s.search(ctx, query, allowedIDs, nil, false)
+	return snap.Results, err
 }
 
 // GetRecent fetches the most recent releases from all enabled indexers and
@@ -456,7 +315,12 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 			defer wg.Done()
 			cfg, _ := rowToConfig(row)
 
-			// Same global concurrency bound and per-indexer timeout as Search.
+			// Rate limit first, holding nothing; then the same global
+			// concurrency bound and per-indexer timeout as Search.
+			if err := s.rl.Wait(ctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
+				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
+				return
+			}
 			if s.sem != nil {
 				select {
 				case s.sem <- struct{}{}:
@@ -468,11 +332,6 @@ func (s *Service) GetRecent(ctx context.Context) ([]SearchResult, error) {
 			}
 			sctx, cancel := context.WithTimeout(ctx, perIndexerSearchTimeout)
 			defer cancel()
-
-			if err := s.rl.Wait(sctx, cfg.ID, extractRateLimit(cfg.Settings)); err != nil {
-				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}
-				return
-			}
 			idx, err := s.cachedIndexer(cfg.Kind, cfg.ID, cfg.Settings)
 			if err != nil {
 				resultsCh <- indexerResult{indexerID: cfg.ID, indexerName: cfg.Name, err: err}

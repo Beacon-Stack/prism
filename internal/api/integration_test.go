@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -52,12 +53,13 @@ const testAPIKey = "test-integration-key-abc123"
 func registerTestPlugins(reg *registry.Registry) {
 	reg.RegisterIndexer("torznab", func(s json.RawMessage) (plugin.Indexer, error) {
 		var cfg struct {
-			URL string `json:"url"`
+			URL    string   `json:"url"`
+			Titles []string `json:"titles"` // releases the fake answers every search with
 		}
 		if err := json.Unmarshal(s, &cfg); err != nil || cfg.URL == "" {
 			return nil, errors.New("torznab: url is required")
 		}
-		return &testIndexer{}, nil
+		return &testIndexer{titles: cfg.Titles}, nil
 	})
 	reg.RegisterIndexerSanitizer("torznab", func(s json.RawMessage) json.RawMessage { return s })
 
@@ -78,7 +80,7 @@ func registerTestPlugins(reg *registry.Registry) {
 	reg.RegisterMediaServerSanitizer("plex", func(s json.RawMessage) json.RawMessage { return s })
 }
 
-type testIndexer struct{}
+type testIndexer struct{ titles []string }
 
 func (m *testIndexer) Name() string              { return "test-indexer" }
 func (m *testIndexer) Protocol() plugin.Protocol { return plugin.ProtocolTorrent }
@@ -86,7 +88,11 @@ func (m *testIndexer) Capabilities(_ context.Context) (plugin.Capabilities, erro
 	return plugin.Capabilities{SearchAvailable: true, MovieSearch: true}, nil
 }
 func (m *testIndexer) Search(_ context.Context, _ plugin.SearchQuery) ([]plugin.Release, error) {
-	return nil, nil
+	var out []plugin.Release
+	for _, t := range m.titles {
+		out = append(out, plugin.Release{GUID: t, Title: t, Seeds: 20, Protocol: plugin.ProtocolTorrent})
+	}
+	return out, nil
 }
 func (m *testIndexer) GetRecent(_ context.Context) ([]plugin.Release, error) { return nil, nil }
 func (m *testIndexer) Test(_ context.Context) error                          { return nil }
@@ -2178,3 +2184,85 @@ func mustDecode(t *testing.T, rec *httptest.ResponseRecorder, out any) {
 // int64Ptr returns a pointer to v. Used for nullable INTEGER columns which
 // sqlc-sqlite emits as *int64.
 func int64Ptr(v int64) *int64 { return &v }
+
+// ── /api/v1/movies/{id}/releases/stream ─────────────────────────────────────
+
+func TestIntegration_ReleasesStream(t *testing.T) {
+	q := testutil.NewTestDB(t)
+	h := newIntegrationRouterFromDB(t, q)
+
+	webdl := qualityBody("1080p", "webdl", "x264", "none", "WEBDL-1080p")
+	rec := do(t, h, http.MethodPost, "/api/v1/quality-profiles", map[string]any{
+		"name": "HD", "cutoff": webdl, "qualities": []map[string]any{webdl}, "upgrade_allowed": false,
+	})
+	var qp map[string]any
+	mustDecode(t, rec, &qp)
+	qpID, _ := qp["id"].(string)
+	rec = do(t, h, http.MethodPost, "/api/v1/libraries", map[string]any{
+		"name": "Movies", "root_path": t.TempDir(), "default_quality_profile_id": qpID,
+	})
+	var lib map[string]any
+	mustDecode(t, rec, &lib)
+	libID, _ := lib["id"].(string)
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := q.CreateMovie(context.Background(), dbgen.CreateMovieParams{
+		ID: "fight-club", TmdbID: 550, Title: "Fight Club", OriginalTitle: "Fight Club", Year: 1999,
+		GenresJson: `[]`, LibraryID: libID, QualityProfileID: qpID, Monitored: true, Status: "released",
+		AddedAt: now, UpdatedAt: now, MinimumAvailability: "released", ReleaseDate: "1999-10-15",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for name, titles := range map[string][]string{
+		"One":   {"Fight.Club.1999.1080p.WEB-DL.x264"},
+		"Other": {"Some.Other.Movie.2004.1080p.WEB-DL.x264"}, // dropped by the title check
+	} {
+		rec = do(t, h, http.MethodPost, "/api/v1/indexers", map[string]any{
+			"name": name, "kind": "torznab", "enabled": true,
+			"settings": map[string]any{"url": "http://example.com/" + name, "titles": titles},
+		})
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("create indexer = %d; body: %s", rec.Code, rec.Body)
+		}
+	}
+
+	rec = do(t, h, http.MethodGet, "/api/v1/movies/fight-club/releases/stream", nil)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Header().Get("Content-Type"), "ndjson") {
+		t.Fatalf("stream = %d %s; body: %s", rec.Code, rec.Header().Get("Content-Type"), rec.Body)
+	}
+	lines := strings.Split(strings.TrimSpace(rec.Body.String()), "\n")
+	if len(lines) < 2 {
+		t.Fatalf("want a line per indexer plus the start, got %d: %s", len(lines), rec.Body)
+	}
+	var first, last struct {
+		Releases []struct {
+			Title string `json:"title"`
+		} `json:"releases"`
+		Indexers []struct {
+			Name      string `json:"indexer_name"`
+			Results   int    `json:"results"`
+			Searching bool   `json:"searching"`
+		} `json:"indexers"`
+		Done bool `json:"done"`
+	}
+	_ = json.Unmarshal([]byte(lines[0]), &first)
+	_ = json.Unmarshal([]byte(lines[len(lines)-1]), &last)
+	if first.Done || len(first.Indexers) != 2 || !first.Indexers[0].Searching {
+		t.Errorf("first line should be both indexers searching: %+v", first)
+	}
+	if !last.Done || len(last.Releases) != 1 || last.Releases[0].Title != "Fight.Club.1999.1080p.WEB-DL.x264" {
+		t.Errorf("last line %+v", last)
+	}
+	for _, ix := range last.Indexers {
+		if ix.Searching || ix.Results != 1 {
+			t.Errorf("indexer %+v should be finished with 1 result", ix)
+		}
+	}
+
+	// The plain endpoint returns the same rows, all at once.
+	rec = do(t, h, http.MethodGet, "/api/v1/movies/fight-club/releases", nil)
+	var list []map[string]any
+	mustDecode(t, rec, &list)
+	if len(list) != 1 || list[0]["title"] != "Fight.Club.1999.1080p.WEB-DL.x264" {
+		t.Errorf("list endpoint %v", list)
+	}
+}

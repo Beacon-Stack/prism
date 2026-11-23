@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   X,
   Loader2,
@@ -354,7 +354,31 @@ interface ManualSearchModalProps {
 }
 
 export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearchModalProps) {
-  const { data: releases, isLoading, error, refetch } = useMovieReleases(movieId);
+  const { data, isLoading, error, refetch, isFetching } = useMovieReleases(movieId);
+  const releases = data?.releases;
+  const indexerOutcomes = data?.indexers ?? [];
+  const failedIndexers = indexerOutcomes.filter((o) => o.error);
+  const pendingIndexers = indexerOutcomes.filter((o) => o.pending && !o.error);
+  // Results stream in as indexers answer; the last update has done=true.
+  const streaming = isFetching && data !== undefined && !data.done;
+  const waitingOn = streaming ? indexerOutcomes.filter((o) => o.searching) : [];
+  const answered = indexerOutcomes.length - waitingOn.length;
+  const nothingYet = isLoading || (streaming && (!releases || releases.length === 0));
+
+  // While Cloudflare-walled indexers are still solving server-side,
+  // quietly search again every 30s: their results land in Pulse's cache
+  // and merge in. Capped so a stuck indexer doesn't poll forever; the
+  // previous results stay on screen during each search.
+  const [pendingRetries, setPendingRetries] = useState(0);
+  const maxPendingRetries = 5;
+  useEffect(() => {
+    if (pendingIndexers.length === 0 || pendingRetries >= maxPendingRetries || isFetching) return;
+    const t = setTimeout(() => {
+      setPendingRetries((n) => n + 1);
+      void refetch();
+    }, 30_000);
+    return () => clearTimeout(t);
+  }, [pendingIndexers.length, pendingRetries, isFetching, refetch]);
   const grab = useGrabRelease();
   const confirm = useConfirm();
 
@@ -542,7 +566,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--color-text-primary)" }}>
             {movieTitle}
           </h2>
-          {!isLoading && releases && releases.length > 0 && (
+          {!nothingYet && releases && releases.length > 0 && (
             <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
               {releases.length} results · {liveCount} with seeders
             </div>
@@ -597,8 +621,8 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
 
       {/* Body */}
       <div style={{ overflowY: "auto", flex: 1 }}>
-        {/* Loading */}
-        {isLoading && (
+        {/* Loading: nothing to show yet */}
+        {nothingYet && !error && (
           <div
             style={{
               display: "flex",
@@ -616,7 +640,59 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
               strokeWidth={1.5}
               style={{ color: "var(--color-accent)", animation: "spin 1s linear infinite" }}
             />
-            Searching indexers...
+            {indexerOutcomes.length > 0
+              ? `Searching indexers… ${answered} of ${indexerOutcomes.length} answered`
+              : "Searching indexers..."}
+          </div>
+        )}
+
+        {/* Results so far, with the indexers still being waited on. */}
+        {!nothingYet && !error && waitingOn.length > 0 && (
+          <div style={{ margin: "12px 20px 0", fontSize: 12, color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: 8 }}>
+            <Loader2 size={13} style={{ color: "var(--color-accent)", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+            Still waiting on {waitingOn.map((o) => o.indexer_name).join(", ")}
+          </div>
+        )}
+
+        {/* Cloudflare-walled indexers keep solving server-side; their
+            results merge in automatically. */}
+        {!nothingYet && !error && !streaming && pendingIndexers.length > 0 && pendingRetries < maxPendingRetries && (
+          <div
+            role="status"
+            style={{
+              margin: "12px 20px 0",
+              padding: "10px 14px",
+              background: "color-mix(in srgb, var(--color-accent) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)",
+              borderRadius: 8,
+              fontSize: 12,
+              color: "var(--color-text-secondary)",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Loader2 size={13} style={{ color: "var(--color-accent)", animation: "spin 1s linear infinite", flexShrink: 0 }} />
+            <span>
+              Still searching {pendingIndexers.map((o) => o.indexer_name).join(", ")}. Cloudflare solving takes a minute or two;
+              results appear here automatically.
+            </span>
+          </div>
+        )}
+        {!nothingYet && !error && !streaming && pendingIndexers.length > 0 && pendingRetries >= maxPendingRetries && (
+          <div
+            style={{
+              margin: "12px 20px 0",
+              padding: "10px 14px",
+              background: "color-mix(in srgb, var(--color-warning) 8%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)",
+              borderRadius: 8,
+              fontSize: 12,
+              color: "var(--color-warning)",
+            }}
+          >
+            {pendingIndexers.map((o) => o.indexer_name).join(", ")} did not respond after several attempts. They may be down;
+            use Search Again to retry.
           </div>
         )}
 
@@ -656,7 +732,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
         )}
 
         {/* Empty */}
-        {!isLoading && !error && releases && releases.length === 0 && (
+        {!nothingYet && !error && !streaming && releases && releases.length === 0 && (
           <div
             style={{
               display: "flex",
@@ -669,6 +745,11 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
             }}
           >
             No releases found.
+            {failedIndexers.length > 0 && (
+              <span style={{ fontSize: 12, maxWidth: 520, textAlign: "center" }}>
+                {failedIndexers.map((o) => `${o.indexer_name}: ${o.error}`).join(" · ")}
+              </span>
+            )}
             <button
               onClick={() => refetch()}
               style={{
@@ -688,7 +769,7 @@ export function ManualSearchModal({ movieId, movieTitle, onClose }: ManualSearch
         )}
 
         {/* Results table */}
-        {!isLoading && !error && releases && releases.length > 0 && (
+        {!nothingYet && !error && releases && releases.length > 0 && (
           <table
             style={{
               width: "100%",

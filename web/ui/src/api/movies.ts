@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "./client";
-import type { Movie, MovieListResponse, TMDBResult, Release, GrabHistory, MovieFile, RenameMovieResult, AutoSearchResult, BulkSearchAccepted, ExplainResult } from "@/types";
+import type { Movie, MovieListResponse, TMDBResult, GrabHistory, MovieFile, RenameMovieResult, AutoSearchResult, BulkSearchAccepted, ExplainResult, ReleaseSearchResponse } from "@/types";
 
 export function useEditions() {
   return useQuery({
@@ -133,12 +133,74 @@ export function useDeleteMovie() {
   });
 }
 
+// Interactive search streams: the server sends one JSON line each time an
+// indexer answers, holding everything found so far, and a last line with
+// done=true. Partial lines go into the query cache as they arrive, so
+// fast indexers' results show while slow ones are still working. While
+// a search is streaming, `data.done` is false and `isFetching` is true.
 export function useMovieReleases(movieId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = ["movies", movieId, "releases"];
   return useQuery({
-    queryKey: ["movies", movieId, "releases"],
-    queryFn: () => apiFetch<Release[]>(`/movies/${movieId}/releases`),
+    queryKey,
+    queryFn: ({ signal }) =>
+      streamReleases(`/movies/${movieId}/releases/stream`, signal, (partial) => {
+        // A re-search keeps the finished results on screen until the new
+        // one finishes, rather than blanking them for its first lines.
+        const shown = queryClient.getQueryData<ReleaseSearchResponse>(queryKey);
+        if (shown?.done) return;
+        queryClient.setQueryData(queryKey, partial);
+      }),
     enabled: !!movieId,
+    staleTime: 0,
+    gcTime: 0, // don't carry results across window opens
+    // A failed search already waited out every indexer; per-indexer
+    // failures come back inside a successful response.
+    retry: 0,
   });
+}
+
+async function streamReleases(
+  path: string,
+  signal: AbortSignal,
+  onPartial: (partial: ReleaseSearchResponse) => void,
+): Promise<ReleaseSearchResponse> {
+  const res = await fetch(`/api/v1${path}`, { signal });
+  if (!res.ok) {
+    let message = res.statusText || "Search failed";
+    try {
+      const body = (await res.json()) as { title?: string; detail?: string; errors?: { message?: string }[] };
+      message = body.errors?.[0]?.message ?? body.detail ?? body.title ?? message;
+    } catch {
+      // not JSON; keep the status text
+    }
+    throw new Error(message);
+  }
+  if (!res.body) throw new Error("Search returned no data");
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffered = "";
+  let last: ReleaseSearchResponse | undefined;
+  const take = (line: string) => {
+    if (!line.trim()) return;
+    last = JSON.parse(line) as ReleaseSearchResponse;
+    if (!last.done) onPartial(last);
+  };
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffered += value;
+    let newline: number;
+    while ((newline = buffered.indexOf("\n")) >= 0) {
+      take(buffered.slice(0, newline));
+      buffered = buffered.slice(newline + 1);
+    }
+  }
+  take(buffered);
+  if (!last) throw new Error("Search ended without results");
+  // A stream cut short (server restart) ends on a partial line; show it as
+  // finished rather than spinning forever.
+  return { ...last, done: true };
 }
 
 export interface GrabReleaseRequest {

@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/beacon-stack/prism/internal/registry"
@@ -55,7 +56,34 @@ type Config struct {
 type Indexer struct {
 	cfg    Config
 	client *http.Client
+
+	// Cached movie-search caps (see movieCaps). capsCheckAt is when to
+	// ask the indexer again.
+	capsMu      sync.Mutex
+	caps        *movieCaps
+	capsCheckAt time.Time
 }
+
+// movieCaps is the part of an indexer's caps document a movie search needs.
+type movieCaps struct {
+	// params are the movie-search supportedParams, lowercased ("q",
+	// "imdbid", "tmdbid"). Empty when the indexer didn't list them.
+	params map[string]bool
+	// unavailable: the caps say movie-search is off, so an ID search could
+	// only cost a request.
+	unavailable bool
+}
+
+const (
+	// capsTTL is how long a caps document is trusted. Caps change only
+	// when the indexer's definition does.
+	capsTTL = 6 * time.Hour
+	// capsRetryAfter is how long to search without caps after the caps
+	// request failed, before asking again.
+	capsRetryAfter = 10 * time.Minute
+	// capsTimeout bounds the caps request made ahead of a search.
+	capsTimeout = 5 * time.Second
+)
 
 // New creates a new Torznab Indexer from the given config.
 func New(cfg Config) *Indexer {
@@ -76,20 +104,9 @@ func (idx *Indexer) Protocol() plugin.Protocol { return plugin.ProtocolTorrent }
 
 // Capabilities fetches and parses the indexer's capabilities document.
 func (idx *Indexer) Capabilities(ctx context.Context) (plugin.Capabilities, error) {
-	u := idx.buildURL("caps", url.Values{})
-	resp, err := idx.get(ctx, u)
+	caps, err := idx.fetchCaps(ctx)
 	if err != nil {
 		return plugin.Capabilities{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return plugin.Capabilities{}, fmt.Errorf("torznab: capabilities returned HTTP %d", resp.StatusCode)
-	}
-
-	var caps capsResponse
-	if err := xml.NewDecoder(resp.Body).Decode(&caps); err != nil {
-		return plugin.Capabilities{}, fmt.Errorf("torznab: decoding capabilities: %w", err)
 	}
 
 	categories := make([]int, 0, len(caps.Categories.Items))
@@ -103,6 +120,83 @@ func (idx *Indexer) Capabilities(ctx context.Context) (plugin.Capabilities, erro
 		MovieSearch:       caps.Searching.MovieSearch.Available == "yes",
 		Categories:        categories,
 	}, nil
+}
+
+func (idx *Indexer) fetchCaps(ctx context.Context) (capsResponse, error) {
+	u := idx.buildURL("caps", url.Values{})
+	resp, err := idx.get(ctx, u)
+	if err != nil {
+		return capsResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return capsResponse{}, fmt.Errorf("torznab: capabilities returned HTTP %d", resp.StatusCode)
+	}
+
+	var caps capsResponse
+	if err := xml.NewDecoder(resp.Body).Decode(&caps); err != nil {
+		return capsResponse{}, fmt.Errorf("torznab: decoding capabilities: %w", err)
+	}
+	return caps, nil
+}
+
+// movieSearchCaps returns the cached movie-search caps, fetching them when
+// there are none or they are old. Nil when the indexer can't say: the ID
+// search then goes out as it always did, with the TMDB ID.
+func (idx *Indexer) movieSearchCaps(ctx context.Context) *movieCaps {
+	idx.capsMu.Lock()
+	defer idx.capsMu.Unlock()
+	if time.Now().Before(idx.capsCheckAt) {
+		return idx.caps
+	}
+	cctx, cancel := context.WithTimeout(ctx, capsTimeout)
+	defer cancel()
+	doc, err := idx.fetchCaps(cctx)
+	if err != nil {
+		// Keep whatever we had; a caps hiccup must not change searches.
+		idx.capsCheckAt = time.Now().Add(capsRetryAfter)
+		return idx.caps
+	}
+	mc := &movieCaps{
+		params:      map[string]bool{},
+		unavailable: strings.EqualFold(strings.TrimSpace(doc.Searching.MovieSearch.Available), "no"),
+	}
+	for _, p := range strings.Split(doc.Searching.MovieSearch.SupportedParams, ",") {
+		if p = strings.ToLower(strings.TrimSpace(p)); p != "" {
+			mc.params[p] = true
+		}
+	}
+	idx.caps, idx.capsCheckAt = mc, time.Now().Add(capsTTL)
+	return idx.caps
+}
+
+// idParams are the IDs to send in a movie search, or nil to skip it.
+// Only IDs the indexer lists are sent: one that doesn't know an ID can
+// answer with its recent-uploads feed or nothing. Without caps, the TMDB
+// ID goes out as before.
+func idParams(caps *movieCaps, q plugin.SearchQuery) url.Values {
+	params := url.Values{}
+	if caps == nil {
+		if q.TMDBID != 0 {
+			params.Set("tmdbid", strconv.Itoa(q.TMDBID))
+			return params
+		}
+		return nil
+	}
+	if caps.unavailable {
+		return nil
+	}
+	if q.IMDBID != "" && caps.params["imdbid"] {
+		params.Set("imdbid", q.IMDBID)
+	}
+	if q.TMDBID != 0 && caps.params["tmdbid"] {
+		params.Set("tmdbid", strconv.Itoa(q.TMDBID))
+	}
+	if len(params) == 0 {
+		return nil
+	}
+	return params
 }
 
 // Search queries the indexer for releases matching q.
@@ -138,21 +232,27 @@ func (idx *Indexer) Search(ctx context.Context, q plugin.SearchQuery) ([]plugin.
 		}
 	}
 
-	// 1. TMDB movie search — runs unconditionally when we have a TMDB ID.
-	if q.TMDBID != 0 {
-		params := url.Values{}
-		params.Set("tmdbid", strconv.Itoa(q.TMDBID))
-		u := idx.buildURL("movie", params)
-		releases, err := idx.fetchReleases(ctx, u)
-		if err != nil {
-			firstErr = err
-		} else {
-			addAll(releases)
-		}
+	// The ID search and the title search go out together: one after the
+	// other doubled each indexer's time, and for a Cloudflare-walled
+	// indexer each request is a full challenge solve.
+	type answer struct {
+		releases []plugin.Release
+		err      error
+	}
+	var idAns, textAns answer
+	var wg sync.WaitGroup
+
+	// 1. ID search, with the IDs this indexer says it understands.
+	if params := idParams(idx.movieSearchCaps(ctx), q); params != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			idAns.releases, idAns.err = idx.fetchReleases(ctx, idx.buildURL("movie", params))
+		}()
 	}
 
 	// 2. Free-text search — always runs, both as the primary path for
-	// indexers that don't support tmdbid and as a safety net for indexers
+	// indexers that don't support IDs and as a safety net for indexers
 	// that return the recent feed instead. No category filter: many indexers
 	// return empty when cat=2000 is specified, and the title+year query is
 	// specific enough without it.
@@ -163,15 +263,23 @@ func (idx *Indexer) Search(ctx context.Context, q plugin.SearchQuery) ([]plugin.
 		}
 		params := url.Values{}
 		params.Set("q", query)
-		u := idx.buildURL("search", params)
-		releases, err := idx.fetchReleases(ctx, u)
-		if err != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			textAns.releases, textAns.err = idx.fetchReleases(ctx, idx.buildURL("search", params))
+		}()
+	}
+	wg.Wait()
+
+	// ID hits first, so they win the dedupe.
+	for _, a := range []answer{idAns, textAns} {
+		if a.err != nil {
 			if firstErr == nil {
-				firstErr = err
+				firstErr = a.err
 			}
-		} else {
-			addAll(releases)
+			continue
 		}
+		addAll(a.releases)
 	}
 
 	if len(all) == 0 && firstErr != nil {
@@ -430,7 +538,8 @@ type capsSearching struct {
 }
 
 type capsSearchType struct {
-	Available string `xml:"available,attr"`
+	Available       string `xml:"available,attr"`
+	SupportedParams string `xml:"supportedParams,attr"`
 }
 
 type capsCategories struct {
