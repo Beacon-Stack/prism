@@ -29,9 +29,7 @@ func newTestPlugin(serverURL string) *Plugin {
 	return &Plugin{client: c}
 }
 
-// ---------------------------------------------------------------------------
 // Registry factory
-// ---------------------------------------------------------------------------
 
 func TestFactory_Valid(t *testing.T) {
 	settings := json.RawMessage(`{}`)
@@ -54,9 +52,7 @@ func TestFactory_InvalidJSON(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Name
-// ---------------------------------------------------------------------------
 
 func TestName(t *testing.T) {
 	p := &Plugin{client: trakt.New("test", nil)}
@@ -65,9 +61,7 @@ func TestName(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Fetch
-// ---------------------------------------------------------------------------
 
 func TestFetch_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -155,9 +149,7 @@ func TestFetch_APIError(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Test
-// ---------------------------------------------------------------------------
 
 func TestTest_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

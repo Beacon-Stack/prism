@@ -26,7 +26,7 @@ func newTestPlugin(t *testing.T, cfg Config, serverURL string) *Plugin {
 	return &Plugin{cfg: cfg, client: c}
 }
 
-// ── Factory ──────────────────────────────────────────────────────────────────
+// Factory
 
 func TestFactory_Valid_Watchlist(t *testing.T) {
 	settings := json.RawMessage(`{"username":"jdoe","list_type":"watchlist"}`)
@@ -78,7 +78,7 @@ func TestFactory_InvalidJSON(t *testing.T) {
 	}
 }
 
-// ── Fetch ────────────────────────────────────────────────────────────────────
+// Fetch
 
 func TestFetch_Watchlist_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +149,7 @@ func TestFetch_APIError(t *testing.T) {
 	}
 }
 
-// ── Test ─────────────────────────────────────────────────────────────────────
+// Test
 
 func TestTest_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

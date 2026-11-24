@@ -23,7 +23,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── mock indexer ─────────────────────────────────────────────────────────────
+// mock indexer
 
 type mockIndexer struct {
 	releases []plugin.Release
@@ -46,7 +46,7 @@ func (m *mockIndexer) GetRecent(_ context.Context) ([]plugin.Release, error) {
 	return m.releases, m.err
 }
 
-// ── mock downloader ──────────────────────────────────────────────────────────
+// mock downloader
 
 type mockDownloader struct {
 	itemID string
@@ -71,7 +71,7 @@ func (m *mockDownloader) GetQueue(_ context.Context) ([]plugin.QueueItem, error)
 
 func (m *mockDownloader) Remove(_ context.Context, _ string, _ bool) error { return nil }
 
-// ── test helpers ─────────────────────────────────────────────────────────────
+// test helpers
 
 type testEnv struct {
 	q       *dbgen.Queries
@@ -149,7 +149,7 @@ func seedWithIndexerAndDownloader(t *testing.T, env *testEnv) {
 	}
 }
 
-// ── tests ────────────────────────────────────────────────────────────────────
+// tests
 
 func TestSearchMovie_GrabsBestRelease(t *testing.T) {
 	t.Parallel()
@@ -415,7 +415,7 @@ func TestSearchMovie_ProfileRejectsQuality(t *testing.T) {
 	}
 }
 
-// ── SearchMovieExplain ────────────────────────────────────────────────────────
+// SearchMovieExplain
 //
 // SearchMovieExplain is the dry-run twin of SearchMovie — it classifies
 // every candidate release with a SkipReason instead of grabbing one.

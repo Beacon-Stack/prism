@@ -110,13 +110,13 @@ func run() error {
 	flag.StringVar(&cfgFile, "config", "", "path to config file (default: ~/.config/prism/config.yaml)")
 	flag.Parse()
 
-	// ── Config ────────────────────────────────────────────────────────────────
+	// Config
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// ── Logger ────────────────────────────────────────────────────────────────
+	// Logger
 	// Shared module from pulse/pkg/log — stdout JSON, ring buffer
 	// behind /api/v1/system/logs, pluggable sinks via env vars.
 	logger, logSystem := beaconlog.New(beaconlog.Config{
@@ -177,7 +177,7 @@ func run() error {
 		}
 	}
 
-	// ── API Key ───────────────────────────────────────────────────────────────
+	// API Key
 	generated, err := config.EnsureAPIKey(cfg)
 	if err != nil {
 		return fmt.Errorf("ensuring API key: %w", err)
@@ -215,7 +215,7 @@ func run() error {
 		logger.Info("API key loaded", "key_prefix", masked, "source", "config/env")
 	}
 
-	// ── Startup banner ────────────────────────────────────────────────────────
+	// Startup banner
 	configFile := cfg.ConfigFile
 	if configFile == "" {
 		configFile = "(none — using defaults/env)"
@@ -242,14 +242,14 @@ func run() error {
 		logger.Info("registered import list plugin", "plugin", kind)
 	}
 
-	// ── Feature warnings ──────────────────────────────────────────────────────
+	// Feature warnings
 	if cfg.TMDB.APIKey.IsEmpty() {
 		logger.Warn("TMDB API key not configured — movie metadata and search features are disabled",
 			"hint", "set tmdb.api_key in config.yaml or PRISM_TMDB_API_KEY env var",
 		)
 	}
 
-	// ── Database ──────────────────────────────────────────────────────────────
+	// Database
 	database, err := db.Open(cfg.Database)
 	if err != nil {
 		return fmt.Errorf("opening database: %w", err)
@@ -264,14 +264,14 @@ func run() error {
 
 	logger.Info("database migrations up to date")
 
-	// ── Event bus ─────────────────────────────────────────────────────────────
+	// Event bus
 	bus := events.New(logger)
 
-	// ── WebSocket hub ─────────────────────────────────────────────────────────
+	// WebSocket hub
 	wsHub := ws.NewHub(logger, []byte(cfg.Auth.APIKey.Value()))
 	bus.Subscribe(wsHub.HandleEvent)
 
-	// ── Services ──────────────────────────────────────────────────────────────
+	// Services
 	queries := dbgen.New(database.SQL)
 
 	qualitySvc := quality.NewService(queries, bus)
@@ -332,7 +332,7 @@ func run() error {
 	mmSvc := mediamanagement.NewService(queries)
 	dhSvc := downloadhandling.NewService(queries)
 
-	// ── MediaInfo scanner ──────────────────────────────────────────────────
+	// MediaInfo scanner
 	// Resolve scan_timeout; fall back to 30s if unparseable.
 	scanTimeout := 30 * time.Second
 	if cfg.MediaInfo.ScanTimeout != "" {
@@ -374,7 +374,7 @@ func run() error {
 		collectionSvc = collection.NewService(queries, rawTMDB, movieSvc, logger)
 	}
 
-	// ── AutoSearch service (used by release routes and import lists) ──────
+	// AutoSearch service (used by release routes and import lists)
 	var autoSvc *autosearch.Service
 	if indexerSvc != nil && movieSvc != nil && downloaderSvc != nil && qualitySvc != nil {
 		autoSvc = autosearch.NewService(
@@ -383,16 +383,16 @@ func run() error {
 		)
 	}
 
-	// ── Trakt client (optional — only created if a client ID is configured) ──
+	// Trakt client (optional — only created if a client ID is configured)
 	var traktClient *trakt.Client
 	if !cfg.Trakt.ClientID.IsEmpty() {
 		traktClient = trakt.New(cfg.Trakt.ClientID.Value(), logger)
 	}
 
-	// ── Import list service ──────────────────────────────────────────────────
+	// Import list service
 	importListSvc := importlist.NewService(queries, registry.Default, movieSvc, autoSvc, rawTMDB, traktClient, logger)
 
-	// ── Scheduler ─────────────────────────────────────────────────────────────
+	// Scheduler
 	// Load queue poll interval from download handling settings. Default to 60s
 	// on error so the scheduler always starts.
 	queuePollInterval, err := dhSvc.CheckInterval(context.Background())
@@ -411,7 +411,7 @@ func run() error {
 	sched.Add(jobs.ActivityPrune(activitySvc, logger))
 	sched.Add(jobs.WatchSync(watchSyncSvc, logger))
 
-	// ── Pulse integration (optional) ────────────────────────────────────
+	// Pulse integration (optional)
 	cfgrrIntegration, err := pulse.New(cfg.Pulse, cfg.Server.Host, cfg.Server.Port, cfg.Auth.APIKey.Value(), logger)
 	if err != nil {
 		logger.Warn("pulse integration failed — continuing without it", "error", err)
@@ -420,7 +420,7 @@ func run() error {
 		defer cfgrrIntegration.Close()
 	}
 
-	// ── Notifications ─────────────────────────────────────────────────────────
+	// Notifications
 	// Through Pulse when connected to one that has channels, otherwise from
 	// Prism's own channels (pulse/pkg/notify).
 	notifyStore, notifyOutbox, err := notifications.Setup(context.Background(), notifications.Deps{
@@ -437,7 +437,7 @@ func run() error {
 		os.Exit(1)
 	}
 
-	// ── HTTP router ───────────────────────────────────────────────────────────
+	// HTTP router
 	startTime := time.Now()
 	router := api.NewRouter(api.RouterConfig{
 		Auth:                     cfg.Auth.APIKey,
@@ -484,7 +484,7 @@ func run() error {
 		PulseSyncHandler:         pulseSyncHandler(cfgrrIntegration, indexerSvc, downloaderSvc),
 	})
 
-	// ── HTTP server ───────────────────────────────────────────────────────────
+	// HTTP server
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
 		Addr:         addr,
@@ -494,7 +494,7 @@ func run() error {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// ── Start background services ─────────────────────────────────────────────
+	// Start background services
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -515,7 +515,7 @@ func run() error {
 		}
 	}()
 
-	// ── Graceful shutdown ─────────────────────────────────────────────────────
+	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 

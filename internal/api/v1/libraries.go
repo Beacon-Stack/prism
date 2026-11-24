@@ -19,7 +19,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/pathutil"
 )
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type libraryBody struct {
 	ID                      string    `json:"id"                          doc:"Library UUID"`
@@ -134,7 +134,7 @@ type libraryStatsInput struct {
 	ID string `path:"id"`
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 func libToBody(lib library.Library) *libraryBody {
 	return &libraryBody{
@@ -183,7 +183,7 @@ func validateRootPath(path string) error {
 	return nil
 }
 
-// ── Route registration ───────────────────────────────────────────────────────
+// Route registration
 
 // RegisterLibraryRoutes registers all /api/v1/libraries endpoints.
 // movieSvc may be nil; the disk-import endpoints are skipped when it is.

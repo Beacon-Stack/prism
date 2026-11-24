@@ -276,7 +276,7 @@ func (s *Service) ClientFor(ctx context.Context, configID string) (plugin.Downlo
 	return s.cachedClient(cfg.Kind, cfg.ID, cfg.Settings)
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func rowToConfig(row dbgen.DownloadClientConfig) (Config, error) {
 	createdAt, _ := time.Parse(time.RFC3339, row.CreatedAt)

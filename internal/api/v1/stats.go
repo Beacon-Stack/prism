@@ -10,7 +10,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/stats"
 )
 
-// ── Response bodies ───────────────────────────────────────────────────────────
+// Response bodies
 
 type statsCollectionBody struct {
 	TotalMovies   int64 `json:"total_movies"`
@@ -56,7 +56,7 @@ type statsGrabsBody struct {
 	TopIndexers []statsIndexerBody `json:"top_indexers"`
 }
 
-// ── Output wrappers ───────────────────────────────────────────────────────────
+// Output wrappers
 
 type statsCollectionOutput struct {
 	Body statsCollectionBody
@@ -102,7 +102,7 @@ type statsGenresOutput struct {
 	Body []statsGenreBucketBody
 }
 
-// ── Route registration ────────────────────────────────────────────────────────
+// Route registration
 
 // RegisterStatsRoutes registers the four statistics endpoints.
 func RegisterStatsRoutes(api huma.API, svc *stats.Service) {

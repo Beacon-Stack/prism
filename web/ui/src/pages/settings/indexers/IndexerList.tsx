@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 import type { IndexerConfig, IndexerRequest, TestResult } from "@/types";
 
-// ── Source detection ──────────────────────────────────────────────────────────
+// Source detection
 
 type IndexerSource = "configurarr" | "prowlarr" | "jackett" | "manual";
 
@@ -33,7 +33,7 @@ const sourceStyles: Record<Exclude<IndexerSource, "manual">, { label: string; co
   jackett: { label: "Jackett", color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 12%, transparent)" },
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// Helpers
 
 function strSetting(settings: Record<string, unknown>, key: string): string {
   const v = settings[key];
@@ -45,7 +45,7 @@ function numSetting(settings: Record<string, unknown>, key: string): number {
   return typeof v === "number" ? v : 0;
 }
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -86,7 +86,7 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-// ── Form state ─────────────────────────────────────────────────────────────────
+// Form state
 
 interface FormState {
   name: string;
@@ -140,7 +140,7 @@ function formToRequest(f: FormState): IndexerRequest {
   };
 }
 
-// ── Modal ──────────────────────────────────────────────────────────────────────
+// Modal
 
 interface ModalProps {
   editing: IndexerConfig | null;
@@ -455,7 +455,7 @@ function IndexerModal({ editing, onClose }: ModalProps) {
   );
 }
 
-// ── Row actions ────────────────────────────────────────────────────────────────
+// Row actions
 
 interface RowActionsProps {
   indexer: IndexerConfig;
@@ -577,7 +577,7 @@ function RowActions({ indexer, onEdit }: RowActionsProps) {
   );
 }
 
-// ── Badge ──────────────────────────────────────────────────────────────────────
+// Badge
 
 function KindBadge({ kind }: { kind: string }) {
   const isUsenet = kind === "newznab";
@@ -624,7 +624,7 @@ function SourceBadge({ settings }: { settings: Record<string, unknown> }) {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// Page
 
 export default function IndexerList() {
   const { data, isLoading, error, refetch } = useIndexers();

@@ -22,7 +22,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── extractInfoHash ─────────────────────────────────────────────────────────
+// extractInfoHash
 
 func TestExtractInfoHash_MagnetHex(t *testing.T) {
 	got := extractInfoHash("magnet:?xt=urn:btih:EC5086C1C78D1ACD62EC8F2DD281E18BA222AC55&dn=John+Wick")
@@ -89,7 +89,7 @@ func TestExtractInfoHash_Base32Legacy(t *testing.T) {
 	}
 }
 
-// ── normalizeTitle / dedupeKey ─────────────────────────────────────────────
+// normalizeTitle / dedupeKey
 
 func TestNormalizeTitle_CollapsesSeparators(t *testing.T) {
 	cases := []struct{ in, want string }{
@@ -247,7 +247,7 @@ func TestDedupeByInfoHash_PulseProxiedFallback(t *testing.T) {
 	}
 }
 
-// ── medianInt ──────────────────────────────────────────────────────────────
+// medianInt
 
 func TestMedianInt_OddLength(t *testing.T) {
 	if got := medianInt([]int{55, 57, 68}); got != 57 {
@@ -276,7 +276,7 @@ func TestMedianInt_AllEqual(t *testing.T) {
 	}
 }
 
-// ── dedupeByInfoHash ────────────────────────────────────────────────────────
+// dedupeByInfoHash
 
 func makeRelease(title, indexer, magnetHash string, seeds, peers int, qualityScore int) SearchResult {
 	return SearchResult{

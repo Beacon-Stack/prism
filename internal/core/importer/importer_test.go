@@ -17,7 +17,7 @@ import (
 	"github.com/beacon-stack/prism/internal/events"
 )
 
-// ── Fake DB querier ────────────────────────────────────────────────────────
+// Fake DB querier
 
 type fakeQuerier struct {
 	dbgen.Querier // embed to satisfy interface; unused methods panic
@@ -89,7 +89,7 @@ func (f *fakeQuerier) getUpdatedStatus() *dbgen.UpdateMovieStatusParams {
 	return f.updatedStatus
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 
 func newTestGrab(movieID string) dbgen.GrabHistory {
 	return dbgen.GrabHistory{
@@ -131,7 +131,7 @@ func newTestLibrary(libID, rootPath string) dbgen.Library {
 	}
 }
 
-// ── Tests ──────────────────────────────────────────────────────────────────
+// Tests
 
 func TestImport_SingleFile(t *testing.T) {
 	tmp := t.TempDir()

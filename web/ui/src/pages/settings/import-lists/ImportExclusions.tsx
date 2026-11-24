@@ -9,7 +9,7 @@ import {
 } from "@/api/importlists";
 import type { ImportExclusion } from "@/types";
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -50,7 +50,7 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// Main component
 
 export default function ImportExclusions() {
   const { data: exclusions, isLoading, error } = useImportExclusions();
@@ -83,7 +83,7 @@ export default function ImportExclusions() {
     e.currentTarget.style.borderColor = "var(--color-border-default)";
   }
 
-  // ── Loading / error ──────────────────────────────────────────────────────
+  // Loading / error
 
   if (isLoading) {
     return (
@@ -109,7 +109,7 @@ export default function ImportExclusions() {
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Render
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 800 }}>
@@ -245,7 +245,7 @@ export default function ImportExclusions() {
   );
 }
 
-// ── Row component ──────────────────────────────────────────────────────────────
+// Row component
 
 function ExclusionRow({ excl, onDelete }: { excl: ImportExclusion; onDelete: () => void }) {
   const [hovered, setHovered] = useState(false);

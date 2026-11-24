@@ -18,7 +18,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Result types ──────────────────────────────────────────────────────────────
+// Result types
 
 // PreviewResult summarises what would be imported from a Radarr instance.
 type PreviewResult struct {
@@ -82,7 +82,7 @@ type CategoryResult struct {
 	Failed   int `json:"failed"`
 }
 
-// ── Service ───────────────────────────────────────────────────────────────────
+// Service
 
 // Service orchestrates the one-time import from a Radarr instance.
 type Service struct {
@@ -201,7 +201,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 	// firstProfileID: used as default for libraries that don't get a matched profile
 	var firstProfileID string
 
-	// ── 1. Quality profiles ────────────────────────────────────────────────────
+	// 1. Quality profiles
 	if opts.QualityProfiles {
 		profiles, err := c.GetQualityProfiles(ctx)
 		if err != nil {
@@ -240,7 +240,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 		}
 	}
 
-	// ── 2. Libraries (from root folders) ──────────────────────────────────────
+	// 2. Libraries (from root folders)
 	if opts.Libraries {
 		folders, err := c.GetRootFolders(ctx)
 		if err != nil {
@@ -270,7 +270,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 		}
 	}
 
-	// ── 3. Indexers ────────────────────────────────────────────────────────────
+	// 3. Indexers
 	if opts.Indexers {
 		rdxIndexers, err := c.GetIndexers(ctx)
 		if err != nil {
@@ -315,7 +315,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 		}
 	}
 
-	// ── 4. Download clients ────────────────────────────────────────────────────
+	// 4. Download clients
 	if opts.DownloadClients {
 		rdxClients, err := c.GetDownloadClients(ctx)
 		if err != nil {
@@ -361,7 +361,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 		}
 	}
 
-	// ── 5. Movies ──────────────────────────────────────────────────────────────
+	// 5. Movies
 	if opts.Movies {
 		rdxMovies, err := c.GetMovies(ctx)
 		if err != nil {
@@ -414,7 +414,7 @@ func (s *Service) Execute(ctx context.Context, radarrURL, apiKey string, opts Im
 	return result, nil
 }
 
-// ── Mapping helpers ────────────────────────────────────────────────────────────
+// Mapping helpers
 
 // mapIndexerKind maps a Radarr configContract to a Prism indexer kind.
 // Returns "" for unsupported contracts.

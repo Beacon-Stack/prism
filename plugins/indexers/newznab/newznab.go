@@ -338,9 +338,7 @@ func parseAgeDays(pubDate string) float64 {
 	return time.Since(t).Hours() / 24
 }
 
-// ---------------------------------------------------------------------------
 // XML types
-// ---------------------------------------------------------------------------
 
 // rssResponse is the top-level RSS document returned by Newznab.
 type rssResponse struct {

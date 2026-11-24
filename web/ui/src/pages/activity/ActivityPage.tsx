@@ -32,7 +32,7 @@ import { formatBytes } from "@/lib/utils";
 import { timeAgo } from "@beacon-shared/utils";
 import type { Movie, QueueItem } from "@/types";
 
-// ── Shared bits ──────────────────────────────────────────────────────────────
+// Shared bits
 
 function Rail({
   title,
@@ -167,7 +167,7 @@ function MovieLabel({
   );
 }
 
-// ── 1. Currently downloading ─────────────────────────────────────────────────
+// 1. Currently downloading
 
 function progressPct(item: QueueItem): number {
   if (!item.size || item.size === 0) return 0;
@@ -315,7 +315,7 @@ function DownloadingRail({ idx }: { idx: Map<string, Movie> }) {
   );
 }
 
-// ── 2. Recently imported ─────────────────────────────────────────────────────
+// 2. Recently imported
 //
 // Sourced from activity_log (category=import_succeeded, type=import_complete)
 // rather than grab_history. activity_log.created_at is the actual import-
@@ -419,7 +419,7 @@ function RecentlyImportedRail({ idx }: { idx: Map<string, Movie> }) {
   );
 }
 
-// ── 3. Needs attention ───────────────────────────────────────────────────────
+// 3. Needs attention
 
 function attentionIcon(kind: string) {
   return kind === "import_failed" ? ArrowDownToLine : AlertTriangle;
@@ -544,7 +544,7 @@ function KindLabel({ kind }: { kind: string }) {
   );
 }
 
-// ── 4. Active background tasks ───────────────────────────────────────────────
+// 4. Active background tasks
 //
 // Prism's scheduler tracks job intervals but not per-run state — there's
 // no concept of "task X is running right now" today. The rail is here
@@ -562,7 +562,7 @@ function BackgroundTasksRail() {
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// Page
 
 export default function ActivityPage() {
   const idx = useMovieIndex();

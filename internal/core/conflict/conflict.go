@@ -62,7 +62,7 @@ func Compare(current, candidate plugin.Quality, currentEdition, candidateEdition
 	return conflicts
 }
 
-// ── Resolution ──────────────────────────────────────────────────────────────
+// Resolution
 
 func resolutionRank(r plugin.Resolution) int {
 	switch r {
@@ -104,7 +104,7 @@ func displayRes(r plugin.Resolution) string {
 	return string(r)
 }
 
-// ── Video Codec ─────────────────────────────────────────────────────────────
+// Video Codec
 
 func codecRank(c plugin.Codec) int {
 	switch c {
@@ -150,7 +150,7 @@ func displayCodec(c plugin.Codec) string {
 	}
 }
 
-// ── HDR ─────────────────────────────────────────────────────────────────────
+// HDR
 
 func hdrRank(h plugin.HDRFormat) int {
 	switch h {
@@ -205,7 +205,7 @@ func displayHDR(h plugin.HDRFormat) string {
 	}
 }
 
-// ── Audio Codec ─────────────────────────────────────────────────────────────
+// Audio Codec
 
 func audioCodecRank(a plugin.AudioCodec) int {
 	switch a {
@@ -296,7 +296,7 @@ func displayAudioCodec(a plugin.AudioCodec) string {
 	}
 }
 
-// ── Audio Channels ──────────────────────────────────────────────────────────
+// Audio Channels
 
 func audioChannelsRank(ch plugin.AudioChannels) int {
 	switch ch {
@@ -332,7 +332,7 @@ func compareAudioChannels(cur, cand plugin.AudioChannels) *Conflict {
 	}
 }
 
-// ── Edition ─────────────────────────────────────────────────────────────────
+// Edition
 
 func compareEdition(cur, cand string) *Conflict {
 	if cur == "" {

@@ -10,7 +10,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/collection"
 )
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type collectionItemBody struct {
 	TMDBID     int    `json:"tmdb_id"`
@@ -103,7 +103,7 @@ type entitySearchOutput struct {
 	Body []entitySearchResult
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func toCollectionBody(c collection.Collection) collectionBody {
 	b := collectionBody{
@@ -134,7 +134,7 @@ func toCollectionBody(c collection.Collection) collectionBody {
 	return b
 }
 
-// ── Route registration ────────────────────────────────────────────────────────
+// Route registration
 
 // RegisterCollectionRoutes registers collection CRUD and person search endpoints.
 // svc may be nil (TMDB not configured); endpoints return 503 in that case.

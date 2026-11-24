@@ -8,7 +8,7 @@ import {
   RotateCw,
 } from "lucide-react";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 type CommandCategory = "navigation" | "movie" | "action";
 
@@ -21,7 +21,7 @@ export interface Command {
   onSelect: (navigate: NavigateFunction) => void;
 }
 
-// ── Navigation commands ──────────────────────────────────────────────────────
+// Navigation commands
 
 // Search words and stable IDs for the sidebar's pages, by path. The pages
 // themselves (label, icon, order) come from the sidebar's list in
@@ -73,7 +73,7 @@ export const NAV_COMMANDS: Command[] = [
   ...PALETTE_ONLY,
 ];
 
-// ── Action commands ──────────────────────────────────────────────────────────
+// Action commands
 // NOTE: actions need their taskName resolved at runtime via useRunTask.
 // The onSelect here is a no-op; the component maps action IDs to mutations.
 
@@ -87,7 +87,7 @@ export const ACTION_COMMANDS: ActionCommand[] = [
   { id: "action:refresh-metadata", category: "action", label: "Refresh All Metadata",   keywords: ["tmdb", "refresh", "sync"], icon: RotateCw,   taskName: "refresh_metadata", onSelect: () => {} },
 ];
 
-// ── Fuzzy matching ──────────────────────────────────────────────────────────
+// Fuzzy matching
 
 /**
  * Fuzzy match `query` against `text`. All query characters must appear in
@@ -119,7 +119,7 @@ export function fuzzyScore(query: string, text: string): number {
   return qi === q.length ? score : -1;
 }
 
-// ── Filter helper ────────────────────────────────────────────────────────────
+// Filter helper
 
 export function filterCommands<T extends Command>(commands: T[], query: string): T[] {
   if (!query) return commands;

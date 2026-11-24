@@ -14,7 +14,7 @@ func TestParse(t *testing.T) {
 		input    string
 		wantName string // empty string means expect nil (no edition detected)
 	}{
-		// ── Director's Cut ───────────────────────────────────────────────────
+		// Director's Cut
 		{
 			name:     "Directors Cut dot-separated",
 			input:    "Blade.Runner.1982.Directors.Cut.1080p.BluRay.x264-GROUP",
@@ -31,7 +31,7 @@ func TestParse(t *testing.T) {
 			wantName: "Director's Cut",
 		},
 
-		// ── Extended ─────────────────────────────────────────────────────────
+		// Extended
 		{
 			name:     "Extended Cut",
 			input:    "Kingdom.of.Heaven.2005.Extended.Cut.1080p.BluRay.x264-GROUP",
@@ -53,7 +53,7 @@ func TestParse(t *testing.T) {
 			wantName: "Extended",
 		},
 
-		// ── Theatrical ──────────────────────────────────────────────────────
+		// Theatrical
 		{
 			name:     "Theatrical Cut",
 			input:    "Donnie.Darko.2001.Theatrical.Cut.1080p.BluRay.x264-GROUP",
@@ -65,7 +65,7 @@ func TestParse(t *testing.T) {
 			wantName: "Theatrical",
 		},
 
-		// ── Unrated ─────────────────────────────────────────────────────────
+		// Unrated
 		{
 			name:     "Unrated",
 			input:    "Bad.Santa.2003.Unrated.1080p.BluRay.x264-GROUP",
@@ -82,7 +82,7 @@ func TestParse(t *testing.T) {
 			wantName: "Unrated",
 		},
 
-		// ── IMAX ────────────────────────────────────────────────────────────
+		// IMAX
 		{
 			name:     "IMAX",
 			input:    "Justice.League.2021.IMAX.2160p.WEB-DL.DDP5.1.HDR.HEVC-GROUP",
@@ -94,7 +94,7 @@ func TestParse(t *testing.T) {
 			wantName: "IMAX",
 		},
 
-		// ── Final Cut ───────────────────────────────────────────────────────
+		// Final Cut
 		{
 			name:     "The Final Cut",
 			input:    "Blade.Runner.1982.The.Final.Cut.2160p.UHD.BluRay.x265-GROUP",
@@ -106,14 +106,14 @@ func TestParse(t *testing.T) {
 			wantName: "Final Cut",
 		},
 
-		// ── Redux ───────────────────────────────────────────────────────────
+		// Redux
 		{
 			name:     "Redux",
 			input:    "Apocalypse.Now.1979.Redux.1080p.BluRay.x264-GROUP",
 			wantName: "Redux",
 		},
 
-		// ── Remastered ──────────────────────────────────────────────────────
+		// Remastered
 		{
 			name:     "Remastered",
 			input:    "Jaws.1975.Remastered.1080p.BluRay.x265-GROUP",
@@ -130,14 +130,14 @@ func TestParse(t *testing.T) {
 			wantName: "Remastered",
 		},
 
-		// ── Special Edition ─────────────────────────────────────────────────
+		// Special Edition
 		{
 			name:     "Special Edition",
 			input:    "Aliens.1986.Special.Edition.1080p.BluRay.x265-GROUP",
 			wantName: "Special Edition",
 		},
 
-		// ── Criterion ───────────────────────────────────────────────────────
+		// Criterion
 		{
 			name:     "Criterion Collection",
 			input:    "Seven.Samurai.1954.Criterion.Collection.1080p.BluRay.x264-GROUP",
@@ -149,7 +149,7 @@ func TestParse(t *testing.T) {
 			wantName: "Criterion",
 		},
 
-		// ── Ultimate ────────────────────────────────────────────────────────
+		// Ultimate
 		{
 			name:     "Ultimate Cut",
 			input:    "Watchmen.2009.Ultimate.Cut.1080p.BluRay.x264-GROUP",
@@ -161,7 +161,7 @@ func TestParse(t *testing.T) {
 			wantName: "Ultimate",
 		},
 
-		// ── Anniversary ─────────────────────────────────────────────────────
+		// Anniversary
 		{
 			name:     "Anniversary Edition",
 			input:    "E.T.1982.Anniversary.Edition.1080p.BluRay.x264-GROUP",
@@ -178,28 +178,28 @@ func TestParse(t *testing.T) {
 			wantName: "Anniversary",
 		},
 
-		// ── Rogue Cut ───────────────────────────────────────────────────────
+		// Rogue Cut
 		{
 			name:     "Rogue Cut",
 			input:    "X-Men.Days.of.Future.Past.2014.Rogue.Cut.1080p.BluRay.x264-GROUP",
 			wantName: "Rogue Cut",
 		},
 
-		// ── Black and Chrome ────────────────────────────────────────────────
+		// Black and Chrome
 		{
 			name:     "Black and Chrome",
 			input:    "Mad.Max.Fury.Road.2015.Black.and.Chrome.1080p.BluRay.x264-GROUP",
 			wantName: "Black and Chrome",
 		},
 
-		// ── Open Matte ──────────────────────────────────────────────────────
+		// Open Matte
 		{
 			name:     "Open Matte",
 			input:    "The.Shining.1980.Open.Matte.1080p.BluRay.x264-GROUP",
 			wantName: "Open Matte",
 		},
 
-		// ── No edition detected ─────────────────────────────────────────────
+		// No edition detected
 		{
 			name:     "no edition standard release",
 			input:    "Movie.2020.1080p.BluRay.x264-GROUP",
@@ -216,7 +216,7 @@ func TestParse(t *testing.T) {
 			wantName: "",
 		},
 
-		// ── False positive guards ───────────────────────────────────────────
+		// False positive guards
 		{
 			name:     "DC abbreviation NOT matched",
 			input:    "Movie.2020.DC.1080p.BluRay.x264-GROUP",
@@ -238,7 +238,7 @@ func TestParse(t *testing.T) {
 			wantName: "",
 		},
 
-		// ── Edition with various separators ──────────────────────────────────
+		// Edition with various separators
 		{
 			name:     "underscore separators",
 			input:    "Blade_Runner_1982_Directors_Cut_1080p_BluRay_x264-GROUP",
@@ -255,7 +255,7 @@ func TestParse(t *testing.T) {
 			wantName: "Director's Cut",
 		},
 
-		// ── Edition position variants ───────────────────────────────────────
+		// Edition position variants
 		{
 			name:     "edition after quality tokens",
 			input:    "Movie.2020.2160p.Extended.BluRay.x265-GROUP",

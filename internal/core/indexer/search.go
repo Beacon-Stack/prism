@@ -270,8 +270,8 @@ func (s *Service) search(ctx context.Context, query plugin.SearchQuery, allowedI
 
 // searchSlotted waits for the indexer's rate limit, then takes a global
 // concurrency slot for the request alone. The wait comes first and holds
-// nothing: an indexer waiting out its own rate limit used to sit on a
-// slot (and spend its timeout) while faster indexers queued behind it.
+// nothing, so an indexer waiting out its own rate limit doesn't keep
+// faster indexers queued behind it.
 func (s *Service) searchSlotted(ctx context.Context, cfg Config, query plugin.SearchQuery, interactive bool) ([]plugin.Release, error) {
 	idx, err := s.cachedIndexer(cfg.Kind, cfg.ID, cfg.Settings)
 	if err != nil {

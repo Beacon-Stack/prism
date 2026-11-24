@@ -11,7 +11,7 @@ import (
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 type personInput struct {
 	ID int `path:"id" doc:"TMDB person ID"`
@@ -38,7 +38,7 @@ type personDetailOutput struct {
 	Body *personDetailBody
 }
 
-// ── Registration ─────────────────────────────────────────────────────────────
+// Registration
 
 // RegisterPeopleRoutes registers the /api/v1/people/{id} endpoint.
 func RegisterPeopleRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *tmdb.Client) {

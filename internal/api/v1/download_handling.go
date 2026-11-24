@@ -9,7 +9,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/downloadhandling"
 )
 
-// ── Settings shapes ───────────────────────────────────────────────────────────
+// Settings shapes
 
 type downloadHandlingBody struct {
 	EnableCompleted             bool  `json:"enable_completed"               doc:"Automatically import completed downloads"`
@@ -26,7 +26,7 @@ type downloadHandlingInput struct {
 	Body *downloadHandlingBody
 }
 
-// ── Remote path mapping shapes ─────────────────────────────────────────────────
+// Remote path mapping shapes
 
 type remotePathMappingBody struct {
 	ID         string `json:"id"          doc:"Unique mapping ID"`
@@ -55,7 +55,7 @@ type deleteRemotePathMappingInput struct {
 	ID string `path:"id"`
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func dhSettingsToBody(s downloadhandling.Settings) *downloadHandlingBody {
 	return &downloadHandlingBody{
@@ -84,7 +84,7 @@ func mappingToBody(m downloadhandling.RemotePathMapping) *remotePathMappingBody 
 	}
 }
 
-// ── Route registration ─────────────────────────────────────────────────────────
+// Route registration
 
 // RegisterDownloadHandlingRoutes registers download handling settings and
 // remote path mapping endpoints.

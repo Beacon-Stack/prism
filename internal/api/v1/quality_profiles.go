@@ -11,7 +11,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type qualityProfileBody struct {
 	ID                   string           `json:"id"                        doc:"Profile UUID"`
@@ -66,7 +66,7 @@ type qualityProfileDeleteInput struct {
 // 204 No Content — no Body field.
 type qualityProfileDeleteOutput struct{}
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 func profileToBody(p quality.Profile) *qualityProfileBody {
 	return &qualityProfileBody{
@@ -101,7 +101,7 @@ func inputToCreateRequest(in qualityProfileInput) quality.CreateRequest {
 	}
 }
 
-// ── Route registration ───────────────────────────────────────────────────────
+// Route registration
 
 // RegisterQualityProfileRoutes registers all /api/v1/quality-profiles endpoints.
 func RegisterQualityProfileRoutes(api huma.API, svc *quality.Service) {

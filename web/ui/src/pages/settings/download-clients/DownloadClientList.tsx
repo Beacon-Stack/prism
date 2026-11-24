@@ -25,7 +25,7 @@ import type {
   TestResult,
 } from "@/types";
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// Helpers
 
 type DLSource = "configurarr" | "manual";
 
@@ -53,7 +53,7 @@ function strSetting(settings: Record<string, unknown>, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -94,7 +94,7 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-// ── Form state ─────────────────────────────────────────────────────────────────
+// Form state
 
 interface FormState {
   name: string;
@@ -213,7 +213,7 @@ function formToRequest(f: FormState): DownloadClientRequest {
   };
 }
 
-// ── Modal ──────────────────────────────────────────────────────────────────────
+// Modal
 
 interface ModalProps {
   editing: DownloadClientConfig | null;
@@ -685,7 +685,7 @@ function DownloadClientModal({ editing, onClose }: ModalProps) {
   );
 }
 
-// ── Row actions ────────────────────────────────────────────────────────────────
+// Row actions
 
 interface RowActionsProps {
   client: DownloadClientConfig;
@@ -776,7 +776,7 @@ function RowActions({ client, onEdit }: RowActionsProps) {
   );
 }
 
-// ── Badge ──────────────────────────────────────────────────────────────────────
+// Badge
 
 function KindBadge({ kind }: { kind: string }) {
   const labels: Record<string, string> = {
@@ -807,7 +807,7 @@ function KindBadge({ kind }: { kind: string }) {
   );
 }
 
-// ── Completed & Failed Download Handling ────────────────────────────────────────
+// Completed & Failed Download Handling
 
 function DownloadHandlingSection() {
   const { data, isLoading } = useDownloadHandling();
@@ -1014,7 +1014,7 @@ function DownloadHandlingSection() {
   );
 }
 
-// ── Remote Path Mappings ────────────────────────────────────────────────────────
+// Remote Path Mappings
 
 interface AddMappingForm {
   host: string;
@@ -1277,7 +1277,7 @@ function RemotePathMappingsSection() {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// Page
 
 export default function DownloadClientList() {
   const { data, isLoading, error } = useDownloadClients();

@@ -50,7 +50,7 @@ export function useActivity(filters?: ActivityFilters) {
   });
 }
 
-// ── Needs attention ──────────────────────────────────────────────────────────
+// Needs attention
 //
 // Powers the Activity-page rail of the same name. Items come from two
 // sources server-side:

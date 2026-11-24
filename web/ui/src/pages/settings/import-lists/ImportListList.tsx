@@ -21,7 +21,7 @@ import { useMediaServers } from "@/api/mediaservers";
 import { useSearchPeople, useSearchAll } from "@/api/collections";
 import type { ImportListConfig, ImportListRequest } from "@/types";
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// Constants
 
 interface KindDef {
   value: string;
@@ -63,7 +63,7 @@ function kindLabel(kind: string): string {
   return KINDS.find((k) => k.value === kind)?.label ?? kind;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// Helpers
 
 function strSetting(settings: Record<string, unknown>, key: string): string {
   const v = settings[key];
@@ -75,7 +75,7 @@ function numSetting(settings: Record<string, unknown>, key: string, fallback: nu
   return typeof v === "number" ? v : fallback;
 }
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -116,7 +116,7 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-// ── Form state ─────────────────────────────────────────────────────────────────
+// Form state
 
 interface FormState {
   name: string;
@@ -265,7 +265,7 @@ function formToRequest(f: FormState): ImportListRequest {
   };
 }
 
-// ── Settings sub-forms ─────────────────────────────────────────────────────────
+// Settings sub-forms
 
 interface SubFormProps {
   form: FormState;
@@ -972,7 +972,7 @@ function PreviewGrid({ items, loading }: { items: ImportListPreviewItem[]; loadi
   );
 }
 
-// ── Source picker card grid ─────────────────────────────────────────────────
+// Source picker card grid
 
 function SourceCard({
   kind,
@@ -1131,7 +1131,7 @@ function KindSettings(props: SubFormProps) {
   }
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// Main component
 
 export default function ImportListList() {
   const { data: lists, isLoading, error } = useImportLists();
@@ -1226,7 +1226,7 @@ export default function ImportListList() {
   const saving = createMut.isPending || updateMut.isPending;
   const currentKindDef = KINDS.find((k) => k.value === form.kind);
 
-  // ── Loading / error states ─────────────────────────────────────────────────
+  // Loading / error states
 
   if (isLoading) {
     return (
@@ -1252,7 +1252,7 @@ export default function ImportListList() {
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Render
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 800 }}>
@@ -1321,7 +1321,7 @@ export default function ImportListList() {
       {/* Modal */}
       {showModal && (
         <Modal onClose={closeModal} width={modalStep === "pick" && !editId ? 640 : 580}>
-          {/* ── Step 1: Source picker ─────────────────────────────────────── */}
+          {/* Step 1: Source picker */}
           {modalStep === "pick" && !editId && (
             <>
               <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--color-border-subtle)" }}>
@@ -1345,7 +1345,7 @@ export default function ImportListList() {
             </>
           )}
 
-          {/* ── Step 2: Config form + preview ────────────────────────────── */}
+          {/* Step 2: Config form + preview */}
           {(modalStep === "config" || editId) && (
             <>
               <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--color-border-subtle)" }}>
@@ -1545,7 +1545,7 @@ export default function ImportListList() {
   );
 }
 
-// ── Row component ──────────────────────────────────────────────────────────────
+// Row component
 
 function ImportListRow({
   cfg,

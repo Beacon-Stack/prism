@@ -14,7 +14,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Mock downloader ───────────────────────────────────────────────────────────
+// Mock downloader
 
 type mockClient struct {
 	testErr error
@@ -38,7 +38,7 @@ func (m *mockClient) Status(_ context.Context, id string) (plugin.QueueItem, err
 func (m *mockClient) GetQueue(_ context.Context) ([]plugin.QueueItem, error) { return nil, nil }
 func (m *mockClient) Remove(_ context.Context, _ string, _ bool) error       { return nil }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func newTestReg(mock *mockClient) *registry.Registry {
 	reg := registry.New()
@@ -68,7 +68,7 @@ func sampleCreateReq() downloader.CreateRequest {
 	}
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// Tests
 
 func TestService_Create(t *testing.T) {
 	_, sqlDB := testutil.NewTestDBWithSQL(t)

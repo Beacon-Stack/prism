@@ -12,7 +12,7 @@ import Modal from "@beacon-shared/Modal";
 import TableScroll from "@beacon-shared/TableScroll";
 import type { Quality, QualityDefinition, QualityProfile, QualityProfileRequest } from "@/types";
 
-// ── Quality helpers ──────────────────────────────────────────────────────────
+// Quality helpers
 
 /**
  * Find the definition that matches a stored quality.
@@ -64,7 +64,7 @@ function isPopular(d: QualityDefinition): boolean {
   return POPULAR_KEYS.has(defKey(d));
 }
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -93,7 +93,7 @@ function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
   (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border-default)";
 }
 
-// ── Toggle slider ────────────────────────────────────────────────────────────
+// Toggle slider
 
 function ToggleSlider({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -133,7 +133,7 @@ function ToggleSlider({ checked, onChange, label }: { checked: boolean; onChange
   );
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
+// Modal
 
 interface ModalProps {
   editing: QualityProfile | null;
@@ -410,7 +410,7 @@ function QualityProfileModal({ editing, definitions, onClose }: ModalProps) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// Page
 
 export default function QualityProfileList() {
   const { data, isLoading, error } = useQualityProfiles();

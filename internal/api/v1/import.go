@@ -9,7 +9,7 @@ import (
 	"github.com/beacon-stack/prism/internal/radarrimport"
 )
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type radarrPreviewInput struct {
 	Body struct {
@@ -34,7 +34,7 @@ type radarrExecuteOutput struct {
 	Body *radarrimport.ImportResult
 }
 
-// ── Route registration ───────────────────────────────────────────────────────
+// Route registration
 
 // RegisterImportRoutes registers all /api/v1/import endpoints.
 func RegisterImportRoutes(api huma.API, svc *radarrimport.Service) {

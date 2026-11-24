@@ -10,7 +10,7 @@ import (
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 )
 
-// ── Response / request shapes ─────────────────────────────────────────────────
+// Response / request shapes
 
 type mediaManagementBody struct {
 	RenameMovies           bool   `json:"rename_movies"            doc:"Rename movie files on import"`
@@ -30,7 +30,7 @@ type mediaManagementInput struct {
 	Body *mediaManagementBody
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func settingsToBody(s mediamanagement.Settings) *mediaManagementBody {
 	return &mediaManagementBody{
@@ -63,7 +63,7 @@ func bodyToSettings(b *mediaManagementBody) mediamanagement.Settings {
 	}
 }
 
-// ── Route registration ────────────────────────────────────────────────────────
+// Route registration
 
 // RegisterMediaManagementRoutes registers /api/v1/media-management endpoints.
 func RegisterMediaManagementRoutes(api huma.API, svc *mediamanagement.Service) {

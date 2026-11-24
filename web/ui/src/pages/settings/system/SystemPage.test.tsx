@@ -172,7 +172,7 @@ describe("StatusSection", () => {
   });
 });
 
-// ── HealthSection ────────────────────────────────────────────────────────────
+// HealthSection
 
 describe("HealthSection", () => {
   it("renders 'All systems healthy' for healthy status", async () => {
@@ -217,7 +217,7 @@ describe("HealthSection", () => {
   });
 });
 
-// ── TasksSection ─────────────────────────────────────────────────────────────
+// TasksSection
 
 describe("TasksSection", () => {
   it("shows 'No tasks registered' for empty list", async () => {

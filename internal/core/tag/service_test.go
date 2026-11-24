@@ -14,7 +14,7 @@ func newSvc(t *testing.T) *tag.Service {
 	return tag.NewService(q)
 }
 
-// ── CRUD ────────────────────────────────────────────────────────────────────
+// CRUD
 
 func TestCreate(t *testing.T) {
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-// ── Movie tag associations ──────────────────────────────────────────────────
+// Movie tag associations
 
 func TestMovieTags(t *testing.T) {
 	ctx := context.Background()
@@ -162,7 +162,7 @@ func TestMovieTags_EmptyByDefault(t *testing.T) {
 	}
 }
 
-// ── Usage counts ────────────────────────────────────────────────────────────
+// Usage counts
 
 func TestList_UsageCounts(t *testing.T) {
 	ctx := context.Background()
@@ -185,7 +185,7 @@ func TestList_UsageCounts(t *testing.T) {
 	}
 }
 
-// ── Cascade delete ──────────────────────────────────────────────────────────
+// Cascade delete
 
 func TestDelete_CascadeRemovesAssociations(t *testing.T) {
 	ctx := context.Background()
@@ -207,7 +207,7 @@ func TestDelete_CascadeRemovesAssociations(t *testing.T) {
 	}
 }
 
-// ── TagsOverlap ─────────────────────────────────────────────────────────────
+// TagsOverlap
 
 func TestTagsOverlap(t *testing.T) {
 	tests := []struct {

@@ -7,7 +7,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// helpers
 
 func qSD() plugin.Quality {
 	return plugin.Quality{Resolution: plugin.ResolutionSD, Source: plugin.SourceDVD, Codec: plugin.CodecXVID}
@@ -53,7 +53,7 @@ func standardProfile(upgradeAllowed bool, upgradeUntil *plugin.Quality) *quality
 	}
 }
 
-// ── WantRelease tests ─────────────────────────────────────────────────────────
+// WantRelease tests
 
 func TestWantRelease(t *testing.T) {
 	t.Parallel()
@@ -65,7 +65,7 @@ func TestWantRelease(t *testing.T) {
 		currentFile    *plugin.Quality
 		want           bool
 	}{
-		// ── No file on disk ──────────────────────────────────────────────────
+		// No file on disk
 		{
 			name:           "no file, allowed quality → grab",
 			profile:        standardProfile(false, nil),
@@ -88,7 +88,7 @@ func TestWantRelease(t *testing.T) {
 			want:           false,
 		},
 
-		// ── Below cutoff ─────────────────────────────────────────────────────
+		// Below cutoff
 		{
 			name:           "below cutoff, release is better → grab",
 			profile:        standardProfile(false, nil),
@@ -111,7 +111,7 @@ func TestWantRelease(t *testing.T) {
 			want:           false, // current already meets cutoff, upgrading off
 		},
 
-		// ── Cutoff met, upgrades disabled ────────────────────────────────────
+		// Cutoff met, upgrades disabled
 		{
 			name:           "cutoff met, upgrade disabled, better release → reject",
 			profile:        standardProfile(false, nil),
@@ -127,7 +127,7 @@ func TestWantRelease(t *testing.T) {
 			want:           false,
 		},
 
-		// ── Cutoff met, upgrades enabled, no ceiling ─────────────────────────
+		// Cutoff met, upgrades enabled, no ceiling
 		{
 			name:           "cutoff met, upgrade enabled, better release → grab",
 			profile:        standardProfile(true, nil),
@@ -157,7 +157,7 @@ func TestWantRelease(t *testing.T) {
 			want:           false,
 		},
 
-		// ── Upgrade ceiling ──────────────────────────────────────────────────
+		// Upgrade ceiling
 		{
 			name:    "upgrade ceiling not yet reached, better release → grab",
 			profile: standardProfile(true, ptr(q1080pRemux())),
@@ -201,7 +201,7 @@ func TestWantRelease(t *testing.T) {
 	}
 }
 
-// ── IsUpgrade tests ───────────────────────────────────────────────────────────
+// IsUpgrade tests
 
 func TestIsUpgrade(t *testing.T) {
 	t.Parallel()
@@ -275,7 +275,7 @@ func TestIsUpgrade(t *testing.T) {
 	}
 }
 
-// ── AllowedQualities tests ────────────────────────────────────────────────────
+// AllowedQualities tests
 
 func TestAllowedQualities(t *testing.T) {
 	t.Parallel()
@@ -294,7 +294,7 @@ func TestAllowedQualities(t *testing.T) {
 	}
 }
 
-// ── RejectReason tests ────────────────────────────────────────────────────────
+// RejectReason tests
 
 func TestRejectReason(t *testing.T) {
 	t.Parallel()
@@ -446,7 +446,7 @@ func TestRejectReason_consistentWithWantRelease(t *testing.T) {
 	}
 }
 
-// ── theater recordings ───────────────────────────────────────────────────────
+// theater recordings
 
 func TestWantRelease_RejectsTheaterRecordingsByDefault(t *testing.T) {
 	unknown1080 := plugin.Quality{Resolution: plugin.Resolution1080p, Source: plugin.SourceUnknown, Codec: plugin.CodecX264}

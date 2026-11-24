@@ -9,7 +9,7 @@ import type {
   ImportListSyncResult,
 } from "@/types";
 
-// ── Import Lists ─────────────────────────────────────────────────────────────
+// Import Lists
 
 export function useImportLists() {
   return useQuery({
@@ -76,7 +76,7 @@ export function useSyncAllImportLists() {
   });
 }
 
-// ── Preview ──────────────────────────────────────────────────────────────────
+// Preview
 
 export interface ImportListPreviewItem {
   tmdb_id: number;
@@ -96,7 +96,7 @@ export function useImportListPreview() {
   });
 }
 
-// ── Import Exclusions ────────────────────────────────────────────────────────
+// Import Exclusions
 
 export function useImportExclusions() {
   return useQuery({
@@ -130,7 +130,7 @@ export function useDeleteImportExclusion() {
   });
 }
 
-// ── Plex Auth ──────────────────────────────────────────────────────────────
+// Plex Auth
 
 interface PlexPin {
   id: number;

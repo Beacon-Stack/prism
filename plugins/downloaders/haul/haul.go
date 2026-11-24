@@ -304,7 +304,7 @@ func (c *Client) SetSeedLimits(ctx context.Context, clientItemID string, ratioLi
 	return nil
 }
 
-// ── HTTP helpers ─────────────────────────────────────────────────────────────
+// HTTP helpers
 
 func (c *Client) get(ctx context.Context, path string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.cfg.URL+path, nil)
@@ -352,7 +352,7 @@ func (c *Client) delete(ctx context.Context, path string) (*http.Response, error
 	return c.http.Do(req)
 }
 
-// ── Response types ───────────────────────────────────────────────────────────
+// Response types
 
 type torrentInfo struct {
 	InfoHash    string  `json:"info_hash"`
@@ -397,7 +397,7 @@ func (t torrentInfo) toQueueItem() plugin.QueueItem {
 	}
 }
 
-// ── History lookup ──────────────────────────────────────────────────────────
+// History lookup
 //
 // Mirror of the methods in pilot/plugins/downloaders/haul/haul.go.
 // Prism uses these to power the "downloaded but not in library" rail

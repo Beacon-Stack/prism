@@ -6,7 +6,7 @@ import { renderWithProviders } from "@/test/helpers";
 import { createElement } from "react";
 import StatsPage from "./StatsPage";
 
-// ── Shared fixtures ───────────────────────────────────────────────────────────
+// Shared fixtures
 
 const collectionStats = {
   total_movies: 50,
@@ -101,7 +101,7 @@ describe("StatsPage", () => {
     expect(screen.getByText("Have File")).toBeInTheDocument();
   });
 
-  // ── Quality tier toggle ───────────────────────────────────────────────────
+  // Quality tier toggle
 
   it("shows By Dimension and By Tier toggle buttons", async () => {
     useFullStatsHandlers();

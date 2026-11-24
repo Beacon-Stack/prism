@@ -4,7 +4,7 @@ import { useAllMovies } from "@/api/movies";
 import { Poster } from "@/components/Poster";
 import type { Movie } from "@/types";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 function movieBorderColor(movie: Movie): string {
   if (!movie.monitored) return "var(--color-border-default)";
@@ -24,7 +24,7 @@ const MONTH_NAMES = [
 ];
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// ── Movie chip ────────────────────────────────────────────────────────────────
+// Movie chip
 
 function MovieChip({ movie, onClick }: { movie: Movie; onClick: () => void }) {
   const border = movieBorderColor(movie);
@@ -76,7 +76,7 @@ function MovieChip({ movie, onClick }: { movie: Movie; onClick: () => void }) {
   );
 }
 
-// ── Day cell ──────────────────────────────────────────────────────────────────
+// Day cell
 
 function DayCell({
   date,
@@ -143,7 +143,7 @@ function DayCell({
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// Page
 
 export default function CalendarPage() {
   const navigate = useNavigate();

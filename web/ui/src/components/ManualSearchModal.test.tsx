@@ -179,7 +179,7 @@ describe.skip("ManualSearchModal", () => {
     });
   });
 
-  // ── Sorting tests ─────────────────────────────────────────────────────────
+  // Sorting tests
 
   function makeRelease(overrides: Partial<Release> & { guid: string; title: string }): Release {
     return { ...releaseFixture, ...overrides };
@@ -261,7 +261,7 @@ describe.skip("ManualSearchModal", () => {
     expect(titles).toEqual(["High.Score", "Mid.Score", "Low.Score"]);
   });
 
-  // ── Conflict pills ────────────────────────────────────────────────────────
+  // Conflict pills
 
   it("shows conflict warning pills when release has conflicts", async () => {
     const conflictRelease: Release = {
@@ -367,7 +367,7 @@ describe.skip("ManualSearchModal", () => {
     expect(pill.querySelector("svg")).toBeNull();
   });
 
-  // ── Explain panel (Why? button) ───────────────────────────────────────────
+  // Explain panel (Why? button)
 
   it("Why button is visible in the modal header", () => {
     server.use(

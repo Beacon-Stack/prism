@@ -441,9 +441,9 @@ func (s *Service) Grab(ctx context.Context, movieID, indexerID string, r plugin.
 	}
 
 	if s.bus != nil {
-		// release_title + indexer match the data keys the activity
-		// classifier reads — see internal/core/activity/service.go.
-		// Drift here used to result in empty "Grabbed " activity rows.
+		// release_title and indexer are the keys the activity classifier
+		// reads (internal/core/activity/service.go); without them the
+		// activity row has no title.
 		s.bus.Publish(ctx, events.Event{
 			Type:    events.TypeGrabStarted,
 			MovieID: movieID,

@@ -1,4 +1,4 @@
-// ── System ─────────────────────────────────────────────────────────────────
+// System
 
 export interface SystemStatus {
   app_name: string;
@@ -37,7 +37,7 @@ export interface PluginList {
   import_lists: string[];
 }
 
-// ── Movies ─────────────────────────────────────────────────────────────────
+// Movies
 
 export interface Movie {
   id: string;
@@ -189,7 +189,7 @@ export interface GrabHistory {
   score_breakdown?: ScoreBreakdown;
 }
 
-// ── Auto-search ─────────────────────────────────────────────────────────
+// Auto-search
 
 interface AutoSearchGrab {
   id: string;
@@ -224,7 +224,7 @@ export interface RenameMovieResult {
   renamed: RenamePreviewItem[];
 }
 
-// ── Queue ──────────────────────────────────────────────────────────────────
+// Queue
 
 export interface QueueItem {
   id: string;
@@ -239,7 +239,7 @@ export interface QueueItem {
   grabbed_at: string;
 }
 
-// ── Libraries ──────────────────────────────────────────────────────────────
+// Libraries
 
 export interface Library {
   id: string;
@@ -272,7 +272,7 @@ export interface LibraryRequest {
   tags?: string[];
 }
 
-// ── Download Handling ───────────────────────────────────────────────────────
+// Download Handling
 
 export interface DownloadHandling {
   enable_completed: boolean;
@@ -294,7 +294,7 @@ export interface CreateRemotePathMappingRequest {
   local_path: string;
 }
 
-// ── Media Management ────────────────────────────────────────────────────────
+// Media Management
 
 export interface MediaManagement {
   rename_movies: boolean;
@@ -306,7 +306,7 @@ export interface MediaManagement {
   unmonitor_deleted_movies: boolean;
 }
 
-// ── Library disk import ────────────────────────────────────────────────────
+// Library disk import
 
 export interface DiskFileTMDBMatch {
   tmdb_id: number;
@@ -323,7 +323,7 @@ export interface DiskFile {
   tmdb_match?: DiskFileTMDBMatch;
 }
 
-// ── Quality Profiles ───────────────────────────────────────────────────────
+// Quality Profiles
 
 export interface Quality {
   resolution: string;
@@ -353,7 +353,7 @@ export interface QualityProfileRequest {
   upgrade_until?: Quality;
 }
 
-// ── Quality Definitions ────────────────────────────────────────────────────
+// Quality Definitions
 
 export interface QualityDefinition {
   id: string;
@@ -375,7 +375,7 @@ export interface QualityDefinitionUpdate {
   preferred_size: number;
 }
 
-// ── Indexers ───────────────────────────────────────────────────────────────
+// Indexers
 
 export interface IndexerConfig {
   id: string;
@@ -398,7 +398,7 @@ export interface IndexerRequest {
   min_seeders?: number;
 }
 
-// ── Download Clients ───────────────────────────────────────────────────────
+// Download Clients
 
 export interface DownloadClientConfig {
   id: string;
@@ -419,16 +419,16 @@ export interface DownloadClientRequest {
   settings: Record<string, unknown>;
 }
 
-// ── Notifications ──────────────────────────────────────────────────────────
+// Notifications
 
-// ── Test result ────────────────────────────────────────────────────────────
+// Test result
 
 export interface TestResult {
   ok: boolean;
   message?: string;
 }
 
-// ── Movie files ────────────────────────────────────────────────────────────
+// Movie files
 
 export interface MediaInfo {
   container?: string;
@@ -456,7 +456,7 @@ export interface MovieFile {
   mediainfo?: MediaInfo;
 }
 
-// ── Blocklist ──────────────────────────────────────────────────────────────
+// Blocklist
 
 interface BlocklistEntry {
   id: string;
@@ -478,7 +478,7 @@ export interface BlocklistPage {
   per_page: number;
 }
 
-// ── Filesystem browser ─────────────────────────────────────────────────────
+// Filesystem browser
 
 interface FsDirEntry {
   name: string;
@@ -491,7 +491,7 @@ export interface FsBrowseResult {
   dirs: FsDirEntry[];
 }
 
-// ── Radarr import ──────────────────────────────────────────────────────────
+// Radarr import
 
 export interface RadarrPreviewResult {
   version: string;
@@ -525,7 +525,7 @@ export interface RadarrImportResult {
   errors: string[];
 }
 
-// ── Collections ────────────────────────────────────────────────────────────
+// Collections
 
 export interface PersonSearchResult {
   person_id: number;
@@ -565,7 +565,7 @@ export interface Collection {
   missing: number;
 }
 
-// ── Media Servers ───────────────────────────────────────────────────────────
+// Media Servers
 
 export interface MediaServerConfig {
   id: string;
@@ -584,7 +584,7 @@ export interface MediaServerRequest {
   settings: Record<string, unknown>;
 }
 
-// ── Plex Sync ──────────────────────────────────────────────────────────────
+// Plex Sync
 
 export interface PlexSection {
   key: string;
@@ -628,7 +628,7 @@ export interface PlexSyncImportResult {
   errors: string[];
 }
 
-// ── Import Lists ───────────────────────────────────────────────────────────
+// Import Lists
 
 export interface ImportListConfig {
   id: string;
@@ -680,9 +680,9 @@ export interface ImportListSyncResult {
   errors: string[];
 }
 
-// ── Release Explain ────────────────────────────────────────────────────────
+// Release Explain
 
-// ── Upgrade Recommendations ────────────────────────────────────────────────
+// Upgrade Recommendations
 
 export interface UpgradeTier {
   label: string;
@@ -697,7 +697,7 @@ export interface UpgradeRecommendations {
   tiers: UpgradeTier[];
 }
 
-// ── Custom Format Presets ──────────────────────────────────────────────────
+// Custom Format Presets
 
 interface CustomFormatSpecification {
   name: string;

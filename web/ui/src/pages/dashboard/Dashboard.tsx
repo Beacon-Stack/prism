@@ -18,7 +18,7 @@ import { useQualityProfiles } from "@/api/quality-profiles";
 import Modal from "@beacon-shared/Modal";
 import type { Movie, TMDBResult } from "@/types";
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// Shared styles
 
 const ctrlStyle: React.CSSProperties = {
   background: "var(--color-bg-elevated)",
@@ -41,7 +41,7 @@ const thStyle: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 type MonitoredFilter = "all" | "monitored" | "unmonitored";
 type OnDiskFilter = "all" | "on_disk" | "missing";
@@ -49,7 +49,7 @@ type SortField = "title" | "year" | "added_at";
 type SortDir = "asc" | "desc";
 type ViewMode = "grid" | "list";
 
-// ── StatusBadge ───────────────────────────────────────────────────────────────
+// StatusBadge
 
 function StatusBadge({ status }: { status: string }) {
   const isReleased = status === "released";
@@ -75,7 +75,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── PosterCard ────────────────────────────────────────────────────────────────
+// PosterCard
 
 function PosterCard({
   movie,
@@ -258,7 +258,7 @@ function PosterCard({
   );
 }
 
-// ── ListRow ───────────────────────────────────────────────────────────────────
+// ListRow
 
 function ListRow({
   movie,
@@ -417,7 +417,7 @@ function ListRow({
   );
 }
 
-// ── Add Movie Dialog ──────────────────────────────────────────────────────────
+// Add Movie Dialog
 
 const dialogInputStyle: React.CSSProperties = {
   width: "100%",
@@ -1058,9 +1058,9 @@ function AddMovieDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Skeleton grid ─────────────────────────────────────────────────────────────
+// Skeleton grid
 
-// ── BulkEditModal ─────────────────────────────────────────────────────────────
+// BulkEditModal
 
 type MonitoredChoice = "unchanged" | "yes" | "no";
 
@@ -1336,7 +1336,7 @@ function BulkEditModal({
   );
 }
 
-// ── Skeleton grid ─────────────────────────────────────────────────────────────
+// Skeleton grid
 
 function GridSkeleton({ posterSize }: { posterSize: number }) {
   return (
@@ -1367,7 +1367,7 @@ function GridSkeleton({ posterSize }: { posterSize: number }) {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// Page
 
 export default function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => {

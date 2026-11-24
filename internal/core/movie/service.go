@@ -1149,7 +1149,7 @@ func (s *Service) RenameFiles(ctx context.Context, movieID string, settings Rena
 	return done, nil
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 // marshalGenres encodes a genre slice as a JSON array string.
 // A nil or empty slice becomes "[]".

@@ -11,7 +11,7 @@ import Modal from "@beacon-shared/Modal";
 
 const TMDB_IMG_BASE = "https://image.tmdb.org/t/p/w45";
 
-// ── Add Collection Modal ───────────────────────────────────────────────────
+// Add Collection Modal
 
 function AddCollectionModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
@@ -217,7 +217,7 @@ function AddCollectionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Collection Card ────────────────────────────────────────────────────────
+// Collection Card
 
 function CollectionCard({
   id,
@@ -340,7 +340,7 @@ function CollectionCard({
   );
 }
 
-// ── Collections Page ───────────────────────────────────────────────────────
+// Collections Page
 
 export default function CollectionsPage() {
   const { data: collections, isLoading } = useCollections();

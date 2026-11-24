@@ -19,7 +19,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Mock TMDB ────────────────────────────────────────────────────────────────
+// Mock TMDB
 
 type mockTMDB struct {
 	movies map[int]*tmdb.MovieDetail
@@ -42,7 +42,7 @@ func (m *mockTMDB) GetMovie(_ context.Context, id int) (*tmdb.MovieDetail, error
 	}, nil
 }
 
-// ── Mock import list plugin ──────────────────────────────────────────────────
+// Mock import list plugin
 
 type mockImportList struct {
 	name    string
@@ -56,7 +56,7 @@ func (m *mockImportList) Fetch(_ context.Context) ([]plugin.ImportListItem, erro
 }
 func (m *mockImportList) Test(_ context.Context) error { return m.testErr }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 func newTestReg(mock *mockImportList) *registry.Registry {
 	reg := registry.New()
@@ -114,7 +114,7 @@ func sampleSettings() json.RawMessage {
 	return json.RawMessage(`{}`)
 }
 
-// ── CRUD Tests ───────────────────────────────────────────────────────────────
+// CRUD Tests
 
 func TestCreate(t *testing.T) {
 	mock := &mockImportList{name: "test"}
@@ -283,7 +283,7 @@ func TestTest(t *testing.T) {
 	}
 }
 
-// ── Exclusion Tests ──────────────────────────────────────────────────────────
+// Exclusion Tests
 
 func TestExclusions_CRUD(t *testing.T) {
 	mock := &mockImportList{name: "test"}
@@ -330,7 +330,7 @@ func TestExclusions_CRUD(t *testing.T) {
 	}
 }
 
-// ── Sync Tests ───────────────────────────────────────────────────────────────
+// Sync Tests
 
 func TestSync_AddsNewMovies(t *testing.T) {
 	items := []plugin.ImportListItem{

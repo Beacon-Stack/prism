@@ -26,7 +26,7 @@ import { useQualityProfiles } from "@/api/quality-profiles";
 import { Poster } from "@/components/Poster";
 import Modal from "@beacon-shared/Modal";
 
-// ── Add Movie Modal ─────────────────────────────────────────────────────────
+// Add Movie Modal
 
 function QuickAddModal({
   movie,
@@ -206,7 +206,7 @@ function QuickAddModal({
   );
 }
 
-// ── Movie Card ──────────────────────────────────────────────────────────────
+// Movie Card
 
 function DiscoverCard({
   movie,
@@ -336,7 +336,7 @@ function DiscoverCard({
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// Page
 
 const region = discoverRegion();
 

@@ -102,7 +102,7 @@ func TestApply_ZeroYear(t *testing.T) {
 	}
 }
 
-// ── Comprehensive table-driven tests (inspired by Sonarr/Radarr) ───────────
+// Comprehensive table-driven tests (inspired by Sonarr/Radarr)
 
 func TestApplyWithOptions_ColonStrategies(t *testing.T) {
 	movie := renamer.Movie{Title: "Batman: The Dark Knight", Year: 2008}

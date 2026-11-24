@@ -9,7 +9,7 @@ func TestParseEdition_AllRules(t *testing.T) {
 		input string
 		want  string
 	}{
-		// ── Multi-word editions (must match before bare fallbacks) ────────
+		// Multi-word editions (must match before bare fallbacks)
 		{"Directors Cut", "Movie.1982.Directors.Cut.1080p.BluRay", "Director's Cut"},
 		{"Director's Cut apostrophe", "Movie.1982.Director's.Cut.1080p.BluRay", "Director's Cut"},
 		{"Directors Edition", "Movie.1979.Directors.Edition.1080p.BluRay", "Director's Cut"},
@@ -39,7 +39,7 @@ func TestParseEdition_AllRules(t *testing.T) {
 		{"25th Anniversary", "Movie.1982.25th.Anniversary.1080p.BluRay", "Anniversary"},
 		{"40th Anniversary Edition", "Movie.1979.40th.Anniversary.Edition.2160p.BluRay", "Anniversary"},
 
-		// ── Single-word fallbacks ────────────────────────────────────────
+		// Single-word fallbacks
 		{"bare Extended", "Movie.2001.Extended.2160p.BluRay", "Extended"},
 		{"bare Theatrical", "Movie.2021.Theatrical.2160p.WEB-DL", "Theatrical"},
 		{"Redux", "Movie.1979.Redux.1080p.BluRay", "Redux"},

@@ -21,7 +21,7 @@ import { useMediaManagement } from "@/api/media-management";
 import { DirPicker } from "@/components/DirPicker";
 import type { Library, LibraryRequest, DiskFile, DiskFileTMDBMatch, TMDBResult } from "@/types";
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -49,7 +49,7 @@ const fieldStyle: React.CSSProperties = {
   gap: 0,
 };
 
-// ── Form state ────────────────────────────────────────────────────────────────
+// Form state
 
 interface FormState {
   name: string;
@@ -86,7 +86,7 @@ function formToRequest(f: FormState): LibraryRequest {
   };
 }
 
-// ── Library edit modal ────────────────────────────────────────────────────────
+// Library edit modal
 
 interface LibraryModalProps {
   editing: Library | null;
@@ -336,7 +336,7 @@ function LibraryModal({ editing, onClose }: LibraryModalProps) {
   );
 }
 
-// ── Disk scan modal ───────────────────────────────────────────────────────────
+// Disk scan modal
 
 interface FileRowState {
   file: DiskFile;
@@ -362,7 +362,7 @@ function basename(path: string): string {
   return path.split("/").pop() ?? path;
 }
 
-// ── Auto-match helpers ────────────────────────────────────────────────────────
+// Auto-match helpers
 
 /** Converts a pre-computed DB match into the TMDBResult shape used by the UI. */
 function dbMatchToResult(m: DiskFileTMDBMatch | undefined): TMDBResult | null {
@@ -701,7 +701,7 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
 
   return (
     <Modal onClose={onClose} width="100%" maxWidth="980px" maxHeight="calc(100vh - 64px)">
-        {/* ── Header ── */}
+        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -739,7 +739,7 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
           </button>
         </div>
 
-        {/* ── Controls bar ── */}
+        {/* Controls bar */}
         <div
           style={{
             display: "flex",
@@ -801,7 +801,7 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
           )}
         </div>
 
-        {/* ── File table ── */}
+        {/* File table */}
         <div style={{ flex: 1, overflow: "auto" }}>
           {isLoading ? (
             <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -884,7 +884,7 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
           )}
         </div>
 
-        {/* ── Legend + footer ── */}
+        {/* Legend + footer */}
         <div
           style={{
             display: "flex",
@@ -950,7 +950,7 @@ function DiskScanModal({ library, onClose }: DiskScanModalProps) {
   );
 }
 
-// ── File table row ────────────────────────────────────────────────────────────
+// File table row
 
 interface FileTableRowProps {
   row: FileRowState;
@@ -1105,7 +1105,7 @@ function FileTableRow({
   );
 }
 
-// ── Inline TMDB search ────────────────────────────────────────────────────────
+// Inline TMDB search
 
 interface InlineSearchProps {
   query: string;
@@ -1200,7 +1200,7 @@ function InlineSearch({ query, results, onQueryChange, onSearch, onSelect, onClo
   );
 }
 
-// ── Row actions ───────────────────────────────────────────────────────────────
+// Row actions
 
 interface RowActionsProps {
   library: Library;
@@ -1304,7 +1304,7 @@ function smallBtn(color: string, bg: string): React.CSSProperties {
   };
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// Page
 
 export default function LibraryList() {
   const { data, isLoading, error } = useLibraries();

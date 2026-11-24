@@ -243,10 +243,9 @@ func (s *Service) fireTransitionEvent(ctx context.Context, g dbgen.GrabHistory, 
 	}
 	switch plugin.DownloadStatus(newStatus) {
 	case plugin.StatusCompleted:
-		// release_title matches what the activity classifier reads —
-		// see classify() in internal/core/activity/service.go. Drift
-		// here used to render activity rows as "Download complete: "
-		// with an empty title.
+		// release_title is the key the activity classifier reads
+		// (classify in internal/core/activity/service.go); without it
+		// the activity row has no title.
 		s.bus.Publish(ctx, events.Event{
 			Type:    events.TypeDownloadDone,
 			MovieID: g.MovieID,

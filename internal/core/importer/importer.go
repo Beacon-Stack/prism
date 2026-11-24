@@ -145,7 +145,7 @@ func (s *Service) ImportFromHaulRecord(ctx context.Context, movieID, contentPath
 func (s *Service) importFile(ctx context.Context, grabID, contentPath string) error {
 	s.logger.Info("import started", "grab_id", grabID, "content_path", contentPath)
 
-	// ── Load context from DB ───────────────────────────────────────────────
+	// Load context from DB
 	grab, err := s.q.GetGrabByID(ctx, grabID)
 	if err != nil {
 		return fmt.Errorf("loading grab %q: %w", grabID, err)
@@ -169,19 +169,19 @@ func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, content
 		return fmt.Errorf("loading library %q: %w", mov.LibraryID, err)
 	}
 
-	// ── Resolve source file ────────────────────────────────────────────────
+	// Resolve source file
 	srcPath, err := resolveSourceFile(contentPath)
 	if err != nil {
 		return fmt.Errorf("resolving source file from %q: %w", contentPath, err)
 	}
 
-	// ── Load media management settings ─────────────────────────────────────
+	// Load media management settings
 	mm, err := s.mm.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("loading media management settings: %w", err)
 	}
 
-	// ── Reconstruct quality + compute destination ──────────────────────────
+	// Reconstruct quality + compute destination
 	q := qualityFromGrab(grab)
 
 	fileFormat := mm.StandardMovieFormat
@@ -215,24 +215,24 @@ func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, content
 		destPath = renamer.DestPath(lib.RootPath, fileFormat, folderFormat, rm, q, colon, ext)
 	}
 
-	// ── Create destination directory ───────────────────────────────────────
+	// Create destination directory
 	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 		return fmt.Errorf("creating destination directory: %w", err)
 	}
 
-	// ── Transfer the file (hardlink preferred, copy+delete as fallback) ────
+	// Transfer the file (hardlink preferred, copy+delete as fallback)
 	if err := transferFile(srcPath, destPath); err != nil {
 		return fmt.Errorf("transferring file %q → %q: %w", srcPath, destPath, err)
 	}
 
-	// ── Copy extra files (subtitles, NFOs, etc.) ───────────────────────────
+	// Copy extra files (subtitles, NFOs, etc.)
 	if mm.ImportExtraFiles && len(mm.ExtraFileExtensions) > 0 {
 		srcDir := filepath.Dir(srcPath)
 		destDir := filepath.Dir(destPath)
 		copyExtraFiles(s.logger, srcDir, destDir, mm.ExtraFileExtensions)
 	}
 
-	// ── Persist movie_file record + update movie status (atomic) ──────────
+	// Persist movie_file record + update movie status (atomic)
 	info, err := os.Stat(destPath)
 	if err != nil {
 		return fmt.Errorf("stat after transfer: %w", err)
@@ -287,7 +287,7 @@ func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, content
 		}
 	}
 
-	// ── Trigger mediainfo scan (fire-and-forget) ───────────────────────────
+	// Trigger mediainfo scan (fire-and-forget)
 	if s.mediaSvc != nil && s.mediaSvc.Available() {
 		go func() {
 			scanCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -298,7 +298,7 @@ func (s *Service) runImport(ctx context.Context, grab dbgen.GrabHistory, content
 		}()
 	}
 
-	// ── Publish success event ──────────────────────────────────────────────
+	// Publish success event
 	// movie_title + quality are read by the activity classifier — see
 	// classify() in internal/core/activity/service.go. The previous
 	// emit omitted both, leaving activity rows rendered as "Imported "

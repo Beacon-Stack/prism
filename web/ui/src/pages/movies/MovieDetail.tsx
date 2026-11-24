@@ -49,7 +49,7 @@ function actionBtn(color: string, bg: string): React.CSSProperties {
 }
 
 
-// ── Rename confirmation modal ───────────────────────────────────────────────────
+// Rename confirmation modal
 
 function RenameModal({
   movieId,
@@ -146,7 +146,7 @@ function RenameModal({
   );
 }
 
-// ── MediaInfo helpers ─────────────────────────────────────────────────────────
+// MediaInfo helpers
 
 // Normalise ffprobe codec names to Prism's Quality.codec values.
 function normCodec(ffprobeCodec: string): string {
@@ -210,7 +210,7 @@ function MediainfoRow({ info, claimed }: { info: MediaInfo; claimed: Quality }) 
   );
 }
 
-// ── Files tab ──────────────────────────────────────────────────────────────────
+// Files tab
 
 function FilesTab({ movieId }: { movieId: string }) {
   const { data: files, isLoading, error } = useMovieFiles(movieId);
@@ -452,7 +452,7 @@ function FilesTab({ movieId }: { movieId: string }) {
   );
 }
 
-// ── History tab ────────────────────────────────────────────────────────────────
+// History tab
 
 function statusColor(status: string): string {
   if (status === "completed") return "var(--color-success)";
@@ -566,7 +566,7 @@ function HistoryTab({ movieId }: { movieId: string }) {
   );
 }
 
-// ── Match to TMDB banner ────────────────────────────────────────────────────────
+// Match to TMDB banner
 
 function MatchTMDBBanner({ movieId }: { movieId: string }) {
   const [open, setOpen] = useState(false);
@@ -757,7 +757,7 @@ function MatchTMDBBanner({ movieId }: { movieId: string }) {
   );
 }
 
-// ── Haul history banner ────────────────────────────────────────────────────────
+// Haul history banner
 
 function HaulBanner({ movieId }: { movieId: string }) {
   const { data: records, isLoading } = useMovieHaulHistory(movieId);
@@ -821,7 +821,7 @@ function HaulBanner({ movieId }: { movieId: string }) {
   );
 }
 
-// ── Delete confirm ─────────────────────────────────────────────────────────────
+// Delete confirm
 
 function DeleteConfirmBar({ movieId, onCancel }: { movieId: string; onCancel: () => void }) {
   const del = useDeleteMovie();
@@ -857,7 +857,7 @@ function DeleteConfirmBar({ movieId, onCancel }: { movieId: string; onCancel: ()
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// Page
 
 type Tab = "overview" | "files" | "history";
 

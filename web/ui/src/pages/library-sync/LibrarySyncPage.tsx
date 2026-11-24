@@ -20,7 +20,7 @@ import type {
   PlexSyncImportResult,
 } from "@/types";
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// Shared styles
 
 const card: React.CSSProperties = {
   background: "var(--color-bg-surface)",
@@ -85,7 +85,7 @@ const badge = (bg: string, color: string): React.CSSProperties => ({
   color,
 });
 
-// ── Step 1: Select server + section ──────────────────────────────────────────
+// Step 1: Select server + section
 
 function SelectStep({
   onPreview,
@@ -199,7 +199,7 @@ function SelectStep({
   );
 }
 
-// ── Step 2: Diff view ────────────────────────────────────────────────────────
+// Step 2: Diff view
 
 function DiffView({
   serverID,
@@ -485,7 +485,7 @@ function DiffView({
   );
 }
 
-// ── Step 3: Results ──────────────────────────────────────────────────────────
+// Step 3: Results
 
 function ResultView({
   result,
@@ -542,7 +542,7 @@ function ResultView({
   );
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
+// Main page
 
 type Step =
   | { kind: "select" }
