@@ -65,7 +65,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/luminarr/luminarr
+        - github.com/beacon-stack/prism
   exclusions:
     generated: lax
     paths:

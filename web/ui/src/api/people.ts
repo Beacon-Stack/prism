@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 
-export interface PersonFilm {
+interface PersonFilm {
   tmdb_id: number;
   title: string;
   year: number;

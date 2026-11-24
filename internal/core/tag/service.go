@@ -199,31 +199,6 @@ func (s *Service) DownloadClientTagIDs(ctx context.Context, clientID string) ([]
 	return ids, nil
 }
 
-// SetNotificationTags replaces all tags for a notification.
-func (s *Service) SetNotificationTags(ctx context.Context, notifID string, tagIDs []string) error {
-	if err := s.q.SetNotificationTags(ctx, notifID); err != nil {
-		return fmt.Errorf("clearing notification tags: %w", err)
-	}
-	for _, tid := range tagIDs {
-		if err := s.q.AddNotificationTag(ctx, dbgen.AddNotificationTagParams{NotificationID: notifID, TagID: tid}); err != nil {
-			return fmt.Errorf("adding notification tag %q: %w", tid, err)
-		}
-	}
-	return nil
-}
-
-// NotificationTagIDs returns the tag IDs for a notification.
-func (s *Service) NotificationTagIDs(ctx context.Context, notifID string) ([]string, error) {
-	ids, err := s.q.ListNotificationTagIDs(ctx, notifID)
-	if err != nil {
-		return nil, fmt.Errorf("listing notification tags: %w", err)
-	}
-	if ids == nil {
-		return []string{}, nil
-	}
-	return ids, nil
-}
-
 // SetImportListTags replaces all tags for an import list.
 func (s *Service) SetImportListTags(ctx context.Context, importListID string, tagIDs []string) error {
 	if err := s.q.SetImportListTags(ctx, importListID); err != nil {

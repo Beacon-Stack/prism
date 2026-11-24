@@ -12,9 +12,9 @@ export interface SystemStatus {
   tmdb_enabled: boolean;
 }
 
-export type HealthStatus = "healthy" | "degraded" | "unhealthy";
+type HealthStatus = "healthy" | "degraded" | "unhealthy";
 
-export interface HealthItem {
+interface HealthItem {
   name: string;
   status: HealthStatus;
   message: string;
@@ -28,13 +28,6 @@ export interface HealthReport {
 export interface Task {
   name: string;
   interval: string;
-}
-
-export interface LogEntry {
-  time: string;
-  level: string;
-  message: string;
-  fields?: Record<string, unknown>;
 }
 
 export interface PluginList {
@@ -95,7 +88,7 @@ export interface TMDBResult {
   popularity: number;
 }
 
-export interface ScoreDimension {
+interface ScoreDimension {
   name: string;
   score: number;
   max: number;
@@ -121,7 +114,7 @@ export interface QualityConflict {
 }
 
 // How one indexer did in a release search.
-export interface IndexerSearchOutcome {
+interface IndexerSearchOutcome {
   indexer_id: string;
   indexer_name: string;
   results: number;
@@ -198,7 +191,7 @@ export interface GrabHistory {
 
 // ── Auto-search ─────────────────────────────────────────────────────────
 
-export interface AutoSearchGrab {
+interface AutoSearchGrab {
   id: string;
   movie_id: string;
   release_title: string;
@@ -428,25 +421,6 @@ export interface DownloadClientRequest {
 
 // ── Notifications ──────────────────────────────────────────────────────────
 
-export interface NotificationConfig {
-  id: string;
-  name: string;
-  kind: string;
-  enabled: boolean;
-  on_events: string[];
-  settings: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface NotificationRequest {
-  name: string;
-  kind: string;
-  enabled: boolean;
-  settings: Record<string, unknown>;
-  on_events?: string[];
-}
-
 // ── Test result ────────────────────────────────────────────────────────────
 
 export interface TestResult {
@@ -484,7 +458,7 @@ export interface MovieFile {
 
 // ── Blocklist ──────────────────────────────────────────────────────────────
 
-export interface BlocklistEntry {
+interface BlocklistEntry {
   id: string;
   movie_id: string;
   movie_title: string;
@@ -506,7 +480,7 @@ export interface BlocklistPage {
 
 // ── Filesystem browser ─────────────────────────────────────────────────────
 
-export interface FsDirEntry {
+interface FsDirEntry {
   name: string;
   path: string;
 }
@@ -708,23 +682,6 @@ export interface ImportListSyncResult {
 
 // ── Release Explain ────────────────────────────────────────────────────────
 
-export interface ReleaseDecision {
-  title: string;
-  guid: string;
-  outcome: "grabbed" | "skipped";
-  reason: string;
-  explanation: string;
-  quality_score: number;
-  cf_score: number;
-}
-
-export interface ExplainResult {
-  movie_id: string;
-  profile_name: string;
-  current_file?: Quality;
-  decisions: ReleaseDecision[];
-}
-
 // ── Upgrade Recommendations ────────────────────────────────────────────────
 
 export interface UpgradeTier {
@@ -742,7 +699,7 @@ export interface UpgradeRecommendations {
 
 // ── Custom Format Presets ──────────────────────────────────────────────────
 
-export interface CustomFormatSpecification {
+interface CustomFormatSpecification {
   name: string;
   implementation: string;
   negate: boolean;

@@ -12,6 +12,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
+	beaconlog "github.com/beacon-stack/pulse/pkg/log"
+	"github.com/beacon-stack/pulse/pkg/notify"
+	"github.com/beacon-stack/pulse/pkg/notify/notifyapi"
+
 	"github.com/beacon-stack/prism/internal/api/middleware"
 	v1 "github.com/beacon-stack/prism/internal/api/v1"
 	v3 "github.com/beacon-stack/prism/internal/api/v3"
@@ -46,9 +50,6 @@ import (
 	"github.com/beacon-stack/prism/internal/scheduler"
 	"github.com/beacon-stack/prism/internal/version"
 	"github.com/beacon-stack/prism/web"
-	beaconlog "github.com/beacon-stack/pulse/pkg/log"
-	"github.com/beacon-stack/pulse/pkg/notify"
-	"github.com/beacon-stack/pulse/pkg/notify/notifyapi"
 )
 
 // RouterConfig holds everything the router needs to function.

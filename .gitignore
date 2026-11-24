@@ -1,6 +1,6 @@
 # Binaries
+/prism
 bin/
-luminarr
 radarr-import
 *.exe
 *.exe~
@@ -58,7 +58,3 @@ rebuild-restart.sh
 # Air (hot reload)
 tmp/
 
-# Luminarr runtime data
-luminarr.db
-luminarr.db-shm
-luminarr.db-wal

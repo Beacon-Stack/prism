@@ -47,11 +47,6 @@ SELECT * FROM grab_history WHERE movie_id = ? ORDER BY grabbed_at DESC;
 -- name: ListGrabHistory :many
 SELECT * FROM grab_history ORDER BY grabbed_at DESC LIMIT ?;
 
--- name: UpdateGrabDownloadClient :exec
-UPDATE grab_history
-SET download_client_id = ?, client_item_id = ?, download_status = 'queued'
-WHERE id = ?;
-
 -- name: UpdateGrabStatus :exec
 UPDATE grab_history
 SET download_status = ?, downloaded_bytes = ?
@@ -62,11 +57,6 @@ SELECT * FROM grab_history
 WHERE client_item_id IS NOT NULL
   AND download_status NOT IN ('completed', 'failed', 'removed')
 ORDER BY grabbed_at DESC;
-
--- name: GetGrabByClientItemID :one
-SELECT * FROM grab_history
-WHERE download_client_id = ? AND client_item_id = ?
-LIMIT 1;
 
 -- name: MarkGrabRemoved :exec
 UPDATE grab_history SET download_status = 'removed' WHERE id = ?;

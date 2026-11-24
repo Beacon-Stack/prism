@@ -3,7 +3,7 @@ import { apiFetch } from "./client";
 
 // New split-category vocabulary, plus legacy "grab"/"import" the
 // backend still accepts for back-compat.
-export type ActivityCategory =
+type ActivityCategory =
   | "grab_succeeded"
   | "grab_failed"
   | "import_succeeded"
@@ -58,7 +58,7 @@ export function useActivity(filters?: ActivityFilters) {
 //   - activity_log rows where category = 'import_failed'
 // Both bucketed within the requested window.
 
-export type AttentionKind = "grab_failed" | "import_failed";
+type AttentionKind = "grab_failed" | "import_failed";
 
 export interface AttentionItem {
   kind: AttentionKind;

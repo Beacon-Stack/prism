@@ -24,31 +24,6 @@ export interface TMDBGenre {
   name: string;
 }
 
-type DiscoverCategory = "trending" | "popular" | "top-rated" | "upcoming";
-
-export function useDiscover(category: DiscoverCategory, page: number) {
-  return useQuery({
-    queryKey: ["discover", category, page],
-    queryFn: () =>
-      apiFetch<DiscoverListResponse>(
-        `/discover/${category}?page=${page}`
-      ),
-    staleTime: 5 * 60_000,
-  });
-}
-
-export function useDiscoverByGenre(genreId: number, page: number) {
-  return useQuery({
-    queryKey: ["discover", "genre", genreId, page],
-    queryFn: () =>
-      apiFetch<DiscoverListResponse>(
-        `/discover/genre/${genreId}?page=${page}`
-      ),
-    enabled: genreId > 0,
-    staleTime: 5 * 60_000,
-  });
-}
-
 export function useGenreList() {
   return useQuery({
     queryKey: ["discover", "genres"],
@@ -57,21 +32,21 @@ export function useGenreList() {
   });
 }
 
-export interface DiscoverCast {
+interface DiscoverCast {
   id: number;
   name: string;
   character: string;
   profile_path: string;
 }
 
-export interface DiscoverCrew {
+interface DiscoverCrew {
   id: number;
   name: string;
   job: string;
   profile_path: string;
 }
 
-export interface DiscoverRecommendation {
+interface DiscoverRecommendation {
   tmdb_id: number;
   title: string;
   year: number;

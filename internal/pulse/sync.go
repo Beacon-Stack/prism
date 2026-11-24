@@ -8,12 +8,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/beacon-stack/pulse/pkg/sdk"
+
 	"github.com/beacon-stack/prism/internal/core/downloader"
 	"github.com/beacon-stack/prism/internal/core/indexer"
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 	"github.com/beacon-stack/prism/internal/core/quality"
 	"github.com/beacon-stack/prism/pkg/plugin"
-	"github.com/beacon-stack/pulse/pkg/sdk"
 )
 
 // SyncIndexers pulls indexers assigned to this service from Pulse

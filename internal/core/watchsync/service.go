@@ -146,27 +146,6 @@ func (s *Service) WatchStatusForMovie(ctx context.Context, movieID string) (*Wat
 	return ws, nil
 }
 
-// WatchStatusBatch returns watch status for all movies that have been watched.
-func (s *Service) WatchStatusBatch(ctx context.Context) (map[string]*WatchStatus, error) {
-	rows, err := s.q.WatchStatusBatch(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make(map[string]*WatchStatus, len(rows))
-	for _, r := range rows {
-		ws := &WatchStatus{
-			Watched:   true,
-			PlayCount: r.PlayCount,
-		}
-		if s, ok := r.LastWatchedAt.(string); ok && s != "" {
-			ws.LastWatchedAt = &s
-		}
-		result[r.MovieID] = ws
-	}
-	return result, nil
-}
-
 // Stats returns aggregate watch statistics.
 func (s *Service) Stats(ctx context.Context) (*WatchStats, error) {
 	row, err := s.q.WatchStats(ctx)

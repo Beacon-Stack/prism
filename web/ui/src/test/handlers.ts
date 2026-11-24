@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
 // Default handlers — tests override these with server.use() as needed.
-export const handlers = [
+const handlers = [
   // System
   http.get("/api/v1/system/status", () =>
     HttpResponse.json({

@@ -12,14 +12,6 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-func newWantedTestService(t *testing.T) *movie.Service {
-	t.Helper()
-	q := testutil.NewTestDB(t)
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	bus := events.New(logger)
-	return movie.NewService(q, nil, bus, logger)
-}
-
 // TestListMissing verifies that a monitored movie without a file is returned,
 // and a movie with a file is excluded.
 func TestListMissing(t *testing.T) {
@@ -213,4 +205,3 @@ func TestListCutoffUnmet_UnmonitoredExcluded(t *testing.T) {
 }
 
 // Ensure the helper is referenced (compile check).
-var _ = newWantedTestService

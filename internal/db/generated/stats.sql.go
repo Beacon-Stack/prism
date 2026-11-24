@@ -226,34 +226,6 @@ func (q *Queries) InsertStorageSnapshot(ctx context.Context, arg InsertStorageSn
 	return err
 }
 
-const listMovieFileQualities = `-- name: ListMovieFileQualities :many
-SELECT mf.quality_json FROM movie_files mf
-JOIN movies m ON m.id = mf.movie_id
-`
-
-func (q *Queries) ListMovieFileQualities(ctx context.Context) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listMovieFileQualities)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var quality_json string
-		if err := rows.Scan(&quality_json); err != nil {
-			return nil, err
-		}
-		items = append(items, quality_json)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listMovieFileQualitiesWithIDs = `-- name: ListMovieFileQualitiesWithIDs :many
 SELECT mf.movie_id, mf.quality_json FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id

@@ -180,7 +180,7 @@ If the full stack is running, Prism pulls shared indexers and quality profiles f
 
 ## Privacy
 
-Prism makes outbound connections only to services you explicitly configure: TMDB for metadata, your indexers, your download clients, your media servers, and your notification targets. No telemetry, no analytics, no crash reporting, no update checks. Credentials are stored locally and never written to logs.
+Prism makes outbound connections only to services you explicitly configure: TMDB for metadata, your indexers, your download clients, your media servers, and your notification targets. It asks GitHub about new versions only when you press Check for updates. No telemetry, no analytics, no crash reporting. Credentials are stored locally and never written to logs. Details in [PRIVACY.md](PRIVACY.md).
 
 ## Built with Claude
 
@@ -193,8 +193,8 @@ make build    # compile to bin/prism
 make run      # build + run
 make dev      # hot reload (requires air)
 make test     # go test ./...
-make check    # golangci-lint + tsc --noEmit
-make sqlc     # regenerate sqlc code
+make check    # lint, dead-code checks, type-check, frontend tests
+make generate # regenerate database code after changing SQL
 ```
 
 ## Contributing

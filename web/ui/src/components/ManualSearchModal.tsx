@@ -99,7 +99,7 @@ function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
 // unfinished workprint. Hidden from manual search unless asked for; quality
 // profiles already reject them for auto-grab.
 const THEATER_SOURCES = new Set(["cam", "telesync", "workprint"]);
-export const isTheaterRecording = (r: Release) =>
+const isTheaterRecording = (r: Release) =>
   THEATER_SOURCES.has((r.quality?.source ?? "").toLowerCase());
 
 interface ReleaseRowProps {

@@ -64,16 +64,6 @@ export function useLibraryStats(id: string) {
   });
 }
 
-export function useDiskScan(libraryId: string) {
-  return useQuery({
-    queryKey: ["libraries", libraryId, "disk-scan"],
-    queryFn: () => apiFetch<DiskFile[]>(`/libraries/${libraryId}/disk-scan`),
-    enabled: !!libraryId,
-    staleTime: 0, // always re-fetch when the modal opens
-    gcTime: 0,
-  });
-}
-
 // Fast path: reads candidates from the DB without walking disk.
 export function useCandidates(libraryId: string) {
   return useQuery({

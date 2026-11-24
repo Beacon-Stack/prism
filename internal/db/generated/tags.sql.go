@@ -66,20 +66,6 @@ func (q *Queries) AddMovieTag(ctx context.Context, arg AddMovieTagParams) error 
 	return err
 }
 
-const addNotificationTag = `-- name: AddNotificationTag :exec
-INSERT INTO notification_tags (notification_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING
-`
-
-type AddNotificationTagParams struct {
-	NotificationID string `json:"notificationId"`
-	TagID          string `json:"tagId"`
-}
-
-func (q *Queries) AddNotificationTag(ctx context.Context, arg AddNotificationTagParams) error {
-	_, err := q.db.ExecContext(ctx, addNotificationTag, arg.NotificationID, arg.TagID)
-	return err
-}
-
 const countDownloadClientsForTag = `-- name: CountDownloadClientsForTag :one
 SELECT COUNT(*) FROM download_client_tags WHERE tag_id = ?
 `
@@ -96,6 +82,7 @@ const countImportListsForTag = `-- name: CountImportListsForTag :one
 SELECT COUNT(*) FROM import_list_tags WHERE tag_id = ?
 `
 
+// Notification tag operations.
 // Import list tag operations.
 func (q *Queries) CountImportListsForTag(ctx context.Context, tagID string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countImportListsForTag, tagID)
@@ -170,17 +157,6 @@ SELECT id, name FROM tags WHERE id = ?
 
 func (q *Queries) GetTag(ctx context.Context, id string) (Tag, error) {
 	row := q.db.QueryRowContext(ctx, getTag, id)
-	var i Tag
-	err := row.Scan(&i.ID, &i.Name)
-	return i, err
-}
-
-const getTagByName = `-- name: GetTagByName :one
-SELECT id, name FROM tags WHERE name = ?
-`
-
-func (q *Queries) GetTagByName(ctx context.Context, name string) (Tag, error) {
-	row := q.db.QueryRowContext(ctx, getTagByName, name)
 	var i Tag
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
@@ -333,33 +309,6 @@ func (q *Queries) ListMovieTagIDsForMovies(ctx context.Context, movieIds []strin
 	return items, nil
 }
 
-const listNotificationTagIDs = `-- name: ListNotificationTagIDs :many
-SELECT tag_id FROM notification_tags WHERE notification_id = ?
-`
-
-func (q *Queries) ListNotificationTagIDs(ctx context.Context, notificationID string) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listNotificationTagIDs, notificationID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var tag_id string
-		if err := rows.Scan(&tag_id); err != nil {
-			return nil, err
-		}
-		items = append(items, tag_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listTags = `-- name: ListTags :many
 SELECT id, name FROM tags ORDER BY name ASC
 `
@@ -426,17 +375,6 @@ DELETE FROM movie_tags WHERE movie_id = ?
 // Movie tag operations.
 func (q *Queries) SetMovieTags(ctx context.Context, movieID string) error {
 	_, err := q.db.ExecContext(ctx, setMovieTags, movieID)
-	return err
-}
-
-const setNotificationTags = `-- name: SetNotificationTags :exec
-
-DELETE FROM notification_tags WHERE notification_id = ?
-`
-
-// Notification tag operations.
-func (q *Queries) SetNotificationTags(ctx context.Context, notificationID string) error {
-	_, err := q.db.ExecContext(ctx, setNotificationTags, notificationID)
 	return err
 }
 

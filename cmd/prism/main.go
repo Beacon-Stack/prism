@@ -12,6 +12,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/beacon-stack/pulse/pkg/healthcheck"
+	beaconlog "github.com/beacon-stack/pulse/pkg/log"
+	"github.com/beacon-stack/pulse/pkg/log/plugins/file"
+	"github.com/beacon-stack/pulse/pkg/log/plugins/loki"
+	"github.com/beacon-stack/pulse/pkg/notify"
+
 	"github.com/beacon-stack/prism/internal/api"
 	"github.com/beacon-stack/prism/internal/api/ws"
 	"github.com/beacon-stack/prism/internal/config"
@@ -54,11 +60,6 @@ import (
 	"github.com/beacon-stack/prism/internal/scheduler/jobs"
 	"github.com/beacon-stack/prism/internal/trakt"
 	"github.com/beacon-stack/prism/internal/version"
-	"github.com/beacon-stack/pulse/pkg/healthcheck"
-	beaconlog "github.com/beacon-stack/pulse/pkg/log"
-	"github.com/beacon-stack/pulse/pkg/log/plugins/file"
-	"github.com/beacon-stack/pulse/pkg/log/plugins/loki"
-	"github.com/beacon-stack/pulse/pkg/notify"
 
 	// Blank-import built-in plugins so their init() functions register
 	// them with the default registry before any service is constructed.

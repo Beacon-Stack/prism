@@ -1,4 +1,4 @@
-# Prism — Claude Code Rules
+# Prism: notes for Claude Code
 
 ## Releases
 
@@ -30,6 +30,10 @@ Merge to `main` via PR or fast-forward after work is complete and tests pass.
 
 ## Code Quality
 
-- Run `make check` before every push (golangci-lint + tsc --noEmit).
+- Run `make check` before every push: lint, dead-code checks, type-check and frontend tests.
+- Comments say what the code does and why, not how it got that way; history belongs in the commit message.
+- `web/ui/src/shared/` is a copy of the `web-shared` repo. Change it there, not here.
+- SQL lives in `internal/db/queries/sqlite/`; run `make generate` after changing it.
+- The Docker image builds with the Go version in `docker/Dockerfile`. After `go get`, check the `go` line in `go.mod` didn't move past it.
 - One logical unit per commit.
 - Frontend tests: `cd web/ui && npm test` must pass before pushing frontend changes.

@@ -19,7 +19,7 @@ export interface QualityBucket {
   count: number;
 }
 
-export interface StoragePoint {
+interface StoragePoint {
   captured_at: string;
   total_bytes: number;
   file_count: number;
@@ -31,7 +31,7 @@ export interface StorageStats {
   trend: StoragePoint[];
 }
 
-export interface IndexerStat {
+interface IndexerStat {
   indexer_id: string;
   indexer_name: string;
   grab_count: number;

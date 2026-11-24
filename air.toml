@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd        = "go build -o ./tmp/luminarr ./cmd/luminarr"
-  bin        = "./tmp/luminarr"
+  cmd        = "go build -o ./tmp/prism ./cmd/prism"
+  bin        = "./tmp/prism"
   delay      = 500
   kill_delay = "500ms"
 
