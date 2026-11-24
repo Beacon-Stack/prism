@@ -10,7 +10,7 @@ echo "▶ golangci-lint..."
 golangci-lint run
 
 echo "▶ TypeScript type-check..."
-cd web/ui && npx tsc --noEmit
+cd web/ui && npx tsc -b
 cd "$REPO_ROOT"
 
 echo "✓ pre-push checks passed"

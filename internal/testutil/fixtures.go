@@ -79,13 +79,6 @@ func WithTMDBID(id int) MovieOption {
 	}
 }
 
-// WithMovieStatus sets the status field on the seeded movie.
-func WithMovieStatus(status string) MovieOption {
-	return func(p *dbgen.CreateMovieParams) {
-		p.Status = status
-	}
-}
-
 // SeedMovie inserts a movie into a freshly created library with sensible defaults.
 func SeedMovie(t *testing.T, q *dbgen.Queries, opts ...MovieOption) dbgen.Movie {
 	t.Helper()

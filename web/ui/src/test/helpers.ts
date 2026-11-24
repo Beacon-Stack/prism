@@ -30,12 +30,3 @@ export function renderWithProviders(
 ) {
   return render(ui, { wrapper: AllProviders, ...options });
 }
-
-export function expectSkeletons(container: HTMLElement, count: number) {
-  const skeletons = container.querySelectorAll(".skeleton");
-  if (skeletons.length !== count) {
-    throw new Error(
-      `Expected ${count} skeleton elements, found ${skeletons.length}`
-    );
-  }
-}

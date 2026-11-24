@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "./client";
-import type { Movie, MovieListResponse, TMDBResult, GrabHistory, MovieFile, RenameMovieResult, AutoSearchResult, BulkSearchAccepted, ExplainResult, ReleaseSearchResponse } from "@/types";
+import type { Movie, MovieListResponse, TMDBResult, GrabHistory, MovieFile, RenameMovieResult, AutoSearchResult, BulkSearchAccepted, ReleaseSearchResponse } from "@/types";
 
 export function useEditions() {
   return useQuery({
@@ -332,14 +332,6 @@ export function useBulkAutoSearch() {
         method: "POST",
         body: JSON.stringify({ movie_ids: movieIds }),
       }),
-  });
-}
-
-export function useExplainReleases(movieId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: ["movies", movieId, "releases", "explain"],
-    queryFn: () => apiFetch<ExplainResult>(`/movies/${movieId}/releases/explain`),
-    enabled: enabled && !!movieId,
   });
 }
 

@@ -27,10 +27,6 @@ SELECT
 FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id;
 
--- name: ListMovieFileQualities :many
-SELECT mf.quality_json FROM movie_files mf
-JOIN movies m ON m.id = mf.movie_id;
-
 -- name: ListMovieFileQualitiesWithIDs :many
 SELECT mf.movie_id, mf.quality_json FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id;

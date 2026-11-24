@@ -851,59 +851,6 @@ func (q *Queries) ListMoviesByLibrary(ctx context.Context, arg ListMoviesByLibra
 	return items, nil
 }
 
-const listMoviesWithEditionMismatch = `-- name: ListMoviesWithEditionMismatch :many
-SELECT m.id, m.title, m.year, m.preferred_edition, mf.edition as file_edition
-FROM movies m
-JOIN movie_files mf ON mf.movie_id = m.id
-WHERE m.preferred_edition IS NOT NULL
-  AND m.preferred_edition != ''
-  AND (mf.edition IS NULL OR mf.edition != m.preferred_edition)
-ORDER BY m.title ASC
-LIMIT ? OFFSET ?
-`
-
-type ListMoviesWithEditionMismatchParams struct {
-	Limit  int64 `json:"limit"`
-	Offset int64 `json:"offset"`
-}
-
-type ListMoviesWithEditionMismatchRow struct {
-	ID               string  `json:"id"`
-	Title            string  `json:"title"`
-	Year             int64   `json:"year"`
-	PreferredEdition *string `json:"preferredEdition"`
-	FileEdition      *string `json:"fileEdition"`
-}
-
-func (q *Queries) ListMoviesWithEditionMismatch(ctx context.Context, arg ListMoviesWithEditionMismatchParams) ([]ListMoviesWithEditionMismatchRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMoviesWithEditionMismatch, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListMoviesWithEditionMismatchRow
-	for rows.Next() {
-		var i ListMoviesWithEditionMismatchRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Year,
-			&i.PreferredEdition,
-			&i.FileEdition,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listUnscannedMovieFiles = `-- name: ListUnscannedMovieFiles :many
 SELECT id, path FROM movie_files
 WHERE mediainfo_json = ''

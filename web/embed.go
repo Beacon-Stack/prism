@@ -14,23 +14,6 @@ import (
 //go:embed static
 var staticFiles embed.FS
 
-// ServeIndex returns an http.HandlerFunc that writes the embedded index.html.
-// Cache-Control is set to no-store to ensure the browser always gets the
-// latest version after deploys.
-func ServeIndex() http.HandlerFunc {
-	raw, err := staticFiles.ReadFile("static/index.html")
-	if err != nil {
-		// If the embed is broken the binary itself is broken; panic is correct.
-		panic("web: could not read embedded index.html: " + err.Error())
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write(raw)
-	}
-}
-
 // ServeStatic returns an http.Handler that serves the React SPA.
 //
 // Request routing:

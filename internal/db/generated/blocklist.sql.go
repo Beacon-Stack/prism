@@ -95,17 +95,6 @@ func (q *Queries) IsBlocklisted(ctx context.Context, releaseGuid string) (int64,
 	return count, err
 }
 
-const isBlocklistedByTitle = `-- name: IsBlocklistedByTitle :one
-SELECT COUNT(*) FROM blocklist WHERE release_title = ?
-`
-
-func (q *Queries) IsBlocklistedByTitle(ctx context.Context, releaseTitle string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, isBlocklistedByTitle, releaseTitle)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const listBlocklist = `-- name: ListBlocklist :many
 SELECT b.id, b.movie_id, b.release_guid, b.release_title, b.indexer_id, b.protocol, b.size, b.added_at, b.notes, m.title AS movie_title
 FROM blocklist b JOIN movies m ON m.id = b.movie_id

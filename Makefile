@@ -18,7 +18,7 @@ LDFLAGS   := -ldflags "\
 IMAGE ?= ghcr.io/prism/prism
 
 .PHONY: build run dev test test/unit test/integration test/cover test/race test/frontend \
-        lint check install-hooks generate migrate clean docker docker/push help
+        lint deadcode deadcode/go check install-hooks generate migrate clean docker docker/push help
 
 ## build: Compile the binary into ./bin/prism
 build:
@@ -63,9 +63,18 @@ test/frontend:
 lint:
 	golangci-lint run
 
-## check: Run all pre-push checks (Go lint + TypeScript type-check + frontend tests)
-check: lint
-	cd web/ui && npx tsc --noEmit
+## deadcode: Fail on unreachable Go code or unused frontend files, exports and packages
+deadcode: deadcode/go
+	cd web/ui && npm run deadcode
+
+deadcode/go:
+	@out="$$(go run golang.org/x/tools/cmd/deadcode@v0.53.0 -test ./... | grep -v node_modules)"; echo "$$out"; test -z "$$out"
+
+## check: Run all pre-push checks (lint, dead code, type-check, frontend tests)
+## (tsc -b follows the project references; a bare `tsc --noEmit` against the
+## root tsconfig, which has "files": [], checks nothing)
+check: lint deadcode
+	cd web/ui && npm run typecheck
 	cd web/ui && npm test
 
 ## install-hooks: Install git hooks from the hooks/ directory

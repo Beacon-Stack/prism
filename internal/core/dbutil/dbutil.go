@@ -4,7 +4,6 @@ package dbutil
 import (
 	"encoding/json"
 	"errors"
-	"time"
 
 	sqlite "modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -46,59 +45,12 @@ func NullStringValue(p *string) string {
 	return *p
 }
 
-// NullInt32 converts a *int to a *int64. A nil pointer yields nil.
-func NullInt32(p *int) *int64 {
-	if p == nil {
-		return nil
-	}
-	v := int64(*p)
-	return &v
-}
-
-// NullInt32FromInt64Ptr returns p unchanged; SQLite-sqlc emits *int64 for
-// nullable integer columns. Kept under the old name so existing call sites
-// continue to compile against the migrated API.
-func NullInt32FromInt64Ptr(p *int64) *int64 {
-	return p
-}
-
 // NullInt32Value returns the dereferenced value of p, or 0 if nil.
 func NullInt32Value(p *int64) int {
 	if p == nil {
 		return 0
 	}
 	return int(*p)
-}
-
-// NullTime converts a *time.Time to its RFC3339 UTC string representation.
-// A nil pointer yields nil so the column stores as SQL NULL.
-//
-// TIMESTAMPTZ columns are stored as TEXT in SQLite (see migration squash);
-// using RFC3339 keeps lexicographic ordering identical to chronological
-// ordering, which several queries rely on.
-func NullTime(p *time.Time) *string {
-	if p == nil {
-		return nil
-	}
-	s := p.UTC().Format(time.RFC3339Nano)
-	return &s
-}
-
-// NullTimePtr parses an RFC3339-encoded *string back to *time.Time. Nil or
-// unparseable input yields nil.
-func NullTimePtr(s *string) *time.Time {
-	if s == nil || *s == "" {
-		return nil
-	}
-	t, err := time.Parse(time.RFC3339Nano, *s)
-	if err != nil {
-		// Some legacy callers may pass plain RFC3339 (no fractional secs).
-		t, err = time.Parse(time.RFC3339, *s)
-		if err != nil {
-			return nil
-		}
-	}
-	return &t
 }
 
 // MergeSettings returns newSettings with any keys absent from newSettings

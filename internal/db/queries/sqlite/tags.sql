@@ -4,9 +4,6 @@ INSERT INTO tags (id, name) VALUES (?, ?) RETURNING *;
 -- name: GetTag :one
 SELECT * FROM tags WHERE id = ?;
 
--- name: GetTagByName :one
-SELECT * FROM tags WHERE name = ?;
-
 -- name: ListTags :many
 SELECT * FROM tags ORDER BY name ASC;
 
@@ -70,17 +67,7 @@ SELECT tag_id FROM download_client_tags WHERE download_client_id = ?;
 
 -- Notification tag operations.
 
--- name: SetNotificationTags :exec
-DELETE FROM notification_tags WHERE notification_id = ?;
-
--- name: AddNotificationTag :exec
-INSERT INTO notification_tags (notification_id, tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING;
-
--- name: ListNotificationTagIDs :many
-SELECT tag_id FROM notification_tags WHERE notification_id = ?;
-
 -- Import list tag operations.
-
 -- name: CountImportListsForTag :one
 SELECT COUNT(*) FROM import_list_tags WHERE tag_id = ?;
 

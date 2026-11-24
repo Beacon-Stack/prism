@@ -76,18 +76,6 @@ export function useSyncAllImportLists() {
   });
 }
 
-export function useSyncImportList() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => apiFetch<ImportListSyncResult>(`/importlists/${id}/sync`, { method: "POST" }),
-    onSuccess: (result) => {
-      qc.invalidateQueries({ queryKey: ["importlists"] });
-      toast.success(`Sync complete: ${result.movies_added} added, ${result.movies_skipped} skipped`);
-    },
-    onError: (err) => toast.error((err as Error).message),
-  });
-}
-
 // ── Preview ──────────────────────────────────────────────────────────────────
 
 export interface ImportListPreviewItem {

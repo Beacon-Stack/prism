@@ -72,16 +72,6 @@ func (s *Service) IsBlocklisted(ctx context.Context, releaseGUID string) (bool, 
 	return count > 0, nil
 }
 
-// IsBlocklistedByTitle reports whether a release title is on the blocklist.
-// Used when the grab GUID is not available (e.g. blocklisting from the queue).
-func (s *Service) IsBlocklistedByTitle(ctx context.Context, releaseTitle string) (bool, error) {
-	count, err := s.q.IsBlocklistedByTitle(ctx, releaseTitle)
-	if err != nil {
-		return false, fmt.Errorf("checking blocklist by title: %w", err)
-	}
-	return count > 0, nil
-}
-
 // List returns a paginated list of blocklist entries, newest first.
 func (s *Service) List(ctx context.Context, page, perPage int) ([]Entry, int64, error) {
 	if page < 1 {

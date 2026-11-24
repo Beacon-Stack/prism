@@ -144,43 +144,6 @@ func (q *Queries) DeleteIndexerConfig(ctx context.Context, id string) error {
 	return err
 }
 
-const getGrabByClientItemID = `-- name: GetGrabByClientItemID :one
-SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history
-WHERE download_client_id = ? AND client_item_id = ?
-LIMIT 1
-`
-
-type GetGrabByClientItemIDParams struct {
-	DownloadClientID *string `json:"downloadClientId"`
-	ClientItemID     *string `json:"clientItemId"`
-}
-
-func (q *Queries) GetGrabByClientItemID(ctx context.Context, arg GetGrabByClientItemIDParams) (GrabHistory, error) {
-	row := q.db.QueryRowContext(ctx, getGrabByClientItemID, arg.DownloadClientID, arg.ClientItemID)
-	var i GrabHistory
-	err := row.Scan(
-		&i.ID,
-		&i.MovieID,
-		&i.IndexerID,
-		&i.ReleaseGuid,
-		&i.ReleaseTitle,
-		&i.ReleaseSource,
-		&i.ReleaseResolution,
-		&i.ReleaseCodec,
-		&i.ReleaseHdr,
-		&i.Protocol,
-		&i.Size,
-		&i.DownloadClientID,
-		&i.ClientItemID,
-		&i.GrabbedAt,
-		&i.DownloadStatus,
-		&i.DownloadedBytes,
-		&i.ScoreBreakdown,
-		&i.ReleaseEdition,
-	)
-	return i, err
-}
-
 const getGrabByID = `-- name: GetGrabByID :one
 SELECT id, movie_id, indexer_id, release_guid, release_title, release_source, release_resolution, release_codec, release_hdr, protocol, size, download_client_id, client_item_id, grabbed_at, download_status, downloaded_bytes, score_breakdown, release_edition FROM grab_history WHERE id = ?
 `
@@ -667,23 +630,6 @@ UPDATE grab_history SET download_status = 'removed' WHERE id = ?
 
 func (q *Queries) MarkGrabRemoved(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, markGrabRemoved, id)
-	return err
-}
-
-const updateGrabDownloadClient = `-- name: UpdateGrabDownloadClient :exec
-UPDATE grab_history
-SET download_client_id = ?, client_item_id = ?, download_status = 'queued'
-WHERE id = ?
-`
-
-type UpdateGrabDownloadClientParams struct {
-	DownloadClientID *string `json:"downloadClientId"`
-	ClientItemID     *string `json:"clientItemId"`
-	ID               string  `json:"id"`
-}
-
-func (q *Queries) UpdateGrabDownloadClient(ctx context.Context, arg UpdateGrabDownloadClientParams) error {
-	_, err := q.db.ExecContext(ctx, updateGrabDownloadClient, arg.DownloadClientID, arg.ClientItemID, arg.ID)
 	return err
 }
 

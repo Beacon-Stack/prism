@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiFetch } from "./client";
-import type { SystemStatus, HealthReport, Task, LogEntry, PluginList } from "@/types";
+import type { SystemStatus, HealthReport, Task, PluginList } from "@/types";
 
 export function useSystemStatus() {
   return useQuery({
@@ -34,18 +34,6 @@ export function useRunTask() {
       apiFetch<void>(`/tasks/${name}/run`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
     onError: (err) => toast.error((err as Error).message),
-  });
-}
-
-export function useSystemLogs(level?: string, limit?: number) {
-  const params = new URLSearchParams();
-  if (level) params.set("level", level);
-  if (limit) params.set("limit", String(limit));
-  const qs = params.toString();
-  return useQuery({
-    queryKey: ["system", "logs", level, limit],
-    queryFn: () => apiFetch<LogEntry[]>(`/system/logs${qs ? `?${qs}` : ""}`),
-    refetchInterval: 10_000,
   });
 }
 
