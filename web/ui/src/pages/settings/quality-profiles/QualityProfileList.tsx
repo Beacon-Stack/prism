@@ -11,8 +11,9 @@ import { useQualityDefinitions } from "@/api/quality-definitions";
 import Modal from "@beacon-shared/Modal";
 import TableScroll from "@beacon-shared/TableScroll";
 import type { Quality, QualityDefinition, QualityProfile, QualityProfileRequest } from "@/types";
+import { inputStyle, labelStyle } from "@/lib/styles";
 
-// ── Quality helpers ──────────────────────────────────────────────────────────
+// Quality helpers
 
 /**
  * Find the definition that matches a stored quality.
@@ -64,27 +65,7 @@ function isPopular(d: QualityDefinition): boolean {
   return POPULAR_KEYS.has(defKey(d));
 }
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  padding: "8px 12px",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
+// Shared styles
 
 function onFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
   (e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent)";
@@ -93,7 +74,7 @@ function onBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
   (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border-default)";
 }
 
-// ── Toggle slider ────────────────────────────────────────────────────────────
+// Toggle slider
 
 function ToggleSlider({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -133,7 +114,7 @@ function ToggleSlider({ checked, onChange, label }: { checked: boolean; onChange
   );
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
+// Modal
 
 interface ModalProps {
   editing: QualityProfile | null;
@@ -410,7 +391,7 @@ function QualityProfileModal({ editing, definitions, onClose }: ModalProps) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// Page
 
 export default function QualityProfileList() {
   const { data, isLoading, error } = useQualityProfiles();

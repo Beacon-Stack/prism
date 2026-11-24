@@ -14,7 +14,7 @@ import (
 	"github.com/beacon-stack/prism/internal/registry"
 )
 
-// ── Request / response shapes ─────────────────────────────────────────────────
+// Request / response shapes
 
 type importListBody struct {
 	ID               string          `json:"id"`
@@ -82,7 +82,7 @@ type importListSyncOutput struct {
 	Body *importlist.SyncResult
 }
 
-// ── Preview shapes ──────────────────────────────────────────────────────────
+// Preview shapes
 
 type importListPreviewBody struct {
 	Kind     string          `json:"kind"     minLength:"1"`
@@ -97,7 +97,7 @@ type importListPreviewOutput struct {
 	Body []importlist.PreviewItem
 }
 
-// ── Exclusion shapes ────────────────────────────────────────────────────────
+// Exclusion shapes
 
 type exclusionBody struct {
 	ID        string    `json:"id"`
@@ -131,7 +131,7 @@ type exclusionDeleteInput struct {
 
 type exclusionDeleteOutput struct{}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func importListToBody(cfg importlist.Config) *importListBody {
 	return &importListBody{
@@ -160,7 +160,7 @@ func exclusionToBody(e importlist.Exclusion) *exclusionBody {
 	}
 }
 
-// ── Route registration ────────────────────────────────────────────────────────
+// Route registration
 
 // RegisterImportListRoutes registers the /api/v1/importlists endpoints.
 func RegisterImportListRoutes(api huma.API, svc *importlist.Service, tagSvc *tag.Service) {
@@ -363,7 +363,7 @@ func RegisterImportListRoutes(api huma.API, svc *importlist.Service, tagSvc *tag
 		return &importListPreviewOutput{Body: items}, nil
 	})
 
-	// ── Exclusions ────────────────────────────────────────────────────────────
+	// Exclusions
 
 	// GET /api/v1/importlists/exclusions
 	huma.Register(api, huma.Operation{

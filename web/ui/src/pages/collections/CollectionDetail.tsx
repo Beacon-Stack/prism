@@ -8,7 +8,7 @@ import Modal from "@beacon-shared/Modal";
 
 const TMDB_POSTER_BASE = "https://image.tmdb.org/t/p/w185";
 
-// ── Shared dropdowns component ─────────────────────────────────────────────
+// Shared dropdowns component
 
 function AddDropdowns({
   libraryId,
@@ -78,7 +78,7 @@ function AddDropdowns({
   );
 }
 
-// ── Add Missing Modal ──────────────────────────────────────────────────────
+// Add Missing Modal
 
 function AddMissingModal({
   collectionId,
@@ -130,7 +130,7 @@ function AddMissingModal({
   );
 }
 
-// ── Add Selected Modal ─────────────────────────────────────────────────────
+// Add Selected Modal
 
 function AddSelectedModal({
   collectionId,
@@ -184,7 +184,7 @@ function AddSelectedModal({
   );
 }
 
-// ── Film Card ──────────────────────────────────────────────────────────────
+// Film Card
 
 // Border meanings:
 //   green  = in library AND has a physical file on disk
@@ -352,7 +352,7 @@ function FilmLabel({ item }: { item: CollectionItem }) {
   );
 }
 
-// ── Collection Detail Page ─────────────────────────────────────────────────
+// Collection Detail Page
 
 export default function CollectionDetail() {
   const { id } = useParams<{ id: string }>();

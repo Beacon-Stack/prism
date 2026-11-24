@@ -6,7 +6,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Video quality tests (ported from quality/parser_test.go) ─────────────────
+// Video quality tests (ported from quality/parser_test.go)
 
 func TestParse_VideoQuality(t *testing.T) {
 	t.Parallel()
@@ -71,7 +71,7 @@ func TestParse_VideoQuality(t *testing.T) {
 	}
 }
 
-// ── Audio tests (ported from quality/parser_test.go TestParseAudio) ──────────
+// Audio tests (ported from quality/parser_test.go TestParseAudio)
 
 func TestParse_Audio(t *testing.T) {
 	t.Parallel()
@@ -113,7 +113,7 @@ func TestParse_Audio(t *testing.T) {
 	}
 }
 
-// ── Edition tests (ported from edition/parser_test.go) ───────────────────────
+// Edition tests (ported from edition/parser_test.go)
 
 func TestParse_Edition(t *testing.T) {
 	t.Parallel()
@@ -157,7 +157,7 @@ func TestParse_Edition(t *testing.T) {
 	}
 }
 
-// ── Title + year tests (ported from movie/parser_test.go) ────────────────────
+// Title + year tests (ported from movie/parser_test.go)
 
 func TestParse_Title(t *testing.T) {
 	t.Parallel()
@@ -198,7 +198,7 @@ func TestParse_Title(t *testing.T) {
 	}
 }
 
-// ── Release group tests (ported from quality/parser_test.go) ─────────────────
+// Release group tests (ported from quality/parser_test.go)
 
 func TestParse_ReleaseGroup(t *testing.T) {
 	t.Parallel()
@@ -227,7 +227,7 @@ func TestParse_ReleaseGroup(t *testing.T) {
 	}
 }
 
-// ── Markers tests ────────────────────────────────────────────────────────────
+// Markers tests
 
 func TestParse_Markers(t *testing.T) {
 	t.Parallel()
@@ -265,7 +265,7 @@ func TestParse_Markers(t *testing.T) {
 	}
 }
 
-// ── Quality() compatibility test ─────────────────────────────────────────────
+// Quality() compatibility test
 
 func TestParse_QualityCompat(t *testing.T) {
 	p := Parse("The.Dark.Knight.2008.1080p.BluRay.DTS-HD.MA.7.1.x264-FraMeSToR")

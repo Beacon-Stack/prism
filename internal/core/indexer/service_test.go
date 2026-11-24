@@ -15,7 +15,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Mock indexer ──────────────────────────────────────────────────────────────
+// Mock indexer
 
 type mockIndexer struct {
 	searchReleases []plugin.Release
@@ -38,7 +38,7 @@ func (m *mockIndexer) Test(_ context.Context) error {
 	return m.testErr
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 // newTestReg creates an isolated registry so tests never touch registry.Default.
 func newTestReg(mock *mockIndexer) *registry.Registry {
@@ -96,7 +96,7 @@ func mustExec(t *testing.T, db *sql.DB, ctx context.Context, query string, args 
 	}
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// Tests
 
 func TestService_Create(t *testing.T) {
 	_, sqlDB := testutil.NewTestDBWithSQL(t)

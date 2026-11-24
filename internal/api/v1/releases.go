@@ -23,7 +23,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type releaseBody struct {
 	GUID    string `json:"guid"`
@@ -102,7 +102,7 @@ type grabOutput struct {
 	Body *grabHistoryBody
 }
 
-// ── Auto-search shapes ──────────────────────────────────────────────────────
+// Auto-search shapes
 
 type autoSearchInput struct {
 	MovieID string `path:"id"`
@@ -127,7 +127,7 @@ type bulkSearchAcceptedOutput struct {
 	Body bulkSearchAcceptedBody
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 func bestFileQuality(files []movie.FileInfo) plugin.Quality {
 	var best plugin.Quality
@@ -191,11 +191,11 @@ func indexerResultToBody(r indexer.SearchResult) *releaseBody {
 	}
 }
 
-// ── Route registration ───────────────────────────────────────────────────────
+// Route registration
 
 // RegisterReleaseRoutes registers the release search, grab, and auto-search endpoints.
 // downloaderSvc may be nil; in that case grabs are recorded to history without
-// being sent to a download client (backward-compatible with Phase 2 mode).
+// being sent to a download client.
 // blocklistSvc may be nil; in that case blocklist checking is skipped.
 // qualitySvc may be nil; in that case score breakdowns are omitted from responses.
 // autoSearchSvc may be nil; in that case auto-search endpoints are not registered.
@@ -253,9 +253,8 @@ func RegisterReleaseRoutes(api huma.API, indexerSvc *indexer.Service, movieSvc *
 			DownloadURL: input.Body.DownloadURL,
 			Size:        input.Body.Size,
 			Quality:     qual,
-			// Forward arr-side identity so Haul's history index can
-			// later answer "have I downloaded anything for this
-			// movie?". Used by Phase 4+ UI integrations.
+			// Tell Haul which movie this is, so its history can answer
+			// "have I downloaded anything for this movie?".
 			MediaTitle: mov.Title,
 			MediaYear:  mov.Year,
 			TMDBID:     mov.TMDBID,

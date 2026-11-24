@@ -4,8 +4,9 @@ import { Eye, EyeOff, ArrowLeft, CheckCircle, XCircle, AlertCircle, Loader2, Ref
 import { useRadarrPreview, useRadarrImport } from "@/api/import";
 import TableScroll from "@beacon-shared/TableScroll";
 import type { RadarrPreviewResult, RadarrImportOptions, RadarrImportResult, CategoryResult } from "@/types";
+import { inputStyle } from "@/lib/styles";
 
-// ── sessionStorage helpers (credentials cleared on tab close) ─────────────────
+// sessionStorage helpers (credentials cleared on tab close)
 
 const LS_URL = "prism.radarr.url";
 const LS_KEY = "prism.radarr.api_key";
@@ -26,19 +27,7 @@ function clearCreds() {
   sessionStorage.removeItem(LS_KEY);
 }
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  color: "var(--color-text-primary)",
-  fontSize: 13,
-  outline: "none",
-  boxSizing: "border-box",
-};
+// Shared styles
 
 const labelStyle: React.CSSProperties = {
   display: "block",
@@ -88,7 +77,7 @@ const sectionTitle: React.CSSProperties = {
   marginBottom: 12,
 };
 
-// ── Quick Sync card (shown when saved credentials exist) ──────────────────────
+// Quick Sync card (shown when saved credentials exist)
 
 function QuickSyncCard({
   saved,
@@ -189,7 +178,7 @@ function QuickSyncCard({
   );
 }
 
-// ── Step 1: Connect ───────────────────────────────────────────────────────────
+// Step 1: Connect
 
 function ConnectStep({
   initialUrl,
@@ -315,7 +304,7 @@ function ConnectStep({
   );
 }
 
-// ── Step 2: Preview + select ──────────────────────────────────────────────────
+// Step 2: Preview + select
 
 function CheckboxRow({
   label,
@@ -500,7 +489,7 @@ function PreviewStep({
   );
 }
 
-// ── Step 3: Done ──────────────────────────────────────────────────────────────
+// Step 3: Done
 
 function CategoryRow({ label, result }: { label: string; result: CategoryResult }) {
   const hasIssues = result.failed > 0;
@@ -738,7 +727,7 @@ function DoneStep({ result }: { result: RadarrImportResult }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// Main page
 
 type Step = "connect" | "preview" | "done";
 

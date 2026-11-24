@@ -240,7 +240,7 @@ function AppearanceSection() {
   );
 }
 
-// ── Section 2: UI Preferences ─────────────────────────────────────────────────
+// Section 2: UI Preferences
 
 function ToggleRow({
   label,
@@ -348,7 +348,7 @@ function UIPreferencesSection() {
   );
 }
 
-// ── Configuration ─────────────────────────────────────────────────────────────
+// Configuration
 
 function ConfigSection() {
   const { data: status } = useSystemStatus();
@@ -482,7 +482,7 @@ function ConfigSection() {
   );
 }
 
-// ── Section 5: API Key ────────────────────────────────────────────────────────
+// Section 5: API Key
 
 function APIKeySection() {
   const { data: sysConfig } = useSystemConfig();
@@ -595,7 +595,7 @@ function APIKeySection() {
   );
 }
 
-// ── Section 6: Backup & Restore ───────────────────────────────────────────────
+// Section 6: Backup & Restore
 
 function BackupSection() {
   const [restoreMsg, setRestoreMsg] = useState<string | null>(null);
@@ -725,7 +725,7 @@ function BackupSection() {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// Page
 
 export default function AppSettingsPage() {
   return (

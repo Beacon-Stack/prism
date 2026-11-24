@@ -19,7 +19,7 @@ import (
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
-// ── ROWID helpers ────────────────────────────────────────────────────────────
+// ROWID helpers
 //
 // Tables with a TEXT PRIMARY KEY have an explicit row_id SERIAL column that we
 // surface as the Radarr-compatible integer ID.
@@ -73,7 +73,7 @@ func getRowIDByUUID(ctx context.Context, db *sql.DB, table string, uuid string) 
 	return rowid, err
 }
 
-// ── Radarr v3 response types ────────────────────────────────────────────────
+// Radarr v3 response types
 
 // RadarrMovie is the Radarr v3 movie response shape.
 type RadarrMovie struct {
@@ -189,7 +189,7 @@ type RadarrCommandResponse struct {
 	Started string `json:"started"`
 }
 
-// ── Conversion functions ────────────────────────────────────────────────────
+// Conversion functions
 
 const tmdbImageBase = "https://image.tmdb.org/t/p/original"
 

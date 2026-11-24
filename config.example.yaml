@@ -5,7 +5,7 @@
 ## Prefix the key path with PRISM_ and replace dots with underscores.
 ## Example: server.port → PRISM_SERVER_PORT=8080
 
-# ── HTTP server ───────────────────────────────────────────────────────────────
+# HTTP server
 server:
   # Address to listen on. Use 0.0.0.0 to listen on all interfaces.
   host: "0.0.0.0"
@@ -13,7 +13,7 @@ server:
   # Note: Radarr uses 7878 — if running both during migration, leave this as-is.
   port: 8282
 
-# ── Database ──────────────────────────────────────────────────────────────────
+# Database
 database:
   # Driver: "sqlite" (default) or "postgres"
   driver: sqlite
@@ -26,7 +26,7 @@ database:
   # Only used when driver is "postgres".
   # dsn: "postgres://user:password@localhost:5432/prism?sslmode=require"
 
-# ── Logging ───────────────────────────────────────────────────────────────────
+# Logging
 log:
   # Level: debug | info | warn | error  (default: info)
   level: info
@@ -35,7 +35,7 @@ log:
   #   text  — human-readable key=value, better for local development
   format: json
 
-# ── Authentication ────────────────────────────────────────────────────────────
+# Authentication
 auth:
   # API key required in the X-Api-Key header for all API requests.
   # If empty, a random key is generated on first startup and automatically
@@ -43,7 +43,7 @@ auth:
   # from you. You can also set it explicitly here if you prefer.
   api_key: ""
 
-# ── TMDB (The Movie Database) ─────────────────────────────────────────────────
+# TMDB (The Movie Database)
 # Required for movie search and metadata fetching.
 # Get a free API key at: https://www.themoviedb.org/settings/api
 #
@@ -52,7 +52,7 @@ auth:
 tmdb:
   api_key: ""
 
-# ── Configurarr integration (optional) ──────────────────────────────────────
+# Configurarr integration (optional)
 # When configured, Prism registers itself with the Configurarr control plane
 # on startup. This enables auto-discovery of ecosystem services, shared config,
 # and centralized indexer management.

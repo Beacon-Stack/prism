@@ -23,10 +23,8 @@ import "fmt"
 // the rows list (shouldn't happen in production, but tests may
 // construct such cases).
 //
-// Mirrors pilot/internal/core/indexer/service.go:applyMinSeedersFilter
-// — keep the two in sync; the parameters are tuned to the same
-// public-tracker behavior. Pilot has a comprehensive regression suite
-// for this logic; the Prism suite here covers the same ground.
+// Pilot has the same filter (internal/core/indexer/filter.go) tuned to
+// the same public-tracker behaviour; keep the two in step.
 func applyMinSeedersFilter(results []SearchResult, minByIndexer map[string]int) {
 	titleIndexers := make(map[string]map[string]bool)
 	for _, r := range results {

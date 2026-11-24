@@ -84,7 +84,7 @@ export function useDiscoverMovie(tmdbId: number) {
   });
 }
 
-// ── Browse with filters, search, streaming services ─────────────────────────
+// Browse with filters, search, streaming services
 
 export interface DiscoverBrowseParams {
   category: string;

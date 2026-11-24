@@ -95,7 +95,7 @@ func TestMatches(t *testing.T) {
 			want:    true,
 		},
 		{
-			// ── Regression: the original user-reported bug ──────────────
+			// Regression: the original user-reported bug
 			// Searching for "Big" (1988) must never grab a "The Firm" (1993)
 			// release. Before titlematch was wired into auto-search, an
 			// indexer returning "The.Firm.1993.1080p.BluRay.x264-GROUP" for

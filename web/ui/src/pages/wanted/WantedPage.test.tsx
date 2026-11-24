@@ -61,7 +61,7 @@ describe("WantedPage", () => {
     );
   });
 
-  // ── Upgrades tab ─────────────────────────────────────────────────────────
+  // Upgrades tab
 
   it("shows Upgrades tab button", () => {
     server.use(

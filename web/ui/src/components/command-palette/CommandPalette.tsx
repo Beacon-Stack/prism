@@ -15,7 +15,7 @@ import {
 import type { Movie, MovieListResponse, TMDBResult } from "@/types";
 import { Film } from "lucide-react";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 interface PaletteItem {
   id: string;
@@ -32,7 +32,7 @@ interface CommandPaletteProps {
   onClose: () => void;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function getCachedMovies(qc: ReturnType<typeof useQueryClient>): Map<number, Movie> {
   const map = new Map<number, Movie>();
@@ -47,7 +47,7 @@ function getCachedMovies(qc: ReturnType<typeof useQueryClient>): Map<number, Mov
   return map;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// Component
 
 export function CommandPalette({ onClose }: CommandPaletteProps) {
   const navigate = useNavigate();
@@ -97,7 +97,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
     setActiveIndex(0);
   }, [query]);
 
-  // ── Build flat item list ───────────────────────────────────────────────────
+  // Build flat item list
 
   const handleAction = useCallback(
     (cmd: ActionCommand) => {
@@ -176,7 +176,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
     });
   }
 
-  // ── Keyboard handling ──────────────────────────────────────────────────────
+  // Keyboard handling
 
   function onKeyDown(e: React.KeyboardEvent) {
     switch (e.key) {
@@ -211,7 +211,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
     }
   }, [activeIndex]);
 
-  // ── Grouped rendering ─────────────────────────────────────────────────────
+  // Grouped rendering
 
   const navItems = items.filter((i) => i.category === "navigation");
   const movieItems = items.filter((i) => i.category === "movie");
@@ -393,7 +393,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
   );
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
+// Sub-components
 
 function PaletteGroup({
   label,

@@ -19,8 +19,9 @@ import type {
   PrismSyncMovie,
   PlexSyncImportResult,
 } from "@/types";
+import { inputStyle as selectStyle } from "@/lib/styles";
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// Shared styles
 
 const card: React.CSSProperties = {
   background: "var(--color-bg-surface)",
@@ -54,18 +55,6 @@ const btnSecondary: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const selectStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  color: "var(--color-text-primary)",
-  fontSize: 13,
-  outline: "none",
-  boxSizing: "border-box",
-};
-
 const labelStyle: React.CSSProperties = {
   display: "block",
   fontSize: 12,
@@ -85,7 +74,7 @@ const badge = (bg: string, color: string): React.CSSProperties => ({
   color,
 });
 
-// ── Step 1: Select server + section ──────────────────────────────────────────
+// Step 1: Select server + section
 
 function SelectStep({
   onPreview,
@@ -199,7 +188,7 @@ function SelectStep({
   );
 }
 
-// ── Step 2: Diff view ────────────────────────────────────────────────────────
+// Step 2: Diff view
 
 function DiffView({
   serverID,
@@ -485,7 +474,7 @@ function DiffView({
   );
 }
 
-// ── Step 3: Results ──────────────────────────────────────────────────────────
+// Step 3: Results
 
 function ResultView({
   result,
@@ -542,7 +531,7 @@ function ResultView({
   );
 }
 
-// ── Main page ────────────────────────────────────────────────────────────────
+// Main page
 
 type Step =
   | { kind: "select" }

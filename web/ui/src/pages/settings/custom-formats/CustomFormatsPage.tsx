@@ -12,7 +12,7 @@ import {
 import { card, sectionHeader } from "@/lib/styles";
 import type { CustomFormatPreset } from "@/types";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function ScoreBadge({ score }: { score: number }) {
   const isNeg = score < 0;
@@ -123,7 +123,7 @@ function PresetCard({
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// Page
 
 export default function CustomFormatsPage() {
   const formats = useCustomFormats();
@@ -198,7 +198,7 @@ export default function CustomFormatsPage() {
 
       {!isLoading && !error && (
         <>
-          {/* ── Imported Custom Formats ────────────────────────────────── */}
+          {/* Imported Custom Formats */}
           <h2 style={{ ...sectionHeader, marginTop: 0 }}>Imported Custom Formats</h2>
 
           {(formats.data?.length ?? 0) === 0 ? (
@@ -310,7 +310,7 @@ export default function CustomFormatsPage() {
             </div>
           )}
 
-          {/* ── Built-in Presets ───────────────────────────────────────── */}
+          {/* Built-in Presets */}
           <h2 style={{ ...sectionHeader, marginTop: 0 }}>Built-in Presets</h2>
 
           {Array.from(grouped.entries()).map(([category, items]) => (

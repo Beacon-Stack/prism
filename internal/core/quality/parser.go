@@ -15,7 +15,7 @@ import (
 // All regexps are compiled once at package init — never inside Parse.
 // The (?i) flag makes every pattern case-insensitive.
 
-// ── Release group extraction ────────────────────────────────────────────────
+// Release group extraction
 
 // reFileExt matches common video file extensions at the end of a string.
 var reFileExt = regexp.MustCompile(`(?i)\.(mkv|mp4|avi|m4v|ts|wmv|mov|flv|webm)$`)
@@ -36,7 +36,7 @@ var knownCompoundSuffixes = map[string]bool{
 }
 
 var (
-	// ── Resolution ───────────────────────────────────────────────────────────
+	// Resolution
 	// 4K / UHD / 2160p must be matched before 1080p to avoid partial hits.
 	re2160p = regexp.MustCompile(`(?i)(?:4k|uhd|2160p)`)
 	re1080p = regexp.MustCompile(`(?i)1080p`)
@@ -44,7 +44,7 @@ var (
 	re576p  = regexp.MustCompile(`(?i)576p`)
 	re480p  = regexp.MustCompile(`(?i)480p`)
 
-	// ── Source ───────────────────────────────────────────────────────────────
+	// Source
 	// Order matters: disc images first, then REMUX before BluRay, DVDSCR before
 	// DVD to avoid mis-parses.
 	reRawHD     = regexp.MustCompile(`(?i)\braw[\s\-]?hd\b`)
@@ -63,7 +63,7 @@ var (
 	reCAM       = regexp.MustCompile(`(?i)(?:hd)?cam(?:rip)?`)
 	reWorkprint = regexp.MustCompile(`(?i)(?:\bworkprint\b|\bwp\b)`)
 
-	// ── HDR ──────────────────────────────────────────────────────────────────
+	// HDR
 	// DolbyVision (DV / DoVi / Dolby.Vision) must be checked before HDR10
 	// because "HDR" is a substring match risk.
 	reDolbyVision = regexp.MustCompile(`(?i)(?:\bdv\b|dovi|dolby[\s\-.]?vision)`)
@@ -71,7 +71,7 @@ var (
 	reHDR10       = regexp.MustCompile(`(?i)hdr(?:10)?`) // matches "HDR10" and bare "HDR"
 	reHLG         = regexp.MustCompile(`(?i)\bhlg\b`)
 
-	// ── Codec ────────────────────────────────────────────────────────────────
+	// Codec
 	// x265 / H.265 / HEVC → X265 (check before x264 to avoid partial matches)
 	reX265 = regexp.MustCompile(`(?i)x265|h[\s\-.]?265|hevc`)
 	// x264 / H.264 / AVC → X264
@@ -80,7 +80,7 @@ var (
 	// XviD and DivX both map to CodecXVID.
 	reXVID = regexp.MustCompile(`(?i)xvid|divx`)
 
-	// ── Audio codec ─────────────────────────────────────────────────────────
+	// Audio codec
 	// Order matters: most specific first to avoid partial matches.
 	// TrueHD Atmos before TrueHD, DTS-HD MA before DTS-HD before DTS, etc.
 	// TrueHD Atmos: adjacent ("TrueHD.Atmos") or separated by channels ("TrueHD.7.1.Atmos").
@@ -103,7 +103,7 @@ var (
 	reMP3  = regexp.MustCompile(`(?i)\bmp3\b`)
 	reOpus = regexp.MustCompile(`(?i)\bopus\b`)
 
-	// ── Audio channels ──────────────────────────────────────────────────────
+	// Audio channels
 	// Use [^\d] instead of \b for the leading anchor to handle combined tokens
 	// like DD5.1 (normalized to "DD5 1") where 5 follows a letter, not a
 	// word boundary. [^\d] avoids false positives on years like 2015.
@@ -121,20 +121,20 @@ func Parse(title string) (plugin.Quality, error) {
 	// because all regexps carry (?i).
 	norm := strings.NewReplacer(".", " ", "_", " ").Replace(title)
 
-	// ── Source ───────────────────────────────────────────────────────────────
+	// Source
 	// Parse source before resolution so SD can be inferred from DVD source.
 	src := parseSource(norm)
 
-	// ── Resolution ───────────────────────────────────────────────────────────
+	// Resolution
 	res := parseResolution(norm, src)
 
-	// ── HDR ──────────────────────────────────────────────────────────────────
+	// HDR
 	hdr := parseHDR(norm, src)
 
-	// ── Codec ────────────────────────────────────────────────────────────────
+	// Codec
 	codec := parseCodec(norm)
 
-	// ── Audio ────────────────────────────────────────────────────────────────
+	// Audio
 	audioCodec := parseAudioCodec(norm)
 	audioChannels := parseAudioChannels(norm)
 

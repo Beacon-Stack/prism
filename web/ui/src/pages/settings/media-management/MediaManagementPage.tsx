@@ -4,8 +4,9 @@ import PageHeader from "@/components/PageHeader";
 import { DOCS_URLS } from "@/lib/docsUrls";
 import type { MediaManagement } from "@/types";
 import { hasQualityToken, setQualityToken } from "@/lib/qualityToken";
+import { labelStyle } from "@/lib/styles";
 
-// ── Shared styles ─────────────────────────────────────────────────────────────
+// Shared styles
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -20,15 +21,7 @@ const inputStyle: React.CSSProperties = {
   fontFamily: "var(--font-family-mono)",
 };
 
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
-
-// ── Preview helper ────────────────────────────────────────────────────────────
+// Preview helper
 
 function previewFormat(format: string): string {
   return format
@@ -40,7 +33,7 @@ function previewFormat(format: string): string {
     .replace("{MediaInfo VideoCodec}", "x264");
 }
 
-// ── Toggle row ────────────────────────────────────────────────────────────────
+// Toggle row
 
 interface ToggleRowProps {
   label: string;
@@ -89,7 +82,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
   );
 }
 
-// ── Section card ─────────────────────────────────────────────────────────────
+// Section card
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -116,7 +109,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// Main page
 
 export default function MediaManagementPage() {
   const { data, isLoading } = useMediaManagement();

@@ -7,7 +7,7 @@ import { useBulkAutoSearch } from "@/api/movies";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
 import type { Movie, UpgradeTier } from "@/types";
 
-// ── Shared helpers ─────────────────────────────────────────────────────────────
+// Shared helpers
 
 function statusBadge(status: string, monitored: boolean): React.CSSProperties {
   const base: React.CSSProperties = {
@@ -24,7 +24,7 @@ function statusBadge(status: string, monitored: boolean): React.CSSProperties {
   return { ...base, background: "color-mix(in srgb, var(--color-warning) 15%, transparent)", color: "var(--color-warning)" };
 }
 
-// ── Movie row ─────────────────────────────────────────────────────────────────
+// Movie row
 
 function MovieRow({ movie, onSearch }: { movie: Movie; onSearch: () => void }) {
   return (
@@ -132,7 +132,7 @@ function MovieRow({ movie, onSearch }: { movie: Movie; onSearch: () => void }) {
   );
 }
 
-// ── Missing tab ────────────────────────────────────────────────────────────────
+// Missing tab
 
 const PER_PAGE = 50;
 
@@ -253,7 +253,7 @@ function MissingTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   );
 }
 
-// ── Cutoff unmet tab ──────────────────────────────────────────────────────────
+// Cutoff unmet tab
 
 function CutoffTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   const { data, isLoading, error } = useWantedCutoff();
@@ -332,7 +332,7 @@ function CutoffTab({ onSearch }: { onSearch: (m: Movie) => void }) {
   );
 }
 
-// ── Upgrades tab ──────────────────────────────────────────────────────────────
+// Upgrades tab
 
 function UpgradeTierCard({ tier }: { tier: UpgradeTier }) {
   const [expanded, setExpanded] = useState(false);
@@ -516,7 +516,7 @@ function UpgradesTab() {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// Page
 
 type WantedTab = "missing" | "cutoff" | "upgrades";
 

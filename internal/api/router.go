@@ -327,7 +327,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		v1.RegisterProviderRoutes(humaAPI, cfg.ProviderResolver)
 	}
 
-	// ── Radarr v3 API compatibility layer ────────────────────────────────
+	// Radarr v3 API compatibility layer
 	// External tools (Overseerr, Homepage, etc.) can point their "Radarr"
 	// integration at Prism and it will just work.
 	if cfg.DB != nil {

@@ -10,7 +10,7 @@ import (
 	plexpkg "github.com/beacon-stack/prism/plugins/mediaservers/plex"
 )
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type plexSectionsInput struct {
 	ID string `path:"id"`
@@ -40,7 +40,7 @@ type plexSyncImportOutput struct {
 	Body *plexsync.SyncImportResult
 }
 
-// ── Route registration ───────────────────────────────────────────────────────
+// Route registration
 
 // RegisterPlexSyncRoutes registers the Plex library sync endpoints.
 func RegisterPlexSyncRoutes(api huma.API, svc *plexsync.Service) {

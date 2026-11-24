@@ -58,9 +58,7 @@ func (rt *redirectTransport) RoundTrip(req *http.Request) (*http.Response, error
 	return http.DefaultTransport.RoundTrip(cloned)
 }
 
-// ---------------------------------------------------------------------------
 // Registry factory
-// ---------------------------------------------------------------------------
 
 func TestFactory_Valid(t *testing.T) {
 	settings := json.RawMessage(`{"access_token":"tok"}`)
@@ -88,9 +86,7 @@ func TestFactory_InvalidJSON(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Name
-// ---------------------------------------------------------------------------
 
 func TestName(t *testing.T) {
 	p := &Plugin{cfg: Config{AccessToken: "tok"}}
@@ -99,9 +95,7 @@ func TestName(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Fetch
-// ---------------------------------------------------------------------------
 
 func TestFetch_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -266,9 +260,7 @@ func TestFetch_MalformedJSON(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Test
-// ---------------------------------------------------------------------------
 
 func TestTest_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -300,9 +292,7 @@ func TestTest_APIError(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // Sanitizer
-// ---------------------------------------------------------------------------
 
 func TestSanitizer_RedactsAccessToken(t *testing.T) {
 	raw := json.RawMessage(`{"access_token":"super-secret"}`)
@@ -324,9 +314,7 @@ func TestSanitizer_MalformedJSON(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // TMDb lookup fallback via SetTMDBClient
-// ---------------------------------------------------------------------------
 
 func TestFetch_TMDBFallback_ResolvesViaIMDbID(t *testing.T) {
 	// Movie has only an imdb GUID; plugin should call tmdbLookup and get a TMDb ID back.

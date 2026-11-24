@@ -22,7 +22,7 @@ function createWrapper() {
   };
 }
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
+// Fixtures
 
 // Popular definitions (shown in simple mode)
 const def1080pBluray: QualityDefinition = { id: "1080p-bluray-x265-none", name: "1080p Bluray", resolution: "1080p", source: "bluray", codec: "x265", hdr: "none", min_size: 4, max_size: 95, preferred_size: 95, sort_order: 70 };

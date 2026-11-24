@@ -19,7 +19,7 @@ function formatRuntime(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-// ── Add Movie Modal (same as DiscoverPage) ──────────────────────────────────
+// Add Movie Modal (same as DiscoverPage)
 
 function QuickAddModal({
   movie,
@@ -146,7 +146,7 @@ function QuickAddModal({
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// Page
 
 export default function DiscoverDetailPage() {
   const { tmdbId } = useParams<{ tmdbId: string }>();

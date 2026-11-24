@@ -13,7 +13,7 @@ import (
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 type discoverResultBody struct {
 	TMDBID         int     `json:"tmdb_id"         doc:"TMDB movie ID"`
@@ -46,7 +46,7 @@ type genreListOutput struct {
 	Body []genreBody
 }
 
-// ── Inputs ───────────────────────────────────────────────────────────────────
+// Inputs
 
 type discoverPageInput struct {
 	Page int `query:"page" default:"1" doc:"Page number (1-based)"`
@@ -136,7 +136,7 @@ type discoverMovieDetailOutput struct {
 	Body *discoverMovieDetailBody
 }
 
-// ── Registration ─────────────────────────────────────────────────────────────
+// Registration
 
 // RegisterDiscoverRoutes registers the /api/v1/discover/* endpoints.
 func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *tmdb.Client) {

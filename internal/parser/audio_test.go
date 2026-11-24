@@ -13,19 +13,19 @@ func TestParseAudioCodec_AllVariants(t *testing.T) {
 		input string
 		want  plugin.AudioCodec
 	}{
-		// ── TrueHD family ────────────────────────────────────────────────
+		// TrueHD family
 		{"TrueHD.Atmos adjacent", "Movie.1080p.BluRay.TrueHD.Atmos.x265", plugin.AudioCodecTrueHDAtmos},
 		{"TrueHD Atmos with channels between", "Movie.2160p.REMUX.TrueHD.7.1.Atmos", plugin.AudioCodecTrueHDAtmos},
 		{"TrueHD bare", "Movie.1080p.BluRay.TrueHD.x264", plugin.AudioCodecTrueHD},
 
-		// ── DTS family ───────────────────────────────────────────────────
+		// DTS family
 		{"DTS-X", "Movie.2160p.BluRay.DTS-X.x265", plugin.AudioCodecDTSX},
 		{"DTS-HD MA", "Movie.1080p.BluRay.DTS-HD.MA.x264", plugin.AudioCodecDTSHDMA},
 		{"DTS-HD Master Audio", "Movie.1080p.BluRay.DTS-HD.Master.Audio.x264", plugin.AudioCodecDTSHDMA},
 		{"DTS-HD bare", "Movie.1080p.BluRay.DTS-HD.x264", plugin.AudioCodecDTSHD},
 		{"DTS bare", "Movie.1080p.BluRay.DTS.x264", plugin.AudioCodecDTS},
 
-		// ── EAC3 / DD+ family ────────────────────────────────────────────
+		// EAC3 / DD+ family
 		{"DDP with Atmos", "Movie.1080p.WEB-DL.DDP5.1.Atmos.H.265", plugin.AudioCodecEAC3Atmos},
 		{"DDP without Atmos", "Movie.1080p.WEB-DL.DDP5.1.H.264", plugin.AudioCodecEAC3},
 		{"EAC3", "Movie.1080p.WEB-DL.EAC3.x264", plugin.AudioCodecEAC3},
@@ -34,12 +34,12 @@ func TestParseAudioCodec_AllVariants(t *testing.T) {
 		{"E-AC-3", "Movie.1080p.WEB-DL.E-AC-3.x264", plugin.AudioCodecEAC3},
 		{"bare Atmos implies EAC3", "Movie.1080p.WEB-DL.Atmos.H.265", plugin.AudioCodecEAC3Atmos},
 
-		// ── AC3 / DD family ──────────────────────────────────────────────
+		// AC3 / DD family
 		{"DD5.1", "Movie.1080p.WEB-DL.DD5.1.H.264", plugin.AudioCodecAC3},
 		{"AC3", "Movie.1080p.BluRay.AC3.x264", plugin.AudioCodecAC3},
 		{"DD bare", "Movie.1080p.BluRay.DD.x264", plugin.AudioCodecAC3},
 
-		// ── Other codecs ─────────────────────────────────────────────────
+		// Other codecs
 		{"AAC", "Movie.1080p.WEB-DL.AAC.x264", plugin.AudioCodecAAC},
 		{"AAC2.0 combined", "Movie.1080p.WEB-DL.AAC2.0.x264", plugin.AudioCodecAAC},
 		{"FLAC", "Movie.1080p.BluRay.FLAC.x264", plugin.AudioCodecFLAC},

@@ -15,7 +15,7 @@ func TestParseReleaseGroup(t *testing.T) {
 		input string
 		want  string
 	}{
-		// ── Standard scene releases ──────────────────────────────────────────
+		// Standard scene releases
 		{
 			name:  "standard bluray release",
 			input: "The.Dark.Knight.2008.1080p.BluRay.x264-FraMeSToR",
@@ -67,7 +67,7 @@ func TestParseReleaseGroup(t *testing.T) {
 			want:  "GROUP",
 		},
 
-		// ── No group present ────────────────────────────────────────────────
+		// No group present
 		{
 			name:  "no hyphen at all",
 			input: "Movie.2024.1080p.BluRay.x264",
@@ -99,7 +99,7 @@ func TestParseReleaseGroup(t *testing.T) {
 			want:  "",
 		},
 
-		// ── Bracket-enclosed groups ──────────────────────────────────────────
+		// Bracket-enclosed groups
 		{
 			name:  "square bracket group",
 			input: "Movie.2024.1080p.BluRay.x264.[D-Z0N3]",
@@ -116,7 +116,7 @@ func TestParseReleaseGroup(t *testing.T) {
 			want:  "BHD-Studio",
 		},
 
-		// ── File extensions stripped ─────────────────────────────────────────
+		// File extensions stripped
 		{
 			name:  "mkv extension stripped",
 			input: "The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv",
@@ -128,7 +128,7 @@ func TestParseReleaseGroup(t *testing.T) {
 			want:  "NTb",
 		},
 
-		// ── Real-world group names ──────────────────────────────────────────
+		// Real-world group names
 		{
 			name:  "SPARKS group",
 			input: "Pulp.Fiction.1994.1080p.BluRay-SPARKS",
@@ -175,7 +175,7 @@ func TestParse(t *testing.T) {
 		wantHDR    plugin.HDRFormat
 		wantName   string
 	}{
-		// ── 1. Standard BluRay 1080p ─────────────────────────────────────────
+		// 1. Standard BluRay 1080p
 		{
 			name:       "bluray 1080p x264",
 			input:      "The.Dark.Knight.2008.1080p.BluRay.x264-GROUP",
@@ -213,7 +213,7 @@ func TestParse(t *testing.T) {
 			wantName:   "Bluray-1080p",
 		},
 
-		// ── 2. Standard BluRay 2160p ─────────────────────────────────────────
+		// 2. Standard BluRay 2160p
 		{
 			name:       "bluray 2160p x265",
 			input:      "Dune.2021.2160p.BluRay.x265.10bit-GROUP",
@@ -240,7 +240,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 3. BluRay Remux ──────────────────────────────────────────────────
+		// 3. BluRay Remux
 		{
 			name:       "bluray remux 1080p",
 			input:      "The.Godfather.1972.1080p.BluRay.REMUX.AVC-GROUP",
@@ -268,7 +268,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 4. WEB-DL ────────────────────────────────────────────────────────
+		// 4. WEB-DL
 		{
 			name:       "WEB-DL 1080p x264",
 			input:      "The.Crown.S01E01.2016.1080p.WEB-DL.DD5.1.H.264-GROUP",
@@ -320,7 +320,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 5. WEBRip ────────────────────────────────────────────────────────
+		// 5. WEBRip
 		{
 			name:       "WEBRip 1080p x264",
 			input:      "The.Mandalorian.S01E01.2019.1080p.WEBRip.x264-GROUP",
@@ -339,7 +339,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 6. HDTV ──────────────────────────────────────────────────────────
+		// 6. HDTV
 		{
 			name:       "HDTV 720p x264",
 			input:      "Game.of.Thrones.S08E06.2019.720p.HDTV.x264-GROUP",
@@ -358,7 +358,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 7. HDR variants ──────────────────────────────────────────────────
+		// 7. HDR variants
 		{
 			name:       "BluRay 2160p HDR10",
 			input:      "Blade.Runner.2049.2017.2160p.BluRay.x265.HDR10-GROUP",
@@ -429,7 +429,7 @@ func TestParse(t *testing.T) {
 			wantName:   "Bluray Remux-2160p x265 Dolby Vision",
 		},
 
-		// ── 8. Codec variants ────────────────────────────────────────────────
+		// 8. Codec variants
 		{
 			name:       "H.264 codec token",
 			input:      "The.Shawshank.Redemption.1994.1080p.BluRay.H.264-GROUP",
@@ -464,7 +464,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 9. SD / DVD ──────────────────────────────────────────────────────
+		// 9. SD / DVD
 		{
 			name:       "DVDRip XviD",
 			input:      "The.Matrix.1999.DVDRip.XviD-GROUP",
@@ -519,7 +519,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 10. CAM / TS ─────────────────────────────────────────────────────
+		// 10. CAM / TS
 		{
 			name:       "CAM release",
 			input:      "Avengers.Endgame.2019.CAM.x264-GROUP",
@@ -564,7 +564,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 10a. New pre-release sources ────────────────────────────────────
+		// 10a. New pre-release sources
 		{
 			name:       "WORKPRINT keyword",
 			input:      "Some.Movie.2024.WORKPRINT-GROUP",
@@ -657,7 +657,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 10b. Disc image sources ─────────────────────────────────────────
+		// 10b. Disc image sources
 		{
 			name:       "DVD-R keyword",
 			input:      "Classic.Movie.2000.DVD-R-GROUP",
@@ -717,7 +717,7 @@ func TestParse(t *testing.T) {
 			wantName:   "Raw-HD",
 		},
 
-		// ── 11. PROPER / REPACK flags (don't affect quality) ─────────────────
+		// 11. PROPER / REPACK flags (don't affect quality)
 		{
 			name:       "PROPER flag ignored",
 			input:      "The.Dark.Knight.2008.1080p.BluRay.x264.PROPER-GROUP",
@@ -743,7 +743,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 12. Edition info (does not affect quality) ────────────────────────
+		// 12. Edition info (does not affect quality)
 		{
 			name:       "Extended edition",
 			input:      "The.Lord.of.the.Rings.2001.Extended.1080p.BluRay.x264-GROUP",
@@ -769,7 +769,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRHDR10,
 		},
 
-		// ── 13. Multi-word titles with embedded years ─────────────────────────
+		// 13. Multi-word titles with embedded years
 		{
 			name:       "title with year in middle",
 			input:      "Once.Upon.a.Time.in.Hollywood.2019.1080p.BluRay.x264-GROUP",
@@ -795,7 +795,7 @@ func TestParse(t *testing.T) {
 			wantHDR:    plugin.HDRNone,
 		},
 
-		// ── 14. Ambiguous / minimal info ─────────────────────────────────────
+		// 14. Ambiguous / minimal info
 		{
 			name:       "resolution only",
 			input:      "SomeMovie.1080p-GROUP",
@@ -859,7 +859,7 @@ func TestParseAudio(t *testing.T) {
 		wantAudio    plugin.AudioCodec
 		wantChannels plugin.AudioChannels
 	}{
-		// ── TrueHD ──────────────────────────────────────────────────────────
+		// TrueHD
 		{
 			name:         "TrueHD Atmos",
 			input:        "Movie.2024.1080p.BluRay.TrueHD.Atmos.x265-GRP",
@@ -879,7 +879,7 @@ func TestParseAudio(t *testing.T) {
 			wantChannels: plugin.AudioChannels51,
 		},
 
-		// ── DTS variants ────────────────────────────────────────────────────
+		// DTS variants
 		{
 			name:         "DTS-X",
 			input:        "Movie.2024.2160p.BluRay.DTS-X.x265-GRP",
@@ -917,7 +917,7 @@ func TestParseAudio(t *testing.T) {
 			wantChannels: plugin.AudioChannels51,
 		},
 
-		// ── DD+ / EAC3 ──────────────────────────────────────────────────────
+		// DD+ / EAC3
 		{
 			name:         "DDP5.1 Atmos",
 			input:        "Movie.2024.1080p.WEB-DL.DDP5.1.Atmos.H.265-GRP",
@@ -949,7 +949,7 @@ func TestParseAudio(t *testing.T) {
 			wantChannels: plugin.AudioChannelsUnknown,
 		},
 
-		// ── DD / AC3 ────────────────────────────────────────────────────────
+		// DD / AC3
 		{
 			name:         "DD5.1",
 			input:        "Movie.2024.1080p.WEB-DL.DD5.1.H.264-GRP",
@@ -963,7 +963,7 @@ func TestParseAudio(t *testing.T) {
 			wantChannels: plugin.AudioChannelsUnknown,
 		},
 
-		// ── Other codecs ────────────────────────────────────────────────────
+		// Other codecs
 		{
 			name:         "AAC 2.0",
 			input:        "Movie.2024.1080p.WEB-DL.AAC2.0.x264-GRP",
@@ -1007,7 +1007,7 @@ func TestParseAudio(t *testing.T) {
 			wantChannels: plugin.AudioChannels51,
 		},
 
-		// ── Channel variants ────────────────────────────────────────────────
+		// Channel variants
 		{
 			name:         "7.1 channels",
 			input:        "Movie.2024.2160p.BluRay.REMUX.TrueHD.7.1.HEVC-GRP",
@@ -1039,7 +1039,7 @@ func TestParseAudio(t *testing.T) {
 			wantChannels: plugin.AudioChannels10,
 		},
 
-		// ── No audio info ───────────────────────────────────────────────────
+		// No audio info
 		{
 			name:         "no audio tokens",
 			input:        "Movie.2024.1080p.BluRay.x264-GRP",

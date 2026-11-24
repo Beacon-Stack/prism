@@ -1,4 +1,4 @@
-// ── Theme system ──────────────────────────────────────────────────────────────
+// Theme system
 // Themes are stored in localStorage and applied by setting CSS custom properties
 // on document.documentElement. The default values live in index.css; themes
 // override them at runtime without any server round-trip.
@@ -32,10 +32,10 @@ export interface ThemePreset {
   };
 }
 
-// ── Presets ───────────────────────────────────────────────────────────────────
+// Presets
 
 export const THEME_PRESETS: ThemePreset[] = [
-  // ── Dark themes ──────────────────────────────────────────────────────────
+  // Dark themes
   {
     id: "prism",
     label: "Prism",
@@ -366,7 +366,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     },
   },
 
-  // ── Light themes ─────────────────────────────────────────────────────────
+  // Light themes
   {
     id: "catppuccin-latte",
     label: "Catppuccin Latte",
@@ -500,13 +500,13 @@ export const THEME_PRESETS: ThemePreset[] = [
 export const DEFAULT_DARK_PRESET = "prism";
 export const DEFAULT_LIGHT_PRESET = "beacon-light";
 
-// ── Storage keys ──────────────────────────────────────────────────────────────
+// Storage keys
 
 const KEY_MODE = "prism-theme-mode";
 const KEY_DARK = "prism-theme-dark";
 const KEY_LIGHT = "prism-theme-light";
 
-// ── Apply ─────────────────────────────────────────────────────────────────────
+// Apply
 
 function applyPreset(preset: ThemePreset): void {
   const root = document.documentElement;
@@ -584,7 +584,7 @@ export function setThemePreset(resolvedMode: "dark" | "light", presetId: string)
   }
 }
 
-// ── UI Preferences ────────────────────────────────────────────────────────────
+// UI Preferences
 
 const KEY_TOOLTIPS = "prism-ui-tooltips";
 

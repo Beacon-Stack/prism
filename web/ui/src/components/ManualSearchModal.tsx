@@ -19,7 +19,7 @@ import QualityBadge from "@/components/QualityBadge";
 import Modal from "@beacon-shared/Modal";
 import { useConfirm } from "@beacon-shared/ConfirmDialog";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 type SortField = "seeds" | "size" | "age" | "quality";
 type SortDir = "asc" | "desc";
@@ -53,7 +53,7 @@ function shouldCloseOnGrab(): boolean {
   return window.localStorage.getItem("manualSearchModal.closeOnGrab") === "true";
 }
 
-// ── Conflict pills ────────────────────────────────────────────────────────────
+// Conflict pills
 
 function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
   if (conflicts.length === 0) return null;
@@ -93,7 +93,7 @@ function ConflictPills({ conflicts }: { conflicts: QualityConflict[] }) {
   );
 }
 
-// ── Release row ───────────────────────────────────────────────────────────────
+// Release row
 
 // Theater recordings: filmed or captured in a cinema (CAM, telesync) or an
 // unfinished workprint. Hidden from manual search unless asked for; quality
@@ -356,7 +356,7 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
   );
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
+// Modal
 
 interface ManualSearchModalProps {
   movieId: string;

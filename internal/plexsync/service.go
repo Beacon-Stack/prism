@@ -15,7 +15,7 @@ import (
 	plexpkg "github.com/beacon-stack/prism/plugins/mediaservers/plex"
 )
 
-// ── Result types ─────────────────────────────────────────────────────────────
+// Result types
 
 // SyncMovie is a movie found only in Plex (not in Prism).
 type SyncMovie struct {
@@ -58,7 +58,7 @@ type SyncImportResult struct {
 	Errors   []string `json:"errors"`
 }
 
-// ── Service ──────────────────────────────────────────────────────────────────
+// Service
 
 // Service orchestrates the bidirectional Plex library sync.
 type Service struct {

@@ -92,7 +92,7 @@ func (s *Scanner) Scan(ctx context.Context, filePath string) (*Result, error) {
 	return parseOutput(out)
 }
 
-// ── ffprobe JSON structures ────────────────────────────────────────────────
+// ffprobe JSON structures
 
 type ffprobeOutput struct {
 	Streams []ffprobeStream `json:"streams"`

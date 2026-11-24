@@ -15,7 +15,7 @@ import (
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
-// ── Mock providers ──────────────────────────────────────────────────────────
+// Mock providers
 
 type mockSeedCriteriaProvider struct {
 	criteria indexer.SeedCriteria
@@ -46,7 +46,7 @@ func (m *mockQuerier) GetGrabByID(_ context.Context, _ string) (dbgen.GrabHistor
 	return m.grab, m.err
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// Helpers
 
 func nullStr(s string) *string { return &s }
 
@@ -68,7 +68,7 @@ func publishAndWait(bus *events.Bus, e events.Event) {
 	time.Sleep(100 * time.Millisecond)
 }
 
-// ── Tests ───────────────────────────────────────────────────────────────────
+// Tests
 
 func TestSeedEnforcer_HappyPath(t *testing.T) {
 	dl := &mock.DownloadClient{}

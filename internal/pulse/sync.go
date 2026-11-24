@@ -231,7 +231,7 @@ func buildSettings(r sdk.Indexer) json.RawMessage {
 	return out
 }
 
-// ── Download Client Sync ─────────────────────────────────────────────────────
+// Download Client Sync
 
 // SyncDownloadClients pulls download clients from Pulse and syncs them
 // into Prism's local database. Same pattern as indexer sync.
@@ -359,7 +359,7 @@ func buildDownloadClientSettings(r sdk.DownloadClient) json.RawMessage {
 	return out
 }
 
-// ── Quality Profile Sync ─────────────────────────────────────────────────────
+// Quality Profile Sync
 
 // SyncQualityProfiles reconciles Pulse-managed quality profiles with the
 // local database. Profiles matched by ID:

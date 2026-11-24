@@ -29,7 +29,7 @@ type editionRule struct {
 }
 
 var rules = []editionRule{
-	// ── Multi-word editions (check first to avoid partial matches) ────────
+	// Multi-word editions (check first to avoid partial matches)
 	{name: "Director's Cut", re: regexp.MustCompile(`(?i)\bdirector'?s[\s._-]?(?:cut|edition)\b`)},
 	{name: "Extended", re: regexp.MustCompile(`(?i)\bextended[\s._-]?(?:cut|edition|version)\b`)},
 	{name: "Theatrical", re: regexp.MustCompile(`(?i)\btheatrical[\s._-]?(?:cut|edition|release)\b`)},
@@ -43,13 +43,13 @@ var rules = []editionRule{
 	{name: "Rogue Cut", re: regexp.MustCompile(`(?i)\brogue[\s._-]?cut\b`)},
 	{name: "Black and Chrome", re: regexp.MustCompile(`(?i)\bblack[\s._-]?and[\s._-]?chrome\b`)},
 
-	// ── Remastered variants ──────────────────────────────────────────────
+	// Remastered variants
 	{name: "Remastered", re: regexp.MustCompile(`(?i)\b(?:4k[\s._-]?)?(?:digitally[\s._-]?)?remastered\b`)},
 
-	// ── Anniversary (with optional Nth prefix) ──────────────────────────
+	// Anniversary (with optional Nth prefix)
 	{name: "Anniversary", re: regexp.MustCompile(`(?i)\b(?:\d+(?:st|nd|rd|th)[\s._-]?)?anniversary[\s._-]?(?:edition)?\b`)},
 
-	// ── Single-word editions (check last to avoid false positives) ───────
+	// Single-word editions (check last to avoid false positives)
 	{name: "Extended", re: regexp.MustCompile(`(?i)\bextended\b`)},
 	{name: "Theatrical", re: regexp.MustCompile(`(?i)\btheatrical\b`)},
 	{name: "Redux", re: regexp.MustCompile(`(?i)\bredux\b`)},

@@ -42,9 +42,7 @@ func checkTraktHeaders(t *testing.T, r *http.Request) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // GetWatchlist
-// ---------------------------------------------------------------------------
 
 func TestGetWatchlist_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -136,9 +134,7 @@ func TestGetWatchlist_NonOK(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // GetCustomList
-// ---------------------------------------------------------------------------
 
 func TestGetCustomList_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -195,9 +191,7 @@ func TestGetCustomList_NonOK(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------------------------------------
 // GetPopular
-// ---------------------------------------------------------------------------
 
 func TestGetPopular_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

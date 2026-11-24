@@ -32,7 +32,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		wantRes    plugin.Resolution
 	}
 
-	// ── Telesync (TS / TSRip) ────────────────────────────────────────────
+	// Telesync (TS / TSRip)
 	t.Run("Telesync", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -53,7 +53,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── CAM ──────────────────────────────────────────────────────────────
+	// CAM
 	t.Run("CAM", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -78,7 +78,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── DVD (DVDRip) ─────────────────────────────────────────────────────
+	// DVD (DVDRip)
 	t.Run("DVD", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -103,7 +103,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── DVDR (DVD-R / DVD5 / DVD9) ──────────────────────────────────────
+	// DVDR (DVD-R / DVD5 / DVD9)
 	t.Run("DVDR", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -129,7 +129,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEB-DL 480p ─────────────────────────────────────────────────────
+	// WEB-DL 480p
 	t.Run("WEBDL_480p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -157,7 +157,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEBRip 480p ─────────────────────────────────────────────────────
+	// WEBRip 480p
 	t.Run("WEBRip_480p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -177,7 +177,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── BluRay 480p ─────────────────────────────────────────────────────
+	// BluRay 480p
 	t.Run("BluRay_480p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -202,7 +202,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── HDTV 720p ───────────────────────────────────────────────────────
+	// HDTV 720p
 	t.Run("HDTV_720p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -233,7 +233,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── HDTV 1080p ──────────────────────────────────────────────────────
+	// HDTV 1080p
 	t.Run("HDTV_1080p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -257,7 +257,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── HDTV 2160p ──────────────────────────────────────────────────────
+	// HDTV 2160p
 	// Radarr infers HDTV from [NOGRP] convention; our parser does not
 	// perform group-name based source inference.
 	t.Run("HDTV_2160p", func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEB-DL 720p ─────────────────────────────────────────────────────
+	// WEB-DL 720p
 	t.Run("WEBDL_720p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -316,7 +316,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEBRip 720p ─────────────────────────────────────────────────────
+	// WEBRip 720p
 	t.Run("WEBRip_720p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -337,7 +337,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEB-DL 1080p ────────────────────────────────────────────────────
+	// WEB-DL 1080p
 	t.Run("WEBDL_1080p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -386,7 +386,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEBRip 1080p ────────────────────────────────────────────────────
+	// WEBRip 1080p
 	t.Run("WEBRip_1080p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -409,7 +409,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEB-DL 2160p ────────────────────────────────────────────────────
+	// WEB-DL 2160p
 	t.Run("WEBDL_2160p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -438,7 +438,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── WEBRip 2160p ────────────────────────────────────────────────────
+	// WEBRip 2160p
 	t.Run("WEBRip_2160p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -461,7 +461,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── BluRay 720p ─────────────────────────────────────────────────────
+	// BluRay 720p
 	t.Run("BluRay_720p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -503,7 +503,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── BluRay 576p ─────────────────────────────────────────────────────
+	// BluRay 576p
 	t.Run("BluRay_576p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -524,7 +524,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── BluRay 1080p ────────────────────────────────────────────────────
+	// BluRay 1080p
 	t.Run("BluRay_1080p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -566,7 +566,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── BluRay 2160p ────────────────────────────────────────────────────
+	// BluRay 2160p
 	t.Run("BluRay_2160p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -600,7 +600,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── Remux 720p ──────────────────────────────────────────────────────
+	// Remux 720p
 	t.Run("Remux_720p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -622,7 +622,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── Remux 1080p ─────────────────────────────────────────────────────
+	// Remux 1080p
 	t.Run("Remux_1080p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -653,7 +653,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── Remux 2160p ─────────────────────────────────────────────────────
+	// Remux 2160p
 	t.Run("Remux_2160p", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -683,7 +683,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── BRDisk (Blu-ray ISO / full disc) ────────────────────────────────
+	// BRDisk (Blu-ray ISO / full disc)
 	// Radarr detects BRDisk through complex heuristics including:
 	// - ISO/BDISO/Bluray ISO patterns
 	// - COMPLETE BLURAY
@@ -741,7 +741,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── RawHD (MPEG-2 HDTV) ────────────────────────────────────────────
+	// RawHD (MPEG-2 HDTV)
 	t.Run("RawHD", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -762,7 +762,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── Unknown quality ─────────────────────────────────────────────────
+	// Unknown quality
 	t.Run("Unknown", func(t *testing.T) {
 		t.Parallel()
 		cases := []tc{
@@ -788,7 +788,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── OtherSourceQualityParserCases ───────────────────────────────────
+	// OtherSourceQualityParserCases
 	// Radarr iterates these with all separator variants (-, ., space, _).
 	// We test with all four separators as Radarr does.
 	t.Run("OtherSourceSeparators", func(t *testing.T) {
@@ -841,7 +841,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── SDTV (HDTV 480p / PDTV / DSR) ──────────────────────────────────
+	// SDTV (HDTV 480p / PDTV / DSR)
 	// The TV-episode patterns from Radarr's should_parse_sdtv_quality that
 	// contain recognizable source markers. We include them because SDTV
 	// parsing is relevant for movie rips too.
@@ -873,7 +873,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── SD TV from OtherSourceQualityParserCases ────────────────────────
+	// SD TV from OtherSourceQualityParserCases
 	// "SD TV" maps to HDTV at 480p in Radarr. Our parser maps HDTV
 	// without explicit resolution to unknown (no 480p inference for HDTV).
 	t.Run("SDTV_OtherSource", func(t *testing.T) {
@@ -902,7 +902,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── HD TV from OtherSourceQualityParserCases ────────────────────────
+	// HD TV from OtherSourceQualityParserCases
 	t.Run("HDTV_OtherSource", func(t *testing.T) {
 		t.Parallel()
 		separators := []struct {
@@ -927,7 +927,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── 1080p HD TV from OtherSourceQualityParserCases ──────────────────
+	// 1080p HD TV from OtherSourceQualityParserCases
 	t.Run("HDTV_1080p_OtherSource", func(t *testing.T) {
 		t.Parallel()
 		separators := []struct {
@@ -955,7 +955,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── 2160p HD TV from OtherSourceQualityParserCases ──────────────────
+	// 2160p HD TV from OtherSourceQualityParserCases
 	t.Run("HDTV_2160p_OtherSource", func(t *testing.T) {
 		t.Parallel()
 		separators := []struct {
@@ -983,7 +983,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── REPACK / PROPER / RERIP revision parsing ────────────────────────
+	// REPACK / PROPER / RERIP revision parsing
 	t.Run("Revision", func(t *testing.T) {
 		t.Parallel()
 		type revCase struct {
@@ -1013,7 +1013,7 @@ func TestRadarr_QualityParser(t *testing.T) {
 		}
 	})
 
-	// ── HDTV Remux variant (should not map to Remux) ────────────────────
+	// HDTV Remux variant (should not map to Remux)
 	// Radarr's fixture:  HR.WS.PDTV.x264-DHD-Remux.mkv → TV 720p (no REMUX modifier)
 	// The "-Remux" here is part of the group/tag, not a quality modifier.
 	// However our parser detects REMUX anywhere in the string, so this

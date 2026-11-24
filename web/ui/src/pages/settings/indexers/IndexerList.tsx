@@ -12,8 +12,9 @@ import {
 } from "@/api/indexers";
 import { toast } from "sonner";
 import type { IndexerConfig, IndexerRequest, TestResult } from "@/types";
+import { inputStyle, labelStyle, fieldStyle, actionBtn, strSetting } from "@/lib/styles";
 
-// ── Source detection ──────────────────────────────────────────────────────────
+// Source detection
 
 type IndexerSource = "configurarr" | "prowlarr" | "jackett" | "manual";
 
@@ -33,60 +34,16 @@ const sourceStyles: Record<Exclude<IndexerSource, "manual">, { label: string; co
   jackett: { label: "Jackett", color: "#f59e0b", bg: "color-mix(in srgb, #f59e0b 12%, transparent)" },
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function strSetting(settings: Record<string, unknown>, key: string): string {
-  const v = settings[key];
-  return typeof v === "string" ? v : "";
-}
+// Helpers
 
 function numSetting(settings: Record<string, unknown>, key: string): number {
   const v = settings[key];
   return typeof v === "number" ? v : 0;
 }
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// Shared styles
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  padding: "8px 12px",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
-
-const fieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0,
-};
-
-function actionBtn(color: string, bg: string): React.CSSProperties {
-  return {
-    background: bg,
-    border: "1px solid var(--color-border-default)",
-    borderRadius: 5,
-    padding: "3px 10px",
-    fontSize: 12,
-    color,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  };
-}
-
-// ── Form state ─────────────────────────────────────────────────────────────────
+// Form state
 
 interface FormState {
   name: string;
@@ -140,7 +97,7 @@ function formToRequest(f: FormState): IndexerRequest {
   };
 }
 
-// ── Modal ──────────────────────────────────────────────────────────────────────
+// Modal
 
 interface ModalProps {
   editing: IndexerConfig | null;
@@ -455,7 +412,7 @@ function IndexerModal({ editing, onClose }: ModalProps) {
   );
 }
 
-// ── Row actions ────────────────────────────────────────────────────────────────
+// Row actions
 
 interface RowActionsProps {
   indexer: IndexerConfig;
@@ -577,7 +534,7 @@ function RowActions({ indexer, onEdit }: RowActionsProps) {
   );
 }
 
-// ── Badge ──────────────────────────────────────────────────────────────────────
+// Badge
 
 function KindBadge({ kind }: { kind: string }) {
   const isUsenet = kind === "newznab";
@@ -624,7 +581,7 @@ function SourceBadge({ settings }: { settings: Record<string, unknown> }) {
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// Page
 
 export default function IndexerList() {
   const { data, isLoading, error, refetch } = useIndexers();

@@ -242,7 +242,7 @@ func qualityBody(resolution, source, codec, hdr, name string) map[string]any {
 	}
 }
 
-// ── /health ───────────────────────────────────────────────────────────────────
+// /health
 
 func TestIntegration_HealthProbe(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -265,7 +265,7 @@ func TestIntegration_AuthRequired(t *testing.T) {
 	}
 }
 
-// ── Auth: Sec-Fetch-Site ─────────────────────────────────────────────────────
+// Auth: Sec-Fetch-Site
 
 func TestIntegration_Auth_SecFetchSite_SameOrigin(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -289,7 +289,7 @@ func TestIntegration_Auth_SecFetchSite_CrossSite(t *testing.T) {
 	}
 }
 
-// ── /api/v1/system ────────────────────────────────────────────────────────────
+// /api/v1/system
 
 func TestIntegration_SystemStatus(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -333,7 +333,7 @@ func TestIntegration_SystemConfig_ApiKey(t *testing.T) {
 	}
 }
 
-// ── /api/v1/quality-profiles ─────────────────────────────────────────────────
+// /api/v1/quality-profiles
 
 func TestIntegration_QualityProfiles_CRUD(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -408,7 +408,7 @@ func TestIntegration_QualityProfiles_CRUD(t *testing.T) {
 	}
 }
 
-// ── /api/v1/quality-definitions ──────────────────────────────────────────────
+// /api/v1/quality-definitions
 
 func TestIntegration_QualityDefinitions_List(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -418,7 +418,7 @@ func TestIntegration_QualityDefinitions_List(t *testing.T) {
 	}
 }
 
-// ── /api/v1/libraries ────────────────────────────────────────────────────────
+// /api/v1/libraries
 
 func TestIntegration_Libraries_CRUD(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -480,7 +480,7 @@ func TestIntegration_Libraries_CRUD(t *testing.T) {
 	}
 }
 
-// ── /api/v1/movies ────────────────────────────────────────────────────────────
+// /api/v1/movies
 
 func TestIntegration_Movies_DegradedMode(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -614,7 +614,7 @@ func TestIntegration_Indexers_UnknownKindRejected(t *testing.T) {
 	}
 }
 
-// ── /api/v1/indexers ─────────────────────────────────────────────────────────
+// /api/v1/indexers
 
 func TestIntegration_Indexers_CRUD(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -681,7 +681,7 @@ func TestIntegration_Indexers_CRUD(t *testing.T) {
 	}
 }
 
-// ── /api/v1/download-clients ──────────────────────────────────────────────────
+// /api/v1/download-clients
 
 func TestIntegration_DownloadClients_ListEmpty(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -785,7 +785,7 @@ func TestIntegration_DownloadClients_MissingURL_Rejected(t *testing.T) {
 	}
 }
 
-// ── /api/v1/notifications (shared, pulse/pkg/notify/notifyapi) ─────────────
+// /api/v1/notifications (shared, pulse/pkg/notify/notifyapi)
 
 func TestIntegration_Notifications_ListEmpty(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -856,7 +856,7 @@ func TestIntegration_Notifications_NoScripts(t *testing.T) {
 	}
 }
 
-// ── /api/v1/media-servers ────────────────────────────────────────────────────
+// /api/v1/media-servers
 
 func TestIntegration_MediaServers_CRUD(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -943,7 +943,7 @@ func TestIntegration_MediaServers_CRUD(t *testing.T) {
 	}
 }
 
-// ── /api/v1/blocklist ────────────────────────────────────────────────────────
+// /api/v1/blocklist
 
 func TestIntegration_Blocklist_EmptyList(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -967,7 +967,7 @@ func TestIntegration_Blocklist_ClearEmpty(t *testing.T) {
 	}
 }
 
-// ── /api/v1/wanted ───────────────────────────────────────────────────────────
+// /api/v1/wanted
 
 func TestIntegration_Wanted_Missing_Empty(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1017,7 +1017,7 @@ func TestIntegration_Wanted_Missing_WithMovie(t *testing.T) {
 	}
 }
 
-// ── /api/v1/stats ────────────────────────────────────────────────────────────
+// /api/v1/stats
 
 func TestIntegration_Stats_Collection(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1093,7 +1093,7 @@ func TestIntegration_Stats_Genres(t *testing.T) {
 	}
 }
 
-// ── /api/v1/history ──────────────────────────────────────────────────────────
+// /api/v1/history
 
 func TestIntegration_History_GlobalEmpty(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1183,7 +1183,7 @@ func TestIntegration_MovieHistory_Entries(t *testing.T) {
 	}
 }
 
-// ── /api/v1/media-management ─────────────────────────────────────────────────
+// /api/v1/media-management
 
 func TestIntegration_MediaManagement_GetDefaults(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1193,7 +1193,7 @@ func TestIntegration_MediaManagement_GetDefaults(t *testing.T) {
 	}
 }
 
-// ── /api/v1/download-handling ────────────────────────────────────────────────
+// /api/v1/download-handling
 
 func TestIntegration_DownloadHandling_GetDefaults(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1216,7 +1216,7 @@ func TestIntegration_DownloadHandling_RemotePathMappings_Empty(t *testing.T) {
 	}
 }
 
-// ── /api/v1/queue ────────────────────────────────────────────────────────────
+// /api/v1/queue
 
 func TestIntegration_Queue_ListEmpty(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1226,7 +1226,7 @@ func TestIntegration_Queue_ListEmpty(t *testing.T) {
 	}
 }
 
-// ── /api/v1/tasks ────────────────────────────────────────────────────────────
+// /api/v1/tasks
 
 func TestIntegration_Tasks_List(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1249,7 +1249,7 @@ func TestIntegration_Tasks_RunNonExistent(t *testing.T) {
 	}
 }
 
-// ── /api/v1/system/health ────────────────────────────────────────────────────
+// /api/v1/system/health
 
 func TestIntegration_SystemHealth(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1267,7 +1267,7 @@ func TestIntegration_SystemHealth(t *testing.T) {
 	}
 }
 
-// ── /api/v1/parse ────────────────────────────────────────────────────────────
+// /api/v1/parse
 
 func TestIntegration_Parse(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1286,7 +1286,7 @@ func TestIntegration_Parse(t *testing.T) {
 	}
 }
 
-// ── /api/v1/fs/browse ────────────────────────────────────────────────────────
+// /api/v1/fs/browse
 
 func TestIntegration_FsBrowse(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1304,7 +1304,7 @@ func TestIntegration_FsBrowse(t *testing.T) {
 	}
 }
 
-// ── OpenAPI docs ─────────────────────────────────────────────────────────────
+// OpenAPI docs
 
 func TestIntegration_OpenAPIDocs(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1317,7 +1317,7 @@ func TestIntegration_OpenAPIDocs(t *testing.T) {
 	}
 }
 
-// ── /hooks ────────────────────────────────────────────────────────────────────
+// /hooks
 
 func TestIntegration_HooksScan_AllLibraries(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1376,7 +1376,7 @@ func TestIntegration_HooksNotify_MissingType(t *testing.T) {
 	}
 }
 
-// ── Multi-step: movie lifecycle ──────────────────────────────────────────────
+// Multi-step: movie lifecycle
 
 func TestIntegration_MovieLifecycle(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -1472,7 +1472,7 @@ func TestIntegration_MovieLifecycle(t *testing.T) {
 	}
 }
 
-// ── Radarr v3 compatibility ──────────────────────────────────────────────────
+// Radarr v3 compatibility
 
 // newV3IntegrationRouter creates a router with *sql.DB wired so v3 endpoints work.
 func newV3IntegrationRouter(t *testing.T) (http.Handler, *dbgen.Queries) {
@@ -1908,7 +1908,7 @@ func TestIntegration_V3_Auth_SameOrigin(t *testing.T) {
 	}
 }
 
-// ── Empty API key guard ──────────────────────────────────────────────────────
+// Empty API key guard
 
 // newEmptyKeyRouter builds a router with an empty API key to verify that
 // empty-vs-empty comparisons don't accidentally authenticate requests.
@@ -2008,7 +2008,7 @@ func TestIntegration_V3_Auth_EmptyKey_RejectsEmptyQueryParam(t *testing.T) {
 	}
 }
 
-// ── /api/v1/custom-formats ───────────────────────────────────────────────────
+// /api/v1/custom-formats
 
 func TestIntegration_CustomFormats_CRUD(t *testing.T) {
 	h := newIntegrationRouter(t)
@@ -2159,7 +2159,7 @@ func TestIntegration_CustomFormats_ImportExport(t *testing.T) {
 	}
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// helpers
 
 // doRaw performs a request with a raw byte body (for import endpoints).
 func doRaw(t *testing.T, handler http.Handler, method, path string, body []byte, contentType string) *httptest.ResponseRecorder {
@@ -2185,7 +2185,7 @@ func mustDecode(t *testing.T, rec *httptest.ResponseRecorder, out any) {
 // sqlc-sqlite emits as *int64.
 func int64Ptr(v int64) *int64 { return &v }
 
-// ── /api/v1/movies/{id}/releases/stream ─────────────────────────────────────
+// /api/v1/movies/{id}/releases/stream
 
 func TestIntegration_ReleasesStream(t *testing.T) {
 	q := testutil.NewTestDB(t)

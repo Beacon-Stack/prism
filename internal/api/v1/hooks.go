@@ -13,7 +13,7 @@ import (
 	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
-// ── Request / Response types ────────────────────────────────────────────────
+// Request / Response types
 
 type hookScanRequest struct {
 	Body struct {
@@ -39,7 +39,7 @@ type hookAccepted struct {
 	Status int `header:"Status" json:"-"`
 }
 
-// ── Registration ────────────────────────────────────────────────────────────
+// Registration
 
 // RegisterHookRoutes registers inbound webhook trigger endpoints.
 func RegisterHookRoutes(

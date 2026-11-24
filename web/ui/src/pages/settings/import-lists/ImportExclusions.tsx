@@ -8,49 +8,11 @@ import {
   useDeleteImportExclusion,
 } from "@/api/importlists";
 import type { ImportExclusion } from "@/types";
+import { inputStyle, labelStyle, fieldStyle, actionBtn } from "@/lib/styles";
 
-// ── Shared styles ──────────────────────────────────────────────────────────────
+// Shared styles
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  padding: "8px 12px",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
-
-const fieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0,
-};
-
-function actionBtn(color: string, bg: string): React.CSSProperties {
-  return {
-    background: bg,
-    border: "1px solid var(--color-border-default)",
-    borderRadius: 5,
-    padding: "3px 10px",
-    fontSize: 12,
-    color,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  };
-}
-
-// ── Main component ─────────────────────────────────────────────────────────────
+// Main component
 
 export default function ImportExclusions() {
   const { data: exclusions, isLoading, error } = useImportExclusions();
@@ -83,7 +45,7 @@ export default function ImportExclusions() {
     e.currentTarget.style.borderColor = "var(--color-border-default)";
   }
 
-  // ── Loading / error ──────────────────────────────────────────────────────
+  // Loading / error
 
   if (isLoading) {
     return (
@@ -109,7 +71,7 @@ export default function ImportExclusions() {
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Render
 
   return (
     <div style={{ padding: "32px 40px", maxWidth: 800 }}>
@@ -245,7 +207,7 @@ export default function ImportExclusions() {
   );
 }
 
-// ── Row component ──────────────────────────────────────────────────────────────
+// Row component
 
 function ExclusionRow({ excl, onDelete }: { excl: ImportExclusion; onDelete: () => void }) {
   const [hovered, setHovered] = useState(false);

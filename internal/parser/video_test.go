@@ -13,49 +13,49 @@ func TestParseSource_AllVariants(t *testing.T) {
 		input string
 		want  plugin.Source
 	}{
-		// ── BluRay variants ──────────────────────────────────────────────
+		// BluRay variants
 		{"BluRay", "Movie.2024.1080p.BluRay.x264", plugin.SourceBluRay},
 		{"Blu-Ray dashed", "Movie.2024.1080p.Blu-Ray.x264", plugin.SourceBluRay},
 		{"BLURAY uppercase", "Movie.2024.1080p.BLURAY.x264", plugin.SourceBluRay},
 		{"Blu Ray space", "Movie 2024 1080p Blu Ray x264", plugin.SourceBluRay},
 
-		// ── Remux must beat BluRay ───────────────────────────────────────
+		// Remux must beat BluRay
 		{"REMUX with BluRay", "Movie.2024.1080p.BluRay.Remux.x265", plugin.SourceRemux},
 		{"BDREMUX", "Movie.2024.1080p.BDREMUX.x265", plugin.SourceRemux},
 
-		// ── WEB-DL variants ─────────────────────────────────────────────
+		// WEB-DL variants
 		{"WEB-DL", "Movie.2024.1080p.WEB-DL.x264", plugin.SourceWEBDL},
 		{"WEBDL", "Movie.2024.1080p.WEBDL.x264", plugin.SourceWEBDL},
 		{"WEB.DL", "Movie.2024.1080p.WEB.DL.x264", plugin.SourceWEBDL},
 		{"WEB DL spaced", "Movie 2024 1080p WEB DL x264", plugin.SourceWEBDL},
 
-		// ── WEBRip variants ─────────────────────────────────────────────
+		// WEBRip variants
 		{"WEBRip", "Movie.2024.1080p.WEBRip.x264", plugin.SourceWEBRip},
 		{"WEB-Rip", "Movie.2024.1080p.WEB-Rip.x264", plugin.SourceWEBRip},
 		{"WEB.Rip", "Movie.2024.1080p.WEB.Rip.x264", plugin.SourceWEBRip},
 
-		// ── DVDSCR must beat DVD ────────────────────────────────────────
+		// DVDSCR must beat DVD
 		{"DVDSCR", "Movie.2024.DVDSCR.x264", plugin.SourceDVDSCR},
 		{"SCREENER", "Movie.2024.SCREENER.x264", plugin.SourceDVDSCR},
 		{"SCR", "Movie.2024.SCR.x264", plugin.SourceDVDSCR},
 
-		// ── DVDR variants ───────────────────────────────────────────────
+		// DVDR variants
 		{"DVDR", "Movie.2024.DVDR", plugin.SourceDVDR},
 		{"DVD-R", "Movie.2024.DVD-R", plugin.SourceDVDR},
 		{"DVD9", "Movie.2024.DVD9", plugin.SourceDVDR},
 		{"DVD5", "Movie.2024.DVD5", plugin.SourceDVDR},
 
-		// ── DVD ──────────────────────────────────────────────────────────
+		// DVD
 		{"DVDRip", "Movie.2024.DVDRip.XviD", plugin.SourceDVD},
 		{"DVD.Rip", "Movie.2024.DVD.Rip.x264", plugin.SourceDVD},
 
-		// ── BR-DISK variants ────────────────────────────────────────────
+		// BR-DISK variants
 		{"BDMV", "Movie.2024.BDMV", plugin.SourceBRDisk},
 		{"BD25", "Movie.2024.BD25", plugin.SourceBRDisk},
 		{"BD50", "Movie.2024.BD50", plugin.SourceBRDisk},
 		{"BR-DISK", "Movie.2024.BR-DISK", plugin.SourceBRDisk},
 
-		// ── Pre-release sources ─────────────────────────────────────────
+		// Pre-release sources
 		{"CAM", "Movie.2024.CAM.x264", plugin.SourceCAM},
 		{"HDCAM", "Movie.2024.HDCAM", plugin.SourceCAM},
 		{"CAMRIP", "Movie.2024.CAMRIP.x264", plugin.SourceCAM},

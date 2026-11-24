@@ -19,7 +19,7 @@ import (
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
 
-// ── Movie file shapes ─────────────────────────────────────────────────────────
+// Movie file shapes
 
 type renamePreviewItemBody struct {
 	FileID  string `json:"file_id"`
@@ -61,7 +61,7 @@ type movieFileDeleteInput struct {
 	DeleteFromDisk bool `query:"delete_from_disk"`
 }
 
-// ── Request / response shapes ────────────────────────────────────────────────
+// Request / response shapes
 
 type movieBody struct {
 	ID                  string           `json:"id"                             doc:"Movie UUID"`
@@ -153,7 +153,7 @@ type movieRefreshBody struct {
 	Message string `json:"message"`
 }
 
-// ── Input wrappers ────────────────────────────────────────────────────────────
+// Input wrappers
 
 type listMoviesInput struct {
 	LibraryID string `query:"library_id"`
@@ -213,7 +213,7 @@ type matchMovieInput struct {
 	}
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 func movieToBody(m movie.Movie) *movieBody {
 	return &movieBody{
@@ -256,7 +256,7 @@ func searchResultToBody(r tmdb.SearchResult) *searchResultBody {
 	}
 }
 
-// ── Route registration ────────────────────────────────────────────────────────
+// Route registration
 
 // RegisterMovieRoutes registers all /api/v1/movies endpoints.
 func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, watchSvc ...*watchsync.Service) {

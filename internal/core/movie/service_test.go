@@ -15,7 +15,7 @@ import (
 	"github.com/beacon-stack/prism/internal/testutil"
 )
 
-// ── Mock TMDB client ──────────────────────────────────────────────────────────
+// Mock TMDB client
 
 type mockTMDB struct {
 	searchResults []tmdb.SearchResult
@@ -31,7 +31,7 @@ func (m *mockTMDB) GetMovie(_ context.Context, _ int) (*tmdb.MovieDetail, error)
 	return m.movieDetail, m.err
 }
 
-// ── Test helpers ─────────────────────────────────────────────────────────────
+// Test helpers
 
 func newTestService(t *testing.T, meta movie.MetadataProvider) (*movie.Service, *dbgen.Queries) {
 	t.Helper()
@@ -109,7 +109,7 @@ func addTestMovie(t *testing.T, svc *movie.Service, libraryID, profileID string)
 	return m
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// Tests
 
 // TestAdd_Success verifies that a movie is created and returned correctly.
 func TestAdd_Success(t *testing.T) {

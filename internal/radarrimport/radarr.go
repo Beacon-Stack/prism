@@ -14,7 +14,7 @@ import (
 	"github.com/beacon-stack/prism/internal/safedialer"
 )
 
-// ── Radarr API types ──────────────────────────────────────────────────────────
+// Radarr API types
 
 type radarrStatus struct {
 	Version string `json:"version"`
@@ -124,7 +124,7 @@ type radarrMovie struct {
 	RootFolderPath   string `json:"rootFolderPath"`
 }
 
-// ── Client ────────────────────────────────────────────────────────────────────
+// Client
 
 // Client is an HTTP client for the Radarr v3 API.
 type Client struct {
@@ -231,7 +231,7 @@ func (c *Client) GetMovies(ctx context.Context) ([]radarrMovie, error) {
 	return movies, nil
 }
 
-// ── Field helpers ─────────────────────────────────────────────────────────────
+// Field helpers
 
 // fieldString extracts the string value of the named field from a slice.
 // Returns "" if the field is absent or not a string.

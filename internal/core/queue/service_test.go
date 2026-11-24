@@ -19,7 +19,7 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// ── Mocks ────────────────────────────────────────────────────────────────────
+// Mocks
 
 // stubQuerier implements just the methods queue.PollAndUpdate calls —
 // ListActiveGrabs, UpdateGrabStatus, MarkGrabRemoved — and records what
@@ -83,7 +83,7 @@ func (d *stubDownloader) ClientFor(_ context.Context, _ string) (plugin.Download
 	return d.client, nil
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 func activeGrab(id, movieID string) dbgen.GrabHistory {
 	client := "haul-client"
@@ -100,7 +100,7 @@ func activeGrab(id, movieID string) dbgen.GrabHistory {
 	}
 }
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+// Tests
 
 // TestPollAndUpdate_ItemNotFoundMarksGrabRemoved is the headline regression
 // test for the "can't grab another release for this movie" bug. When a user

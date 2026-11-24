@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-// ── buildHistoryQueryString ──────────────────────────────────────────────────
+// buildHistoryQueryString
 
 func TestBuildHistoryQueryString_AllFields(t *testing.T) {
 	q := buildHistoryQueryString(HistoryFilter{
@@ -56,7 +56,7 @@ func TestBuildHistoryQueryString_IncludeRemovedFalseOmitted(t *testing.T) {
 	}
 }
 
-// ── LookupHistory (integration-ish via httptest.Server) ─────────────────────
+// LookupHistory (integration-ish via httptest.Server)
 
 // Headline behaviour — happy-path lookup decodes the items array.
 func TestLookupHistory_DecodesItemsArray(t *testing.T) {

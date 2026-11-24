@@ -9,7 +9,7 @@ import type {
   Release,
 } from "@/types";
 
-// ── Qualities ──────────────────────────────────────────────────────────────
+// Qualities
 
 const quality1080pBluray = {
   resolution: "1080p",
@@ -19,7 +19,7 @@ const quality1080pBluray = {
   name: "Bluray-1080p",
 } satisfies Quality;
 
-// ── Movies ─────────────────────────────────────────────────────────────────
+// Movies
 
 export const movieFixture = {
   id: "movie-1",
@@ -43,7 +43,7 @@ export const movieFixture = {
   updated_at: "2025-01-01T00:00:00Z",
 } satisfies Movie;
 
-// ── Queue ──────────────────────────────────────────────────────────────────
+// Queue
 
 export const queueItemFixture = {
   id: "q-1",
@@ -58,7 +58,7 @@ export const queueItemFixture = {
   grabbed_at: "2025-01-01T12:00:00Z",
 } satisfies QueueItem;
 
-// ── Libraries ──────────────────────────────────────────────────────────────
+// Libraries
 
 export const libraryFixture = {
   id: "lib-1",
@@ -71,11 +71,11 @@ export const libraryFixture = {
   updated_at: "2025-01-01T00:00:00Z",
 } satisfies Library;
 
-// ── Quality Profiles ───────────────────────────────────────────────────────
+// Quality Profiles
 
-// ── Quality Definitions ───────────────────────────────────────────────────
+// Quality Definitions
 
-// ── System ─────────────────────────────────────────────────────────────────
+// System
 
 export const systemStatusFixture = {
   app_name: "Prism",
@@ -101,7 +101,7 @@ export const degradedReport = {
   ],
 } satisfies HealthReport;
 
-// ── Indexers ───────────────────────────────────────────────────────────────
+// Indexers
 
 export const indexerFixture = {
   id: "idx-1",
@@ -115,9 +115,9 @@ export const indexerFixture = {
   updated_at: "2025-01-01T00:00:00Z",
 } satisfies IndexerConfig;
 
-// ── Download Clients ───────────────────────────────────────────────────────
+// Download Clients
 
-// ── Releases ───────────────────────────────────────────────────────────────
+// Releases
 
 export const releaseFixture = {
   guid: "release-1",
