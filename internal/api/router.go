@@ -1,11 +1,13 @@
 package api
 
 import (
-	"crypto/subtle"
 	"database/sql"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/beacon-stack/pulse/pkg/auth"
+	"github.com/beacon-stack/pulse/pkg/auth/authapi"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
@@ -54,7 +56,10 @@ import (
 
 // RouterConfig holds everything the router needs to function.
 type RouterConfig struct {
-	Auth                     config.Secret
+	Auth config.Secret
+	// Gate decides who may use the app. When nil, one is built from Auth
+	// with default settings: no login, local network only.
+	Gate                     *auth.Auth
 	Logger                   *slog.Logger
 	StartTime                time.Time
 	DB                       *sql.DB
@@ -109,40 +114,35 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	r.Use(middleware.RequestLogger(cfg.Logger))
 	r.Use(middleware.Recovery(cfg.Logger))
 
-	// WebSocket event stream — auth is handled inside the hub (Sec-Fetch-Site
-	// for browsers, X-Api-Key for external clients). Must be registered on
-	// the raw chi router before huma takes over so the huma auth middleware
-	// does not intercept the upgrade request.
+	// Who may use the app (pulse/pkg/auth): by default the local network
+	// without a login. Login, logout and status are the only open /api
+	// routes.
+	gate := cfg.Gate
+	if gate == nil {
+		gate = auth.New(auth.Options{App: "Prism", APIKey: cfg.Auth.Value()}, auth.Settings{})
+	}
+	r.Get("/api/v1/auth/status", gate.StatusHandler())
+	r.Post("/api/v1/auth/login", gate.LoginHandler())
+	r.Post("/api/v1/auth/logout", gate.LogoutHandler())
+
+	// Everything registered on protected goes through the gate. It is
+	// attached per route, not by path prefix, so nothing routes around it.
+	protected := r.With(gate.Middleware)
+
+	// WebSocket event stream. On chi directly so the upgrade bypasses huma.
 	if cfg.WSHub != nil {
-		r.Get("/api/v1/ws", cfg.WSHub.ServeHTTP)
+		protected.Get("/api/v1/ws", cfg.WSHub.ServeHTTP)
 	}
 
-	// Pulse sync webhook — called by Pulse when indexer assignments change.
-	// Registered directly on chi (not through Huma) so Pulse can call it
-	// with its own API key without hitting Prism's auth middleware.
+	// Pulse sync webhook, called by Pulse when indexer assignments change.
 	if cfg.PulseSyncHandler != nil {
-		r.Post("/api/v1/hooks/pulse/sync", cfg.PulseSyncHandler)
+		protected.Post("/api/v1/hooks/pulse/sync", cfg.PulseSyncHandler)
 	}
 
-	// Backup / restore — registered directly on chi (binary body/response, not JSON).
-	// Auth accepts same-origin browser requests (Sec-Fetch-Site) or external API key.
+	// Backup / restore, on chi directly (binary body and response).
 	if cfg.DB != nil && cfg.DBPath != "" {
-		authKey := []byte(cfg.Auth.Value())
-		withAuth := func(next http.HandlerFunc) http.HandlerFunc {
-			return func(w http.ResponseWriter, r *http.Request) {
-				if r.Header.Get("Sec-Fetch-Site") == "same-origin" {
-					next(w, r)
-					return
-				}
-				if len(authKey) > 0 && subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Api-Key")), authKey) == 1 {
-					next(w, r)
-					return
-				}
-				http.Error(w, `{"status":401,"title":"Unauthorized"}`, http.StatusUnauthorized)
-			}
-		}
-		r.Get("/api/v1/system/backup", withAuth(v1.BackupHandler(cfg.DB, cfg.Logger)))
-		r.Post("/api/v1/system/restore", withAuth(v1.RestoreHandler(cfg.DBPath, cfg.Logger)))
+		protected.Get("/api/v1/system/backup", v1.BackupHandler(cfg.DB, cfg.Logger))
+		protected.Post("/api/v1/system/restore", v1.RestoreHandler(cfg.DBPath, cfg.Logger))
 	}
 
 	// Unauthenticated health check for load balancers / container probes.
@@ -157,9 +157,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	humaConfig.OpenAPIPath = "/api/openapi"
 	humaConfig.SchemasPath = "/api/schemas"
 	humaConfig.Info.Description = "Prism movie collection manager API. " +
-		"Browser requests are authenticated via Sec-Fetch-Site; external clients must provide X-Api-Key."
+		"By default requests from the local network need no credentials and others are refused. " +
+		"When a login is required, browsers log in with POST /api/v1/auth/login; other clients provide X-Api-Key."
 
-	humaAPI := humachi.New(r, humaConfig)
+	humaAPI := humachi.New(protected, humaConfig)
 
 	// Register X-Api-Key security scheme so the docs UI shows an Authorize
 	// button and Try-it-out requests include the header automatically.
@@ -177,22 +178,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	}
 	oapi.Security = []map[string][]string{{"ApiKeyAuth": {}}}
 
-	// Auth middleware: same-origin browser requests (Sec-Fetch-Site header) are
-	// trusted without a key (Radarr model). External consumers must provide a
-	// valid X-Api-Key header.
-	apiKeyBytes := []byte(cfg.Auth.Value())
-	humaAPI.UseMiddleware(func(ctx huma.Context, next func(huma.Context)) {
-		if ctx.Header("Sec-Fetch-Site") == "same-origin" {
-			next(ctx)
-			return
-		}
-		if len(apiKeyBytes) > 0 && subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKeyBytes) == 1 {
-			next(ctx)
-			return
-		}
-		_ = huma.WriteErr(humaAPI, ctx, http.StatusUnauthorized, "A valid X-Api-Key header is required.")
-	})
-
+	authapi.Register(humaAPI, gate)
 	v1.RegisterSystemRoutes(humaAPI, cfg.StartTime, cfg.DBType, cfg.DBPath, cfg.ConfigFile, cfg.TMDBKeyIsDefault, cfg.Auth.Value(), cfg.MovieService, cfg.Logger)
 	v1.RegisterUpdateRoutes(humaAPI)
 
@@ -335,8 +321,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		v3Config.DocsPath = ""
 		v3Config.OpenAPIPath = ""
 		v3Config.SchemasPath = ""
-		v3API := humachi.New(r, v3Config)
-		v3API.UseMiddleware(v3.Auth(v3API, apiKeyBytes))
+		v3API := humachi.New(protected, v3Config)
 		v3.RegisterRoutes(v3API, v3.Config{
 			DB:             cfg.DB,
 			MovieService:   cfg.MovieService,

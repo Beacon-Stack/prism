@@ -9,8 +9,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/beacon-stack/pulse/pkg/auth"
 
 	"github.com/beacon-stack/pulse/pkg/healthcheck"
 	beaconlog "github.com/beacon-stack/pulse/pkg/log"
@@ -268,7 +271,7 @@ func run() error {
 	bus := events.New(logger)
 
 	// WebSocket hub
-	wsHub := ws.NewHub(logger, []byte(cfg.Auth.APIKey.Value()))
+	wsHub := ws.NewHub(logger)
 	bus.Subscribe(wsHub.HandleEvent)
 
 	// Services
@@ -437,10 +440,30 @@ func run() error {
 		os.Exit(1)
 	}
 
+	// Who may use the app. Settings live in auth.json beside the database.
+	gate, err := auth.Open(auth.Options{
+		App:           "Prism",
+		APIKey:        cfg.Auth.APIKey.Value(),
+		AllowedHosts:  auth.ListFromEnv("PRISM_SERVER_ALLOWED_HOSTS"),
+		LocalNetworks: auth.ListFromEnv("PRISM_AUTH_LOCAL_NETWORKS"),
+	}, filepath.Dir(cfg.Database.Path), auth.Settings{})
+	if err != nil {
+		return fmt.Errorf("loading login settings: %w", err)
+	}
+	switch gate.Settings().Mode() {
+	case auth.RequiredEverywhere:
+		logger.Info("a login is required from every address")
+	case auth.RequiredOutside:
+		logger.Info("the local network needs no login; other addresses log in")
+	default:
+		logger.Info("no login: the local network gets in, other addresses are refused")
+	}
+
 	// HTTP router
 	startTime := time.Now()
 	router := api.NewRouter(api.RouterConfig{
 		Auth:                     cfg.Auth.APIKey,
+		Gate:                     gate,
 		Logger:                   logger,
 		StartTime:                startTime,
 		DB:                       database.SQL,

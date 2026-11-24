@@ -17,6 +17,7 @@ import {
 import type { ThemeMode } from "@/theme";
 import { card, sectionHeader } from "@/lib/styles";
 import Pill from "@/components/Pill";
+import Security from "@beacon-shared/Security";
 
 function AppearanceSection() {
   const [mode, setMode] = useState<ThemeMode>(getStoredMode);
@@ -740,6 +741,7 @@ export default function AppSettingsPage() {
         <AppearanceSection />
         <UIPreferencesSection />
         <ConfigSection />
+        <Security />
         <APIKeySection />
         <BackupSection />
       </div>
