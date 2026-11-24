@@ -231,6 +231,21 @@ func doNoAuth(t *testing.T, handler http.Handler, method, path string, headers m
 	return rec
 }
 
+// doLocal is doNoAuth from a device on the local network, addressing the
+// server by IP: what a browser at home looks like.
+func doLocal(t *testing.T, handler http.Handler, method, path string, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, path, nil)
+	req.RemoteAddr = "192.168.1.20:5000"
+	req.Host = "192.168.1.10:8282"
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	return rec
+}
+
 // qualityBody returns a full plugin.Quality JSON object suitable for request bodies.
 func qualityBody(resolution, source, codec, hdr, name string) map[string]any {
 	return map[string]any{
@@ -267,25 +282,33 @@ func TestIntegration_AuthRequired(t *testing.T) {
 
 // Auth: Sec-Fetch-Site
 
-func TestIntegration_Auth_SecFetchSite_SameOrigin(t *testing.T) {
+// The local network needs no login or key. From anywhere else the same
+// request is refused: Sec-Fetch-Site is a header any program can send, so
+// it must never work as a credential.
+func TestIntegration_Auth_LocalNetworkNeedsNoLogin(t *testing.T) {
 	h := newIntegrationRouter(t)
-	// same-origin requests should be allowed without API key.
-	rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
-		"Sec-Fetch-Site": "same-origin",
-	})
-	if rec.Code != http.StatusOK {
-		t.Fatalf("Sec-Fetch-Site: same-origin = %d, want 200; body: %s", rec.Code, rec.Body)
+	browser := map[string]string{"Sec-Fetch-Site": "same-origin"}
+	if rec := doLocal(t, h, http.MethodGet, "/api/v1/system/status", browser); rec.Code != http.StatusOK {
+		t.Fatalf("local network = %d, want 200; body: %s", rec.Code, rec.Body)
+	}
+	if rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", browser); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("outside, with only the same-origin header = %d, want 401", rec.Code)
+	}
+	v3, _ := newV3IntegrationRouter(t)
+	if rec := doNoAuth(t, v3, http.MethodGet, "/api/v3/system/status", browser); rec.Code != http.StatusUnauthorized {
+		t.Errorf("outside, Radarr-compatible API = %d, want 401", rec.Code)
 	}
 }
 
 func TestIntegration_Auth_SecFetchSite_CrossSite(t *testing.T) {
 	h := newIntegrationRouter(t)
-	// cross-site without API key should be rejected.
-	rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
+	// Another site's page calling the app through a browser on the local
+	// network is refused.
+	rec := doLocal(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
 		"Sec-Fetch-Site": "cross-site",
 	})
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("Sec-Fetch-Site: cross-site = %d, want 401", rec.Code)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("Sec-Fetch-Site: cross-site = %d, want 403", rec.Code)
 	}
 }
 
@@ -1899,12 +1922,12 @@ func TestIntegration_V3_Auth_NoAuth(t *testing.T) {
 func TestIntegration_V3_Auth_SameOrigin(t *testing.T) {
 	h, _ := newV3IntegrationRouter(t)
 
-	// Browser same-origin — should be allowed without API key.
-	rec := doNoAuth(t, h, http.MethodGet, "/api/v3/system/status", map[string]string{
+	// A browser on the local network needs no API key.
+	rec := doLocal(t, h, http.MethodGet, "/api/v3/system/status", map[string]string{
 		"Sec-Fetch-Site": "same-origin",
 	})
 	if rec.Code != http.StatusOK {
-		t.Fatalf("same-origin auth = %d, want 200; body: %s", rec.Code, rec.Body)
+		t.Fatalf("local network = %d, want 200; body: %s", rec.Code, rec.Body)
 	}
 }
 
@@ -1981,12 +2004,12 @@ func TestIntegration_Auth_EmptyKey_RejectsNoHeader(t *testing.T) {
 
 func TestIntegration_Auth_EmptyKey_SameOriginStillWorks(t *testing.T) {
 	h := newEmptyKeyRouter(t)
-	// Sec-Fetch-Site: same-origin should still authenticate — it doesn't rely on API key.
-	rec := doNoAuth(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
+	// The local network still gets in: that doesn't rely on the API key.
+	rec := doLocal(t, h, http.MethodGet, "/api/v1/system/status", map[string]string{
 		"Sec-Fetch-Site": "same-origin",
 	})
 	if rec.Code != http.StatusOK {
-		t.Fatalf("empty key + same-origin = %d, want 200; body: %s", rec.Code, rec.Body)
+		t.Fatalf("empty key + local network = %d, want 200; body: %s", rec.Code, rec.Body)
 	}
 }
 

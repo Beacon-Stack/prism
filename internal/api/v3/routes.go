@@ -1,7 +1,6 @@
 package v3
 
 import (
-	"crypto/subtle"
 	"database/sql"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -23,31 +22,6 @@ type Config struct {
 	QueueService   *queue.Service
 	TagService     *tag.Service
 	Scheduler      *scheduler.Scheduler
-}
-
-// Auth returns a huma middleware that authenticates requests using:
-//  1. Sec-Fetch-Site: same-origin (browser)
-//  2. X-Api-Key header
-//  3. ?apikey= query parameter
-func Auth(api huma.API, apiKey []byte) func(huma.Context, func(huma.Context)) {
-	return func(ctx huma.Context, next func(huma.Context)) {
-		// Browser same-origin requests.
-		if ctx.Header("Sec-Fetch-Site") == "same-origin" {
-			next(ctx)
-			return
-		}
-		// X-Api-Key header (standard Radarr auth).
-		if len(apiKey) > 0 && subtle.ConstantTimeCompare([]byte(ctx.Header("X-Api-Key")), apiKey) == 1 {
-			next(ctx)
-			return
-		}
-		// ?apikey= query param (Homepage, Home Assistant style).
-		if len(apiKey) > 0 && subtle.ConstantTimeCompare([]byte(ctx.Query("apikey")), apiKey) == 1 {
-			next(ctx)
-			return
-		}
-		_ = huma.WriteErr(api, ctx, 401, "A valid API key is required.")
-	}
 }
 
 // RegisterRoutes registers all Radarr v3 compatible endpoints on the given

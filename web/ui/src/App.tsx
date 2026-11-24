@@ -37,6 +37,7 @@ import CollectionsPage from "@/pages/collections/CollectionsPage";
 import CollectionDetail from "@/pages/collections/CollectionDetail";
 import LibrarySyncPage from "@/pages/library-sync/LibrarySyncPage";
 import CustomFormatsPage from "@/pages/settings/custom-formats/CustomFormatsPage";
+import LoginPage from "@beacon-shared/LoginPage";
 
 function RouteEB({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -59,6 +60,7 @@ export default function App() {
       <BrowserRouter>
         <ErrorBoundary>
           <Routes>
+            <Route path="login" element={<LoginPage />} />
             <Route element={<Shell />}>
               <Route index element={<RouteEB><Dashboard /></RouteEB>} />
               <Route path="activity" element={<RouteEB><ActivityPage /></RouteEB>} />

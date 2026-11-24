@@ -4,11 +4,9 @@ package ws
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -27,17 +25,13 @@ type Hub struct {
 	mu      sync.Mutex
 	clients map[chan []byte]struct{}
 	logger  *slog.Logger
-	apiKey  []byte
 }
 
 // NewHub creates a Hub that broadcasts events to connected WebSocket clients.
-// The apiKey is used to authenticate non-browser clients (same-origin browser
-// requests are trusted via the Sec-Fetch-Site header).
-func NewHub(logger *slog.Logger, apiKey []byte) *Hub {
+func NewHub(logger *slog.Logger) *Hub {
 	return &Hub{
 		clients: make(map[chan []byte]struct{}),
 		logger:  logger,
-		apiKey:  apiKey,
 	}
 }
 
@@ -63,23 +57,10 @@ func (h *Hub) HandleEvent(_ context.Context, e events.Event) {
 }
 
 // ServeHTTP upgrades the connection to WebSocket and starts pumping events
-// to the client. Browser WebSocket requests include an Origin header (checked
-// by the websocket library). External clients must provide a valid X-Api-Key
-// header. Sec-Fetch-Site is also accepted for non-WS callers.
+// to the client. It has no authentication of its own: the router mounts it
+// behind the auth gate (pulse/pkg/auth), which also rejects cross-site
+// handshakes.
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Browsers do NOT send Sec-Fetch-* headers on WebSocket upgrades, so we
-	// check for the Upgrade header to identify browser WS connections. The
-	// Origin check is handled by websocket.Accept below.
-	isWSUpgrade := strings.EqualFold(r.Header.Get("Upgrade"), "websocket")
-	isSameOrigin := r.Header.Get("Sec-Fetch-Site") == "same-origin"
-
-	if !isWSUpgrade && !isSameOrigin {
-		if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Api-Key")), h.apiKey) != 1 {
-			http.Error(w, `{"status":401,"title":"Unauthorized"}`, http.StatusUnauthorized)
-			return
-		}
-	}
-
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		// Skip the browser origin check. nhooyr.io/websocket rejects connections
 		// where the Origin header doesn't match the Host header, which breaks the
