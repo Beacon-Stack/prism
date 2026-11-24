@@ -19,6 +19,7 @@ import type {
   PrismSyncMovie,
   PlexSyncImportResult,
 } from "@/types";
+import { inputStyle as selectStyle } from "@/lib/styles";
 
 // Shared styles
 
@@ -52,18 +53,6 @@ const btnSecondary: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 500,
   cursor: "pointer",
-};
-
-const selectStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  color: "var(--color-text-primary)",
-  fontSize: 13,
-  outline: "none",
-  boxSizing: "border-box",
 };
 
 const labelStyle: React.CSSProperties = {

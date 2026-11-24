@@ -12,6 +12,7 @@ import {
 } from "@/api/indexers";
 import { toast } from "sonner";
 import type { IndexerConfig, IndexerRequest, TestResult } from "@/types";
+import { inputStyle, labelStyle, fieldStyle, actionBtn, strSetting } from "@/lib/styles";
 
 // Source detection
 
@@ -35,56 +36,12 @@ const sourceStyles: Record<Exclude<IndexerSource, "manual">, { label: string; co
 
 // Helpers
 
-function strSetting(settings: Record<string, unknown>, key: string): string {
-  const v = settings[key];
-  return typeof v === "string" ? v : "";
-}
-
 function numSetting(settings: Record<string, unknown>, key: string): number {
   const v = settings[key];
   return typeof v === "number" ? v : 0;
 }
 
 // Shared styles
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  padding: "8px 12px",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
-
-const fieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0,
-};
-
-function actionBtn(color: string, bg: string): React.CSSProperties {
-  return {
-    background: bg,
-    border: "1px solid var(--color-border-default)",
-    borderRadius: 5,
-    padding: "3px 10px",
-    fontSize: 12,
-    color,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  };
-}
 
 // Form state
 

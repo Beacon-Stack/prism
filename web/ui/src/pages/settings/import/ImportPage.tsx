@@ -4,6 +4,7 @@ import { Eye, EyeOff, ArrowLeft, CheckCircle, XCircle, AlertCircle, Loader2, Ref
 import { useRadarrPreview, useRadarrImport } from "@/api/import";
 import TableScroll from "@beacon-shared/TableScroll";
 import type { RadarrPreviewResult, RadarrImportOptions, RadarrImportResult, CategoryResult } from "@/types";
+import { inputStyle } from "@/lib/styles";
 
 // sessionStorage helpers (credentials cleared on tab close)
 
@@ -27,18 +28,6 @@ function clearCreds() {
 }
 
 // Shared styles
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "8px 12px",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  color: "var(--color-text-primary)",
-  fontSize: 13,
-  outline: "none",
-  boxSizing: "border-box",
-};
 
 const labelStyle: React.CSSProperties = {
   display: "block",

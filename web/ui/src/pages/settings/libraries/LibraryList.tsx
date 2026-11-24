@@ -20,34 +20,9 @@ import { useQualityProfiles } from "@/api/quality-profiles";
 import { useMediaManagement } from "@/api/media-management";
 import { DirPicker } from "@/components/DirPicker";
 import type { Library, LibraryRequest, DiskFile, DiskFileTMDBMatch, TMDBResult } from "@/types";
+import { inputStyle, labelStyle, fieldStyle } from "@/lib/styles";
 
 // Shared styles
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  padding: "8px 12px",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
-
-const fieldStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0,
-};
 
 // Form state
 

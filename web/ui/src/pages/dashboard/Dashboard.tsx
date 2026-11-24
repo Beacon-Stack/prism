@@ -17,6 +17,7 @@ import { apiFetch } from "@/api/client";
 import { useQualityProfiles } from "@/api/quality-profiles";
 import Modal from "@beacon-shared/Modal";
 import type { Movie, TMDBResult } from "@/types";
+import { inputStyle as dialogInputStyle, labelStyle as dialogLabelStyle } from "@/lib/styles";
 
 // Shared styles
 
@@ -418,26 +419,6 @@ function ListRow({
 }
 
 // Add Movie Dialog
-
-const dialogInputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--color-bg-elevated)",
-  border: "1px solid var(--color-border-default)",
-  borderRadius: 6,
-  padding: "8px 12px",
-  fontSize: 13,
-  color: "var(--color-text-primary)",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const dialogLabelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--color-text-secondary)",
-  marginBottom: 6,
-};
 
 function focusBorder(e: React.FocusEvent<HTMLElement>) {
   (e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent)";
