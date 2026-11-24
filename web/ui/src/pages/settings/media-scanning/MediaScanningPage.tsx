@@ -63,16 +63,16 @@ export default function MediaScanningPage() {
               </span>
             </div>
             <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-muted)" }}>
-              Install ffprobe to enable media scanning. See the{" "}
+              Install ffprobe to enable media scanning:{" "}
               <a
-                href="https://github.com/beacon-stack/prism/blob/main/docs/GETTING_STARTED.md#media-scanning-with-ffprobe-optional"
+                href="https://ffmpeg.org/download.html"
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: "var(--color-accent)" }}
               >
-                getting started guide
-              </a>{" "}
-              for setup instructions.
+                FFmpeg downloads
+              </a>
+              . The Docker image already includes it.
             </p>
           </div>
         )}

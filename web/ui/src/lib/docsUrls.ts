@@ -1,27 +1,29 @@
-const DOCS_BASE = "https://prism.video/docs";
+// There are no per-page docs yet, so every help link opens Prism's page
+// on the Beacon site.
+const DOCS = "https://beaconstack.io/prism";
 
 export const DOCS_URLS = {
   // Settings pages
-  libraries: `${DOCS_BASE}/libraries`,
-  qualityProfiles: `${DOCS_BASE}/quality-profiles`,
-  qualityDefinitions: `${DOCS_BASE}/quality-definitions`,
-  customFormats: `${DOCS_BASE}/custom-formats`,
-  indexers: `${DOCS_BASE}/indexers`,
-  downloadClients: `${DOCS_BASE}/download-clients`,
-  notifications: `${DOCS_BASE}/notifications`,
-  mediaServers: `${DOCS_BASE}/media-servers`,
-  importLists: `${DOCS_BASE}/import-lists`,
-  importExclusions: `${DOCS_BASE}/import-exclusions`,
-  blocklist: `${DOCS_BASE}/blocklist`,
-  mediaManagement: `${DOCS_BASE}/media-management`,
-  mediaScanning: `${DOCS_BASE}/media-scanning`,
-  appSettings: `${DOCS_BASE}/app-settings`,
-  tags: `${DOCS_BASE}/tags`,
-  system: `${DOCS_BASE}/system`,
+  libraries: DOCS,
+  qualityProfiles: DOCS,
+  qualityDefinitions: DOCS,
+  customFormats: DOCS,
+  indexers: DOCS,
+  downloadClients: DOCS,
+  notifications: DOCS,
+  mediaServers: DOCS,
+  importLists: DOCS,
+  importExclusions: DOCS,
+  blocklist: DOCS,
+  mediaManagement: DOCS,
+  mediaScanning: DOCS,
+  appSettings: DOCS,
+  tags: DOCS,
+  system: DOCS,
 
   // Main pages
-  discover: `${DOCS_BASE}/discover`,
-  wanted: `${DOCS_BASE}/wanted`,
-  activity: `${DOCS_BASE}/activity`,
-  calendar: `${DOCS_BASE}/calendar`,
+  discover: DOCS,
+  wanted: DOCS,
+  activity: DOCS,
+  calendar: DOCS,
 } as const;

@@ -9,11 +9,12 @@ import (
 	"testing"
 	"time"
 
+	beaconlog "github.com/beacon-stack/pulse/pkg/log"
+
 	"github.com/beacon-stack/prism/internal/core/importer"
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
-	beaconlog "github.com/beacon-stack/pulse/pkg/log"
 )
 
 // ── Fake DB querier ────────────────────────────────────────────────────────

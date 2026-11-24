@@ -1,24 +1,24 @@
-## Luminarr Makefile
+## Prism Makefile
 
-MODULE  := github.com/prism/prism
+MODULE  := github.com/beacon-stack/prism
 BINARY  := prism
 BIN_DIR := ./bin
 CMD     := ./cmd/prism
 
 VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-TMDB_LDFLAGS  := $(shell go run ./tools/obfuscate obfuscatedTMDBKey tmdbKeyXORKey "$(LUMINARR_TMDB_API_KEY)")
-TRAKT_LDFLAGS := $(shell go run ./tools/obfuscate obfuscatedTraktClientID traktClientIDXORKey "$(LUMINARR_TRAKT_CLIENT_ID)")
+TMDB_LDFLAGS  := $(shell go run ./tools/obfuscate obfuscatedTMDBKey tmdbKeyXORKey "$(TMDB_API_KEY)")
+TRAKT_LDFLAGS := $(shell go run ./tools/obfuscate obfuscatedTraktClientID traktClientIDXORKey "$(TRAKT_CLIENT_ID)")
 LDFLAGS   := -ldflags "\
   -X $(MODULE)/internal/version.Version=$(VERSION) \
   -X $(MODULE)/internal/version.BuildTime=$(BUILD_TIME) \
   $(TMDB_LDFLAGS) \
   $(TRAKT_LDFLAGS)"
 
-IMAGE ?= ghcr.io/prism/prism
+IMAGE ?= ghcr.io/beacon-stack/prism
 
 .PHONY: build run dev test test/unit test/integration test/cover test/race test/frontend \
-        lint deadcode deadcode/go check install-hooks generate migrate clean docker docker/push help
+        lint deadcode deadcode/go check install-hooks generate clean docker docker/push help
 
 ## build: Compile the binary into ./bin/prism
 build:
@@ -86,10 +86,6 @@ install-hooks:
 ## generate: Regenerate sqlc query code
 generate:
 	sqlc generate
-
-## migrate: Run database migrations (uses LUMINARR_DATABASE_PATH or default)
-migrate:
-	go run $(CMD) -migrate-only
 
 ## clean: Remove build artifacts
 clean:

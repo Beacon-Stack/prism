@@ -10,9 +10,6 @@ Thanks for your interest. Here's what you need to know before opening a PR.
 
 ## Development setup
 
-See [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md#development) for the full setup guide.
-
-The short version:
 
 ```bash
 git clone https://github.com/beacon-stack/prism
@@ -53,7 +50,7 @@ cd web/ui && npm run build  # confirm TypeScript build is clean
 
 ## Adding a plugin
 
-See [docs/ARCHITECTURE.md#adding-a-plugin](../docs/ARCHITECTURE.md#adding-a-plugin) for the step-by-step guide.
+Plugins live under `plugins/`: indexers, download clients, media servers and import lists each implement an interface from `pkg/plugin` and register themselves in `init()`. Read an existing plugin of the same kind before writing a new one.
 
 ## Questions
 
