@@ -115,14 +115,20 @@ func Run(ctx context.Context, profiles profileStore, libraries libraryStore, opt
 	return nil
 }
 
-// pickLibraryPath returns the first path whose parent directory exists.
+// pickLibraryPath returns the first path whose parent or grandparent
+// folder exists. The grandparent counts so that an empty /data mount gets
+// /data/media/movies created in it; a path with neither is skipped rather
+// than created in the container's own filesystem.
 func pickLibraryPath(paths []string) string {
 	for _, p := range paths {
 		if p == "" {
 			continue
 		}
-		if fi, err := os.Stat(filepath.Dir(filepath.Clean(p))); err == nil && fi.IsDir() {
-			return p
+		parent := filepath.Dir(filepath.Clean(p))
+		for _, dir := range []string{parent, filepath.Dir(parent)} {
+			if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
+				return p
+			}
 		}
 	}
 	return ""
