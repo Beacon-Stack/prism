@@ -1,74 +1,17 @@
 import { useEffect } from "react";
 import {
   Activity,
-  ArrowDownToLine,
-  Ban,
-  BarChart2,
-  Bell,
   BookOpen,
-  Bookmark,
-  CalendarDays,
-  Compass,
-  Download,
-  FileText,
   Film,
-  Gauge,
-  History,
-  KeyRound,
-  Layers,
-  Library,
-  ListPlus,
-  MonitorPlay,
-  Paintbrush,
-  RefreshCw,
-  ScanLine,
-  Search,
-  Server,
-  Settings2,
-  ShieldOff,
-  SlidersHorizontal,
-  LayoutDashboard,
 } from "lucide-react";
-import Shell, { type NavItem } from "@beacon-shared/Shell";
+import Shell from "@beacon-shared/Shell";
+import { mainNav, settingsNav } from "./nav";
 import UpdatedNotice from "@beacon-shared/UpdatedNotice";
 import { useSystemHealth } from "@/api/system";
 import { useWebSocket } from "@/api/websocket";
 import { applyTheme } from "@/theme";
 import { useCommandPalette } from "@/components/command-palette/useCommandPalette";
 import { CommandPalette } from "@/components/command-palette/CommandPalette";
-
-const mainNav: NavItem[] = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/activity", icon: Activity, label: "Activity" },
-  { to: "/discover", icon: Compass, label: "Discover" },
-  { to: "/calendar", icon: CalendarDays, label: "Calendar" },
-  { to: "/wanted", icon: Bookmark, label: "Wanted" },
-  { to: "/library-sync", icon: RefreshCw, label: "Library Sync" },
-  { to: "/stats", icon: BarChart2, label: "Statistics" },
-  { to: "/queue", icon: Download, label: "Queue" },
-  { to: "/history", icon: History, label: "History" },
-];
-
-const settingsNav: NavItem[] = [
-  { to: "/settings/libraries", icon: Library, label: "Libraries" },
-  { to: "/settings/media-management", icon: Film, label: "Media Management" },
-  { to: "/settings/media-scanning", icon: ScanLine, label: "Media Scanning" },
-  { to: "/settings/quality-profiles", icon: SlidersHorizontal, label: "Quality Profiles" },
-  { to: "/settings/quality-definitions", icon: Gauge, label: "Quality Definitions" },
-  { to: "/settings/custom-formats", icon: Layers, label: "Custom Formats" },
-  { to: "/settings/indexers", icon: Search, label: "Indexers" },
-  { to: "/settings/download-clients", icon: Settings2, label: "Download Clients" },
-  { to: "/settings/notifications", icon: Bell, label: "Notifications" },
-  { to: "/settings/media-servers", icon: MonitorPlay, label: "Media Servers" },
-  { to: "/settings/import-lists", icon: ListPlus, label: "Import Lists" },
-  { to: "/settings/import-exclusions", icon: ShieldOff, label: "Import Exclusions" },
-  { to: "/settings/blocklist", icon: Ban, label: "Blocklist" },
-  { to: "/settings/import", icon: ArrowDownToLine, label: "Import" },
-  { to: "/settings/providers", icon: KeyRound, label: "Providers" },
-  { to: "/settings/system", icon: Server, label: "System" },
-  { to: "/settings/system/logs", icon: FileText, label: "Logs" },
-  { to: "/settings/app", icon: Paintbrush, label: "App Settings" },
-];
 
 // HealthDot reads /api/system/health and renders a colored dot + label
 // in the sidebar footer. Lives here (not web-shared) because it's bound

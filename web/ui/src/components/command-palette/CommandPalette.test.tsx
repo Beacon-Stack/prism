@@ -93,9 +93,10 @@ describe("CommandPalette", () => {
     // First item should be active (index 0 = Dashboard)
     expect(isHighlighted(screen.getByTestId("palette-item-nav:dashboard"))).toBe(true);
 
-    // ArrowDown moves to next item (Activity is now second after Dashboard)
+    // ArrowDown moves to the next item: Discover, second in the sidebar
+    // order Pilot and Prism share.
     fireEvent.keyDown(input, { key: "ArrowDown" });
-    expect(isHighlighted(screen.getByTestId("palette-item-nav:activity"))).toBe(true);
+    expect(isHighlighted(screen.getByTestId("palette-item-nav:discover"))).toBe(true);
     // First item should no longer be highlighted
     expect(isHighlighted(screen.getByTestId("palette-item-nav:dashboard"))).toBe(false);
 
@@ -207,4 +208,21 @@ describe("CommandPalette", () => {
     // Dashboard should no longer be highlighted
     expect(isHighlighted(screen.getByTestId("palette-item-nav:dashboard"))).toBe(false);
   });
+});
+
+// The palette lists the sidebar's pages in the sidebar's order (from
+// layouts/nav.ts), then palette-only pages.
+it("lists the sidebar's pages in the sidebar's order", async () => {
+  const { mainNav, settingsNav } = await import("@/layouts/nav");
+  const { NAV_COMMANDS } = await import("./commands");
+  const labels = NAV_COMMANDS.map((c) => c.label);
+  const sidebar = [...mainNav, ...settingsNav].map((n) => n.label);
+  expect(labels.slice(0, sidebar.length)).toEqual(sidebar);
+  expect(labels.slice(sidebar.length)).toEqual(["Collections"]);
+  expect(new Set(NAV_COMMANDS.map((c) => c.id)).size).toBe(NAV_COMMANDS.length);
+});
+
+it("starts with the order Pilot and Prism share", async () => {
+  const { mainNav } = await import("@/layouts/nav");
+  expect(mainNav.slice(0, 8).map((n) => n.label)).toEqual(["Dashboard", "Discover", "Activity", "Calendar", "Wanted", "Statistics", "Queue", "History"]);
 });

@@ -1,27 +1,7 @@
 import type { ElementType } from "react";
 import type { NavigateFunction } from "react-router-dom";
+import { mainNav, settingsNav } from "@/layouts/nav";
 import {
-  Activity,
-  LayoutDashboard,
-  CalendarDays,
-  Bookmark,
-  RefreshCw,
-  BarChart2,
-  Download,
-  History,
-  Library,
-  Film,
-  ScanLine,
-  SlidersHorizontal,
-  Gauge,
-  Search,
-  Settings2,
-  Bell,
-  MonitorPlay,
-  Ban,
-  ArrowDownToLine,
-  Server,
-  Paintbrush,
   Layers,
   Rss,
   HardDrive,
@@ -43,32 +23,54 @@ export interface Command {
 
 // ── Navigation commands ──────────────────────────────────────────────────────
 
-export const NAV_COMMANDS: Command[] = [
-  { id: "nav:dashboard",        category: "navigation", label: "Dashboard",            keywords: ["home", "overview"],       icon: LayoutDashboard, onSelect: (n) => n("/") },
-  { id: "nav:activity",         category: "navigation", label: "Activity",             keywords: ["events", "timeline", "log"], icon: Activity,     onSelect: (n) => n("/activity") },
-  { id: "nav:discover",         category: "navigation", label: "Discover",             keywords: ["browse", "trending", "popular", "genre"], icon: Search, onSelect: (n) => n("/discover") },
-  { id: "nav:calendar",         category: "navigation", label: "Calendar",             keywords: ["schedule", "upcoming"],   icon: CalendarDays,    onSelect: (n) => n("/calendar") },
-  { id: "nav:wanted",           category: "navigation", label: "Wanted",               keywords: ["missing", "cutoff"],      icon: Bookmark,        onSelect: (n) => n("/wanted") },
-  { id: "nav:library-sync",     category: "navigation", label: "Library Sync",         keywords: ["plex", "sync"],           icon: RefreshCw,       onSelect: (n) => n("/library-sync") },
-  { id: "nav:stats",            category: "navigation", label: "Statistics",            keywords: ["graphs", "charts"],       icon: BarChart2,       onSelect: (n) => n("/stats") },
-  { id: "nav:queue",            category: "navigation", label: "Queue",                keywords: ["downloads", "progress"],  icon: Download,        onSelect: (n) => n("/queue") },
-  { id: "nav:history",          category: "navigation", label: "History",              keywords: ["grabs", "past"],          icon: History,         onSelect: (n) => n("/history") },
-  { id: "nav:collections",      category: "navigation", label: "Collections",          keywords: ["director", "actor"],      icon: Layers,          onSelect: (n) => n("/collections") },
+// Search words and stable IDs for the sidebar's pages, by path. The pages
+// themselves (label, icon, order) come from the sidebar's list in
+// layouts/nav.ts, so the palette can't drift from the sidebar.
+const NAV_EXTRA: Record<string, { id: string; keywords: string[] }> = {
+  "/settings/providers": { id: "nav:providers", keywords: ["tmdb", "trakt", "api key", "metadata"] },
+  "/settings/system/logs": { id: "nav:logs", keywords: ["log", "debug", "errors"] },
+  "/settings/custom-formats": { id: "nav:custom-formats", keywords: ["cf", "scoring", "formats"] },
+  "/settings/import-lists": { id: "nav:import-lists", keywords: ["lists", "trakt", "imdb", "watchlist"] },
+  "/settings/import-exclusions": { id: "nav:import-exclusions", keywords: ["exclude", "ignore", "skip"] },
+  "/": { id: "nav:dashboard", keywords: ["home", "overview"] },
+  "/discover": { id: "nav:discover", keywords: ["browse", "trending", "popular", "genre"] },
+  "/activity": { id: "nav:activity", keywords: ["events", "timeline", "log"] },
+  "/calendar": { id: "nav:calendar", keywords: ["schedule", "upcoming"] },
+  "/wanted": { id: "nav:wanted", keywords: ["missing", "cutoff"] },
+  "/stats": { id: "nav:stats", keywords: ["graphs", "charts"] },
+  "/queue": { id: "nav:queue", keywords: ["downloads", "progress"] },
+  "/history": { id: "nav:history", keywords: ["grabs", "past"] },
+  "/library-sync": { id: "nav:library-sync", keywords: ["plex", "sync"] },
+  "/settings/libraries": { id: "nav:libraries", keywords: ["settings", "root", "path"] },
+  "/settings/media-management": { id: "nav:media-management", keywords: ["settings", "rename", "format"] },
+  "/settings/media-scanning": { id: "nav:media-scanning", keywords: ["settings", "scan"] },
+  "/settings/quality-profiles": { id: "nav:quality-profiles", keywords: ["settings", "quality"] },
+  "/settings/quality-definitions": { id: "nav:quality-defs", keywords: ["settings", "size", "limits"] },
+  "/settings/indexers": { id: "nav:indexers", keywords: ["settings", "torznab", "newznab"] },
+  "/settings/download-clients": { id: "nav:download-clients", keywords: ["settings", "qbittorrent", "deluge"] },
+  "/settings/notifications": { id: "nav:notifications", keywords: ["settings", "discord", "webhook"] },
+  "/settings/media-servers": { id: "nav:media-servers", keywords: ["settings", "plex", "jellyfin"] },
+  "/settings/blocklist": { id: "nav:blocklist", keywords: ["settings", "block", "ban"] },
+  "/settings/import": { id: "nav:import", keywords: ["settings", "radarr"] },
+  "/settings/system": { id: "nav:system", keywords: ["settings", "health", "tasks"] },
+  "/settings/app": { id: "nav:app-settings", keywords: ["settings", "theme", "api key"] },
+};
 
-  // Settings
-  { id: "nav:libraries",         category: "navigation", label: "Libraries",            keywords: ["settings", "root", "path"],         icon: Library,            onSelect: (n) => n("/settings/libraries") },
-  { id: "nav:media-management",  category: "navigation", label: "Media Management",     keywords: ["settings", "rename", "format"],      icon: Film,               onSelect: (n) => n("/settings/media-management") },
-  { id: "nav:media-scanning",    category: "navigation", label: "Media Scanning",       keywords: ["settings", "scan"],                  icon: ScanLine,           onSelect: (n) => n("/settings/media-scanning") },
-  { id: "nav:quality-profiles",  category: "navigation", label: "Quality Profiles",     keywords: ["settings", "quality"],               icon: SlidersHorizontal,  onSelect: (n) => n("/settings/quality-profiles") },
-  { id: "nav:quality-defs",      category: "navigation", label: "Quality Definitions",  keywords: ["settings", "size", "limits"],        icon: Gauge,              onSelect: (n) => n("/settings/quality-definitions") },
-  { id: "nav:indexers",          category: "navigation", label: "Indexers",             keywords: ["settings", "torznab", "newznab"],    icon: Search,             onSelect: (n) => n("/settings/indexers") },
-  { id: "nav:download-clients",  category: "navigation", label: "Download Clients",    keywords: ["settings", "qbittorrent", "deluge"], icon: Settings2,          onSelect: (n) => n("/settings/download-clients") },
-  { id: "nav:notifications",     category: "navigation", label: "Notifications",        keywords: ["settings", "discord", "webhook"],    icon: Bell,               onSelect: (n) => n("/settings/notifications") },
-  { id: "nav:media-servers",     category: "navigation", label: "Media Servers",        keywords: ["settings", "plex", "jellyfin"],      icon: MonitorPlay,        onSelect: (n) => n("/settings/media-servers") },
-  { id: "nav:blocklist",         category: "navigation", label: "Blocklist",            keywords: ["settings", "block", "ban"],          icon: Ban,                onSelect: (n) => n("/settings/blocklist") },
-  { id: "nav:import",            category: "navigation", label: "Import",               keywords: ["settings", "radarr"],                icon: ArrowDownToLine,    onSelect: (n) => n("/settings/import") },
-  { id: "nav:system",            category: "navigation", label: "System",               keywords: ["settings", "health", "tasks"],       icon: Server,             onSelect: (n) => n("/settings/system") },
-  { id: "nav:app-settings",      category: "navigation", label: "App Settings",         keywords: ["settings", "theme", "api key"],      icon: Paintbrush,         onSelect: (n) => n("/settings/app") },
+// Pages reachable from the palette but not the sidebar.
+const PALETTE_ONLY: Command[] = [
+  { id: "nav:collections", category: "navigation", label: "Collections", keywords: ["director", "actor"], icon: Layers, onSelect: (n) => n("/collections") },
+];
+
+export const NAV_COMMANDS: Command[] = [
+  ...[...mainNav, ...settingsNav].map((item): Command => ({
+    id: NAV_EXTRA[item.to]?.id ?? `nav:${item.to.replace(/^\/(settings\/)?/, "").replace(/\//g, "-") || "dashboard"}`,
+    category: "navigation",
+    label: item.label,
+    keywords: NAV_EXTRA[item.to]?.keywords ?? [],
+    icon: item.icon,
+    onSelect: (n) => n(item.to),
+  })),
+  ...PALETTE_ONLY,
 ];
 
 // ── Action commands ──────────────────────────────────────────────────────────
