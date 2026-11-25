@@ -150,8 +150,12 @@ func (s *Service) InMediaServer(m movie.Movie) bool {
 	return ok
 }
 
-// For returns the state of each movie, keyed by movie ID.
+// For returns the state of each movie, keyed by movie ID. A nil Service
+// returns nothing, so callers needn't check whether one is set up.
 func (s *Service) For(ctx context.Context, movies []movie.Movie) map[string]Info {
+	if s == nil {
+		return nil
+	}
 	progress := make(map[string]float64)
 	if s.queue != nil {
 		items, err := s.queue.GetQueue(ctx)

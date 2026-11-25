@@ -275,6 +275,9 @@ func setAvailability(ctx context.Context, src movieAvailability, movies []movie.
 		return
 	}
 	info := src.For(ctx, movies)
+	if info == nil {
+		return
+	}
 	for i, m := range movies {
 		bodies[i].Availability = string(info[m.ID].State)
 		bodies[i].DownloadProgress = info[m.ID].Progress

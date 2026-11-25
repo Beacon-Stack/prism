@@ -114,3 +114,10 @@ func TestRefresh_KeepsLastKnownContentsOnFailure(t *testing.T) {
 		t.Error("movie no longer reported as in the media server after a failed refresh")
 	}
 }
+
+func TestFor_NilService(t *testing.T) {
+	var svc *Service
+	if got := svc.For(context.Background(), []movie.Movie{{ID: "a"}}); len(got) != 0 {
+		t.Errorf("For on a nil Service = %v, want nothing", got)
+	}
+}
