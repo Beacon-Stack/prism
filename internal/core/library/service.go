@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -17,10 +15,10 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/beacon-stack/prism/internal/core/dbutil"
-	"github.com/beacon-stack/prism/internal/core/edition"
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/events"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // tmdbSearcher is the minimal TMDB interface needed for background candidate matching.
@@ -67,11 +65,21 @@ type Stats struct {
 	HealthMessage  string
 }
 
+// FileAttacher links a file on disk to a movie already in the library.
+type FileAttacher func(ctx context.Context, movieID, filePath string, sizeBytes int64, quality plugin.Quality) error
+
 // Service manages library records.
 type Service struct {
-	q    dbgen.Querier
-	bus  *events.Bus
-	meta tmdbSearcher // nil when TMDB is not configured
+	q      dbgen.Querier
+	bus    *events.Bus
+	meta   tmdbSearcher // nil when TMDB is not configured
+	attach FileAttacher // nil: scans don't pick up new files
+}
+
+// SetFileAttacher lets scans link files they find to movies already in
+// the library.
+func (s *Service) SetFileAttacher(fn FileAttacher) {
+	s.attach = fn
 }
 
 // NewService creates a new Service backed by the given querier, event bus, and
@@ -141,7 +149,8 @@ func (s *Service) List(ctx context.Context) ([]Library, error) {
 // Returns ErrNotFound if the library does not exist.
 func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Library, error) {
 	// Confirm existence before update so we can surface ErrNotFound clearly.
-	if _, err := s.q.GetLibrary(ctx, id); err != nil {
+	before, err := s.q.GetLibrary(ctx, id)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Library{}, ErrNotFound
 		}
@@ -165,6 +174,13 @@ func (s *Service) Update(ctx context.Context, id string, req UpdateRequest) (Lib
 	})
 	if err != nil {
 		return Library{}, fmt.Errorf("updating library %q: %w", id, err)
+	}
+
+	// The library moved: its files' recorded paths move with it.
+	if before.RootPath != req.RootPath {
+		if err := s.moveFilePaths(ctx, id, before.RootPath, req.RootPath); err != nil {
+			return Library{}, fmt.Errorf("moving file paths for library %q: %w", id, err)
+		}
 	}
 
 	return rowToLibrary(row)
@@ -320,59 +336,6 @@ func (s *Service) ScanDisk(ctx context.Context, libraryID string) ([]DiskFile, e
 	}
 
 	return files, nil
-}
-
-// Scan walks a library's root path and reconciles tracked movie files against
-// what is actually on disk:
-//
-//   - Files that exist → indexed_at is updated.
-//   - Files that are missing → the owning movie is marked "missing".
-//
-// Scan is idempotent and safe to run concurrently with normal operations.
-func (s *Service) Scan(ctx context.Context, libraryID string) error {
-	// Verify library exists before doing any work.
-	if _, err := s.Get(ctx, libraryID); err != nil {
-		return err
-	}
-
-	files, err := s.q.ListMovieFilesByLibrary(ctx, libraryID)
-	if err != nil {
-		return fmt.Errorf("listing movie files for library %q: %w", libraryID, err)
-	}
-
-	now := time.Now().UTC().Format(time.RFC3339)
-	for _, f := range files {
-		if _, statErr := os.Stat(f.Path); statErr == nil {
-			// File present — refresh indexed_at.
-			_ = s.q.UpdateMovieFileIndexed(ctx, dbgen.UpdateMovieFileIndexedParams{
-				IndexedAt: now,
-				ID:        f.ID,
-			})
-			// Backfill edition from filename if not already set.
-			if f.Edition == nil {
-				if ed := edition.Parse(filepath.Base(f.Path)); ed != nil {
-					name := ed.Name
-					_ = s.q.UpdateMovieFileEdition(ctx, dbgen.UpdateMovieFileEditionParams{
-						Edition: &name,
-						ID:      f.ID,
-					})
-				}
-			}
-		} else if os.IsNotExist(statErr) {
-			// File gone — mark owning movie as missing.
-			_, _ = s.q.UpdateMovieStatus(ctx, dbgen.UpdateMovieStatusParams{
-				Status:    "missing",
-				UpdatedAt: now,
-				ID:        f.MovieID,
-			})
-		}
-	}
-
-	// Trigger background TMDB matching for any unmatched candidates.
-	if s.meta != nil {
-		go s.matchCandidates(context.Background(), libraryID)
-	}
-	return nil
 }
 
 // matchCandidates looks up TMDB for every unmatched candidate in a library and

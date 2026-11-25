@@ -318,6 +318,7 @@ func run() error {
 		logger.Warn("first-run defaults failed", "error", err)
 	}
 	movieSvc := movie.NewService(queries, tmdbClient, bus, logger, movie.WithDB(database.SQL))
+	librarySvc.SetFileAttacher(movieSvc.AttachFile)
 	blocklistSvc := blocklist.NewService(queries)
 	indexerRL := ratelimit.New()
 	indexerSvc := indexer.NewService(queries, registry.Default, bus, indexerRL)

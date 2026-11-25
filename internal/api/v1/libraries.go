@@ -295,9 +295,8 @@ func RegisterLibraryRoutes(api huma.API, svc *library.Service, movieSvc *movie.S
 		DefaultStatus: http.StatusAccepted,
 	}, func(ctx context.Context, input *libraryScanInput) (*libraryScanOutput, error) {
 		go func() {
-			if err := svc.Scan(context.Background(), input.ID); err != nil {
-				// Errors are best-effort; the caller already received 202.
-				_ = err
+			if _, err := svc.Scan(context.Background(), input.ID); err != nil {
+				slog.Warn("library scan failed", "library_id", input.ID, "error", err)
 			}
 		}()
 		return &libraryScanOutput{}, nil
