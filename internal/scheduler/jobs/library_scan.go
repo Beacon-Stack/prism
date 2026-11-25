@@ -9,8 +9,10 @@ import (
 	"github.com/beacon-stack/prism/internal/scheduler"
 )
 
-// LibraryScan returns a Job that scans all libraries, reconciling tracked
-// movie files with what is actually on disk. Runs every 24 hours.
+// LibraryScan returns a Job that scans all libraries: it confirms tracked
+// files, corrects the paths of ones that moved, links files on disk to
+// movies that have none, and marks movies whose files are gone. Runs
+// every 24 hours.
 func LibraryScan(svc *library.Service, logger *slog.Logger) scheduler.Job {
 	return scheduler.Job{
 		Name:     "library_scan",
@@ -31,14 +33,23 @@ func LibraryScan(svc *library.Service, logger *slog.Logger) scheduler.Job {
 
 			var scanErrs int
 			for _, lib := range libs {
-				if err := svc.Scan(ctx, lib.ID); err != nil {
+				res, err := svc.Scan(ctx, lib.ID)
+				if err != nil {
 					logger.Warn("library scan failed",
 						"library_id", lib.ID,
 						"library_name", lib.Name,
 						"error", err,
 					)
 					scanErrs++
+					continue
 				}
+				logger.Info("library scanned",
+					"library_name", lib.Name,
+					"present", res.Present,
+					"relinked", res.Relinked,
+					"attached", res.Attached,
+					"missing", res.Missing,
+				)
 			}
 
 			if scanErrs > 0 {
