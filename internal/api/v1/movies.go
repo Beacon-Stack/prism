@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -49,6 +50,7 @@ type movieFileBody struct {
 	Edition       string          `json:"edition,omitempty"`
 	ImportedAt    time.Time       `json:"imported_at"`
 	MediainfoJSON json.RawMessage `json:"mediainfo,omitempty"`
+	Missing       bool            `json:"missing,omitempty" doc:"The file is not at its recorded path"`
 }
 
 type movieFilesListOutput struct {
@@ -616,6 +618,10 @@ func RegisterMovieFileRoutes(api huma.API, svc *movie.Service, mmSvc *mediamanag
 			}
 			if f.MediainfoJSON != "" {
 				body.MediainfoJSON = json.RawMessage(f.MediainfoJSON)
+			}
+			// The record alone doesn't mean the file is there.
+			if _, statErr := os.Stat(f.Path); os.IsNotExist(statErr) {
+				body.Missing = true
 			}
 			bodies[i] = body
 		}

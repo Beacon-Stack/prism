@@ -72,14 +72,24 @@ type FileAttacher func(ctx context.Context, movieID, filePath string, sizeBytes 
 type Service struct {
 	q      dbgen.Querier
 	bus    *events.Bus
-	meta   tmdbSearcher // nil when TMDB is not configured
-	attach FileAttacher // nil: scans don't pick up new files
+	meta   tmdbSearcher  // nil when TMDB is not configured
+	attach FileAttacher  // nil: scans don't pick up new files
+	forget FileForgetter // nil: scans keep the records of files that are gone
 }
 
 // SetFileAttacher lets scans link files they find to movies already in
 // the library.
 func (s *Service) SetFileAttacher(fn FileAttacher) {
 	s.attach = fn
+}
+
+// FileForgetter removes Prism's record of a movie file, leaving the disk
+// alone.
+type FileForgetter func(ctx context.Context, fileID string) error
+
+// SetFileForgetter lets scans drop the records of files that are gone.
+func (s *Service) SetFileForgetter(fn FileForgetter) {
+	s.forget = fn
 }
 
 // NewService creates a new Service backed by the given querier, event bus, and

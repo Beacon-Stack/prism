@@ -31,6 +31,9 @@ func newScanFixture(t *testing.T) *scanFixture {
 	libs := library.NewService(q, nil, nil)
 	movies := movie.NewService(q, nil, nil, slog.New(slog.DiscardHandler))
 	libs.SetFileAttacher(movies.AttachFile)
+	libs.SetFileForgetter(func(ctx context.Context, fileID string) error {
+		return movies.DeleteFile(ctx, fileID, false)
+	})
 
 	root := t.TempDir()
 	req := sampleCreateRequest(createQualityProfile(t, quality.NewService(q, nil)))
@@ -203,15 +206,49 @@ func TestScan_CorrectsThePathOfAFileThatMoved(t *testing.T) {
 	}
 }
 
-func TestScan_MarksAMovieMissingWhenItsFileIsGone(t *testing.T) {
+// The file was deleted (its folder is still there, with other things in
+// it), or its whole location no longer exists. Either way it is certainly
+// gone: the record goes, and the movie is wanted again instead of looking
+// as if it were on disk.
+func TestScan_DropsTheRecordOfAFileThatIsCertainlyGone(t *testing.T) {
 	f := newScanFixture(t)
 	f.movie("m1", "Dune", 2021)
-	f.tracked("m1", "/movies/Dune (2021)/Dune (2021).mkv", movieSize)
+	f.tracked("m1", "/movies/Dune (2021)/Dune (2021).mkv", movieSize) // a mount that no longer exists
+	f.movie("m2", "Parasite", 2019)
+	f.file("Parasite (2019)/Parasite (2019).nfo", 10)
+	f.tracked("m2", filepath.Join(f.root, "Parasite (2019)/Parasite (2019).mkv"), movieSize) // deleted from a live folder
 
 	res := f.scan()
 
-	if res.Missing != 1 {
-		t.Errorf("Missing = %d, want 1", res.Missing)
+	if res.Removed != 2 || res.Missing != 0 {
+		t.Errorf("result = %+v, want 2 removed and none missing", res)
+	}
+	for _, id := range []string{"m1", "m2"} {
+		if got := f.paths(id); len(got) != 0 {
+			t.Errorf("%s files = %v, want none", id, got)
+		}
+		if got := f.status(id); got != "wanted" {
+			t.Errorf("%s status = %q, want wanted", id, got)
+		}
+	}
+}
+
+// An empty folder where the file should be is what a share that failed
+// to mount looks like. Nothing is forgotten on that evidence.
+func TestScan_KeepsTheRecordWhenTheShareMayBeOffline(t *testing.T) {
+	f := newScanFixture(t)
+	f.movie("m1", "Dune", 2021)
+	offline := t.TempDir() // exists, and is empty
+	want := filepath.Join(offline, "Dune (2021)/Dune (2021).mkv")
+	f.tracked("m1", want, movieSize)
+
+	res := f.scan()
+
+	if res.Missing != 1 || res.Removed != 0 {
+		t.Errorf("result = %+v, want 1 missing and none removed", res)
+	}
+	if got := f.paths("m1"); len(got) != 1 || got[0] != want {
+		t.Errorf("files = %v, want the record kept", got)
 	}
 	if got := f.status("m1"); got != "missing" {
 		t.Errorf("status = %q, want missing", got)

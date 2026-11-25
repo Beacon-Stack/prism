@@ -320,6 +320,9 @@ func run() error {
 	}
 	movieSvc := movie.NewService(queries, tmdbClient, bus, logger, movie.WithDB(database.SQL))
 	librarySvc.SetFileAttacher(movieSvc.AttachFile)
+	librarySvc.SetFileForgetter(func(ctx context.Context, fileID string) error {
+		return movieSvc.DeleteFile(ctx, fileID, false)
+	})
 	blocklistSvc := blocklist.NewService(queries)
 	indexerRL := ratelimit.New()
 	indexerSvc := indexer.NewService(queries, registry.Default, bus, indexerRL)
