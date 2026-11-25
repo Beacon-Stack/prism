@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/beacon-stack/prism/internal/serveraddr"
 	"io"
 	"net/http"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/registry"
 	"github.com/beacon-stack/prism/internal/safedialer"
+	"github.com/beacon-stack/prism/internal/serveraddr"
 	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
