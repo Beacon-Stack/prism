@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/beacon-stack/prism/internal/serveraddr"
 	"io"
 	"net/http"
 	"strconv"
@@ -60,29 +61,9 @@ type Server struct {
 	client *http.Client
 }
 
-// serverAddress turns whatever was pasted into the URL field into the
-// server's base address. People copy the address from their browser,
-// which is the web app's page (http://host:32400/web/index.html#!/...),
-// not the server itself; requests built on that return the web app's
-// HTML instead of data.
-func serverAddress(raw string) string {
-	raw = strings.TrimSpace(raw)
-	if i := strings.Index(raw, "#"); i >= 0 {
-		raw = raw[:i]
-	}
-	if i := strings.Index(raw, "?"); i >= 0 {
-		raw = raw[:i]
-	}
-	raw = strings.TrimRight(raw, "/")
-	if i := strings.Index(raw, "/web/"); i >= 0 {
-		raw = raw[:i]
-	}
-	return strings.TrimSuffix(raw, "/web")
-}
-
 // New creates a new Server from the given config.
 func New(cfg Config) *Server {
-	cfg.URL = serverAddress(cfg.URL)
+	cfg.URL = serveraddr.FromPasted(cfg.URL)
 	transport := safedialer.LANTransport()
 	if cfg.SkipTLSVerify {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // opt-in for self-signed certs
