@@ -9,6 +9,7 @@ import {
   useUpdateMovie,
   useRefreshMovie,
   useMovieFiles,
+  useDeleteMovieFile,
   useAutoSearch,
   useEditions,
 } from "@/api/movies";
@@ -136,6 +137,7 @@ export default function MovieDetail() {
   const { data: movie, isLoading, error } = useMovie(id ?? "");
   const { data: credits } = useMovieCredits(id ?? "");
   const { data: files } = useMovieFiles(id ?? "");
+  const deleteFile = useDeleteMovieFile(id ?? "");
   const updateMovie = useUpdateMovie();
   const refreshMovie = useRefreshMovie();
   const autoSearch = useAutoSearch();
@@ -513,7 +515,45 @@ export default function MovieDetail() {
               )}
 
               {/* File status card */}
-              {files && files.length > 0 ? (
+              {files && files.length > 0 && files[0].missing ? (
+                <div
+                  data-testid="file-status-card"
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    background: "color-mix(in srgb, var(--color-danger) 8%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--color-danger) 25%, transparent)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, fontSize: 13 }}>
+                    <span style={{ color: "var(--color-danger)", fontWeight: 600 }}>File not found</span>
+                    <button
+                      onClick={() => deleteFile.mutate({ fileId: files[0].id, deleteFromDisk: false })}
+                      disabled={deleteFile.isPending}
+                      style={{
+                        background: "var(--color-bg-elevated)",
+                        border: "1px solid var(--color-border-default)",
+                        borderRadius: 5,
+                        padding: "4px 10px",
+                        fontSize: 12,
+                        color: "var(--color-text-secondary)",
+                        cursor: deleteFile.isPending ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {deleteFile.isPending ? "Removing…" : "Remove record"}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>
+                    Prism imported this file{files[0].imported_at && <span> on {new Date(files[0].imported_at).toLocaleDateString()}</span>}, but it isn't there now:
+                  </div>
+                  <div
+                    title={files[0].path}
+                    style={{ fontSize: 11, fontFamily: "var(--font-family-mono)", color: "var(--color-text-secondary)", marginTop: 4, overflowWrap: "anywhere" }}
+                  >
+                    {files[0].path}
+                  </div>
+                </div>
+              ) : files && files.length > 0 ? (
                 <div
                   data-testid="file-status-card"
                   style={{

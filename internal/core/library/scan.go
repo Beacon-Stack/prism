@@ -17,7 +17,8 @@ type ScanResult struct {
 	Present  int // tracked files found where they were recorded
 	Relinked int // tracked files found at a new path
 	Attached int // files on disk newly linked to a movie in the library
-	Missing  int // movies whose files are gone
+	Missing  int // movies whose files can't be found, records kept
+	Removed  int // records dropped because the file is certainly gone
 }
 
 // minMovieBytes is the smallest file a scan will link to a movie on its
@@ -31,7 +32,10 @@ const minMovieBytes = 100 * 1024 * 1024
 //     library) has its path corrected;
 //   - a video file nothing tracks is linked to the movie it belongs to,
 //     when that movie is already in the library and has no file;
-//   - a movie whose files are all gone is marked missing.
+//   - the record of a file that is certainly gone is dropped, so the
+//     movie stops looking as if it were on disk and is wanted again;
+//   - a movie whose files can't be found, but might be on a share that is
+//     offline, is marked missing and its records kept.
 //
 // Files that belong to no movie in the library are left for the import
 // screen (see ScanDisk). Scan is idempotent.
@@ -81,6 +85,15 @@ func (s *Service) Scan(ctx context.Context, libraryID string) (ScanResult, error
 		case os.IsNotExist(statErr):
 			moved := findMoved(f, untracked, taken)
 			if moved == "" {
+				// Gone for good, or only out of reach? Only the first
+				// is safe to forget.
+				if s.forget != nil && certainlyGone(f.Path) {
+					if err := s.forget(ctx, f.ID); err != nil {
+						return res, fmt.Errorf("dropping the record of %q: %w", f.Path, err)
+					}
+					res.Removed++
+					continue
+				}
 				lostFile[f.MovieID] = true
 				continue
 			}
@@ -133,6 +146,33 @@ func (s *Service) Scan(ctx context.Context, libraryID string) (ScanResult, error
 		go s.matchCandidates(context.Background(), libraryID)
 	}
 	return res, nil
+}
+
+// certainlyGone reports whether a file that isn't at its path is really
+// gone, as opposed to sitting on a share that is offline. It looks at the
+// nearest folder above the file that still exists. If that folder has
+// anything in it, the location is live and the file has been deleted or
+// moved away. An empty folder is what an unmounted share looks like, so
+// nothing is concluded from it. Reaching the filesystem root means the
+// whole location was taken away on purpose, such as a mount removed from
+// the container.
+func certainlyGone(path string) bool {
+	if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
+		return false
+	}
+	for dir := filepath.Dir(path); ; dir = filepath.Dir(dir) {
+		entries, err := os.ReadDir(dir)
+		switch {
+		case os.IsNotExist(err):
+			if dir == filepath.Dir(dir) {
+				return true
+			}
+			continue
+		case err != nil:
+			return false
+		}
+		return len(entries) > 0 || dir == filepath.Dir(dir)
+	}
 }
 
 // findMoved returns the path of the one untracked file with the same name

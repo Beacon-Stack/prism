@@ -84,3 +84,42 @@ describe("MovieDetail — You might also like", () => {
     expect(tdk).toHaveAttribute("href", "/movies/movie-42");
   });
 });
+
+describe("MovieDetail — a file that is gone", () => {
+  const goneFile = {
+    id: "file-1",
+    movie_id: "movie-1",
+    path: "/movies/Dune (2021)/Dune (2021).mkv",
+    size_bytes: 78_000_000_000,
+    quality: { resolution: "2160p", source: "bluray", codec: "x265", hdr: "", name: "Bluray-2160p" },
+    imported_at: "2026-05-04T19:14:38Z",
+    missing: true,
+  };
+
+  it("says the file is not found instead of On Disk, and removes the record without touching the disk", async () => {
+    const deletes: string[] = [];
+    let files: unknown[] = [goneFile];
+    server.use(
+      http.get("/api/v1/movies/movie-1", () => HttpResponse.json(movieFixture)),
+      http.get("/api/v1/movies/movie-1/files", () => HttpResponse.json(files)),
+      http.get("/api/v1/movies/movie-1/credits", () => HttpResponse.json({ cast: [], crew: [], recommendations: [] })),
+      http.delete("/api/v1/movies/movie-1/files/file-1", ({ request }) => {
+        deletes.push(new URL(request.url).search);
+        files = [];
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderAt("/movies/movie-1");
+
+    const card = await screen.findByTestId("file-status-card");
+    await waitFor(() => expect(within(card).getByText("File not found")).toBeInTheDocument());
+    expect(within(card).queryByText("On Disk")).not.toBeInTheDocument();
+    expect(within(card).getByText("/movies/Dune (2021)/Dune (2021).mkv")).toBeInTheDocument();
+
+    within(card).getByRole("button", { name: "Remove record" }).click();
+
+    await waitFor(() => expect(deletes).toEqual(["?delete_from_disk=false"]));
+    await waitFor(() => expect(screen.getByTestId("file-status-card")).toHaveTextContent(/Missing/));
+  });
+});

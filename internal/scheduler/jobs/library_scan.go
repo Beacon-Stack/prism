@@ -49,6 +49,7 @@ func LibraryScan(svc *library.Service, logger *slog.Logger) scheduler.Job {
 					"relinked", res.Relinked,
 					"attached", res.Attached,
 					"missing", res.Missing,
+					"removed", res.Removed,
 				)
 			}
 

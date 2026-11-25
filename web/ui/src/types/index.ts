@@ -456,6 +456,7 @@ export interface MovieFile {
   edition?: string;
   imported_at: string;
   mediainfo?: MediaInfo;
+  missing?: boolean; // the file is not at its recorded path
 }
 
 // Blocklist
