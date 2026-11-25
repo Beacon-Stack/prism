@@ -1,3 +1,4 @@
+import { grabbedAgo } from "@/lib/grabbedAgo";
 import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   X,
@@ -120,9 +121,7 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
   ];
   const filtered = reasons.length > 0;
   const alreadyGrabbed = !!release.already_grabbed_at;
-  const grabbedAgeLabel = alreadyGrabbed
-    ? formatAge((Date.now() - new Date(release.already_grabbed_at!).getTime()) / 86400000)
-    : "";
+  const grabbedWhen = alreadyGrabbed ? grabbedAgo(release.already_grabbed_at!) : "";
 
   return (
     <tr
@@ -219,7 +218,7 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
           )}
           {alreadyGrabbed && (
             <span
-              title={`Previously grabbed ${grabbedAgeLabel} ago — status: ${release.already_grabbed_status ?? "unknown"}`}
+              title={`Previously grabbed ${grabbedWhen} — status: ${release.already_grabbed_status ?? "unknown"}`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -233,7 +232,7 @@ function ReleaseRow({ release, grabbed, grabError, onGrab, isPending }: ReleaseR
                 fontWeight: 500,
               }}
             >
-              <History size={10} /> Already grabbed {grabbedAgeLabel} ago
+              <History size={10} /> Already grabbed {grabbedWhen}
             </span>
           )}
         </div>
