@@ -23,6 +23,7 @@ import (
 
 	"github.com/beacon-stack/prism/internal/api"
 	"github.com/beacon-stack/prism/internal/api/ws"
+	"github.com/beacon-stack/prism/internal/availability"
 	"github.com/beacon-stack/prism/internal/config"
 	"github.com/beacon-stack/prism/internal/core/activity"
 	"github.com/beacon-stack/prism/internal/core/autosearch"
@@ -366,6 +367,13 @@ func run() error {
 	msDispatcher.Subscribe()
 
 	plexSyncSvc := plexsync.NewService(mediaServerSvc, movieSvc, queries)
+	availabilitySvc := availability.NewService(mediaServerSvc, queueSvc, logger)
+	go func() {
+		// Read the media servers once at start so the first page load is right.
+		if err := availabilitySvc.Refresh(context.Background()); err != nil {
+			logger.Warn("availability: first refresh failed", "error", err)
+		}
+	}()
 	watchSyncSvc := watchsync.NewService(queries, mediaServerSvc, movieSvc, registry.Default, logger)
 
 	healthSvc := health.NewService(librarySvc, downloaderSvc, indexerSvc, logger)
@@ -414,6 +422,7 @@ func run() error {
 	sched.Add(jobs.ImportListSync(importListSvc, logger))
 	sched.Add(jobs.ActivityPrune(activitySvc, logger))
 	sched.Add(jobs.WatchSync(watchSyncSvc, logger))
+	sched.Add(jobs.AvailabilityRefresh(availabilitySvc, logger))
 
 	// Pulse integration (optional)
 	cfgrrIntegration, err := pulse.New(cfg.Pulse, cfg.Server.Host, cfg.Server.Port, cfg.Auth.APIKey.Value(), logger)
@@ -498,6 +507,7 @@ func run() error {
 		AutoSearchService:        autoSvc,
 		ActivityService:          activitySvc,
 		WatchSyncService:         watchSyncSvc,
+		Availability:             availabilitySvc,
 		ImportListService:        importListSvc,
 		ImporterService:          importerSvc,
 		ProviderResolver:         providerResolver,

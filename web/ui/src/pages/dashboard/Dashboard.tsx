@@ -1,3 +1,4 @@
+import { AVAILABILITY, AVAILABILITY_ORDER, availabilityLabel, availabilityOf, type Availability } from "@/lib/availability";
 import { useState, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { LayoutGrid, List } from "lucide-react";
@@ -45,26 +46,25 @@ type ViewMode = "grid" | "list";
 
 // StatusBadge
 
-function StatusBadge({ status }: { status: string }) {
-  const isReleased = status === "released";
+function StatusBadge({ movie }: { movie: Movie }) {
+  const state = availabilityOf(movie);
+  const { color, hint } = AVAILABILITY[state];
   return (
     <span
+      title={hint}
       style={{
         display: "inline-block",
         padding: "1px 6px",
         borderRadius: 3,
         fontSize: 10,
         fontWeight: 600,
-        textTransform: "capitalize",
         letterSpacing: "0.04em",
-        background: isReleased
-          ? "color-mix(in srgb, var(--color-success) 12%, transparent)"
-          : "color-mix(in srgb, var(--color-warning) 12%, transparent)",
-        color: isReleased ? "var(--color-success)" : "var(--color-warning)",
+        background: `color-mix(in srgb, ${color} 12%, transparent)`,
+        color,
         whiteSpace: "nowrap",
       }}
     >
-      {status}
+      {availabilityLabel(state, movie.download_progress)}
     </span>
   );
 }
@@ -245,7 +245,7 @@ function PosterCard({
               {movie.year}
             </span>
           )}
-          <StatusBadge status={movie.status} />
+          <StatusBadge movie={movie} />
         </div>
       </div>
     </div>
@@ -362,7 +362,7 @@ function ListRow({
 
       {/* Status */}
       <td style={{ padding: "0 16px", height: 60 }}>
-        <StatusBadge status={movie.status} />
+        <StatusBadge movie={movie} />
       </td>
 
       {/* Monitored */}
@@ -544,8 +544,9 @@ export default function Dashboard() {
 
   // Derive unique status values from actual data
   const statuses = useMemo(() => {
-    if (!data?.movies) return [] as string[];
-    return [...new Set(data.movies.map((m) => m.status))].sort();
+    if (!data?.movies) return [] as Availability[];
+    const present = new Set(data.movies.map(availabilityOf));
+    return AVAILABILITY_ORDER.filter((a) => present.has(a));
   }, [data?.movies]);
 
   // Client-side filtering + sorting
@@ -568,7 +569,7 @@ export default function Dashboard() {
     }
 
     if (statusFilter !== "all") {
-      result = result.filter((m) => m.status === statusFilter);
+      result = result.filter((m) => availabilityOf(m) === statusFilter);
     }
 
     if (onDiskFilter !== "all") {
@@ -767,7 +768,7 @@ export default function Dashboard() {
           <option value="all">All statuses</option>
           {statuses.map((s) => (
             <option key={s} value={s}>
-              {s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ")}
+              {AVAILABILITY[s].label}
             </option>
           ))}
         </select>

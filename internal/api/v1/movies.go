@@ -9,6 +9,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/beacon-stack/prism/internal/availability"
 	"github.com/beacon-stack/prism/internal/core/edition"
 	"github.com/beacon-stack/prism/internal/core/mediainfo"
 	"github.com/beacon-stack/prism/internal/core/mediamanagement"
@@ -83,6 +84,8 @@ type movieBody struct {
 	PreferredEdition    string           `json:"preferred_edition,omitempty"    doc:"Preferred edition (e.g. Director's Cut, Extended); empty = no preference"`
 	ReleaseDate         string           `json:"release_date,omitempty"         doc:"TMDB release date (YYYY-MM-DD)"`
 	Path                string           `json:"path,omitempty"                 doc:"Absolute path on disk"`
+	Availability        string           `json:"availability,omitempty"         doc:"Where the movie stands: available (on the media server), downloaded, downloading, wanted, upcoming, missing or unmonitored"`
+	DownloadProgress    float64          `json:"download_progress,omitempty"    doc:"0..1 while availability is downloading"`
 	TagIDs              []string         `json:"tag_ids"                        doc:"Assigned tag UUIDs"`
 	WatchStatus         *watchStatusBody `json:"watch_status,omitempty"     doc:"Watch history status"`
 	AddedAt             time.Time        `json:"added_at"                       doc:"When the movie was added"`
@@ -259,7 +262,26 @@ func searchResultToBody(r tmdb.SearchResult) *searchResultBody {
 // Route registration
 
 // RegisterMovieRoutes registers all /api/v1/movies endpoints.
-func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, watchSvc ...*watchsync.Service) {
+// movieAvailability says where movies stand: on the media server,
+// downloading, on disk and so on.
+type movieAvailability interface {
+	For(ctx context.Context, movies []movie.Movie) map[string]availability.Info
+}
+
+// setAvailability fills in the availability fields of bodies, which are
+// the bodies of movies in the same order. A nil source leaves them empty.
+func setAvailability(ctx context.Context, src movieAvailability, movies []movie.Movie, bodies []*movieBody) {
+	if src == nil || len(movies) == 0 {
+		return
+	}
+	info := src.For(ctx, movies)
+	for i, m := range movies {
+		bodies[i].Availability = string(info[m.ID].State)
+		bodies[i].DownloadProgress = info[m.ID].Progress
+	}
+}
+
+func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, avail movieAvailability, watchSvc ...*watchsync.Service) {
 	var wSvc *watchsync.Service
 	if len(watchSvc) > 0 {
 		wSvc = watchSvc[0]
@@ -293,6 +315,7 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 		bodies := make([]*movieBody, len(result.Movies))
 		for i, m := range result.Movies {
 			b := movieToBody(m)
+			setAvailability(ctx, avail, []movie.Movie{m}, []*movieBody{b})
 			if ids := tagsByMovie[m.ID]; ids != nil {
 				b.TagIDs = ids
 			} else {
@@ -300,6 +323,8 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 			}
 			bodies[i] = b
 		}
+
+		setAvailability(ctx, avail, result.Movies, bodies)
 
 		return &movieListOutput{Body: &movieListBody{
 			Movies:  bodies,
@@ -337,6 +362,7 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to add movie", err)
 		}
 		b := movieToBody(m)
+		setAvailability(ctx, avail, []movie.Movie{m}, []*movieBody{b})
 		if tagSvc != nil && len(input.Body.TagIDs) > 0 {
 			_ = tagSvc.SetMovieTags(ctx, m.ID, input.Body.TagIDs)
 			b.TagIDs = input.Body.TagIDs
@@ -390,6 +416,7 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to get movie", err)
 		}
 		b := movieToBody(m)
+		setAvailability(ctx, avail, []movie.Movie{m}, []*movieBody{b})
 		if tagSvc != nil {
 			b.TagIDs, _ = tagSvc.MovieTagIDs(ctx, m.ID)
 		}
@@ -428,6 +455,7 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to update movie", err)
 		}
 		b := movieToBody(m)
+		setAvailability(ctx, avail, []movie.Movie{m}, []*movieBody{b})
 		if tagSvc != nil {
 			if input.Body.TagIDs != nil {
 				_ = tagSvc.SetMovieTags(ctx, m.ID, input.Body.TagIDs)
@@ -530,7 +558,9 @@ func RegisterMovieRoutes(api huma.API, svc *movie.Service, tagSvc *tag.Service, 
 			}
 			return nil, huma.NewError(http.StatusInternalServerError, "failed to match movie", err)
 		}
-		return &movieOutput{Body: movieToBody(m)}, nil
+		b := movieToBody(m)
+		setAvailability(ctx, avail, []movie.Movie{m}, []*movieBody{b})
+		return &movieOutput{Body: b}, nil
 	})
 
 	// GET /api/v1/editions — list canonical edition names for UI dropdowns.

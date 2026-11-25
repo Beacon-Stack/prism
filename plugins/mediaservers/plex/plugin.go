@@ -281,6 +281,29 @@ func (s *Server) ListMovies(ctx context.Context, sectionKey string) ([]Movie, er
 	return movies, nil
 }
 
+// ListMovieItems returns every movie in every movie library on the
+// server. It implements plugin.MovieLister.
+func (s *Server) ListMovieItems(ctx context.Context) ([]plugin.MediaItem, error) {
+	sections, err := s.getSections(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var items []plugin.MediaItem
+	for _, sec := range sections.Directories {
+		if sec.Type != "movie" {
+			continue
+		}
+		movies, err := s.ListMovies(ctx, sec.Key)
+		if err != nil {
+			return nil, fmt.Errorf("plex: listing section %q: %w", sec.Title, err)
+		}
+		for _, m := range movies {
+			items = append(items, plugin.MediaItem{TMDBID: m.TmdbID, Title: m.Title, Year: m.Year})
+		}
+	}
+	return items, nil
+}
+
 // extractTmdbID tries to find a TMDB ID from the video's guid fields.
 // New Plex agent: <Guid id="tmdb://12345"/>
 // Legacy agent: guid="com.plexapp.agents.themoviedb://12345?lang=en"
