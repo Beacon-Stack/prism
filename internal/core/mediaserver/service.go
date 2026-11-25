@@ -13,6 +13,7 @@ import (
 
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
 	"github.com/beacon-stack/prism/internal/registry"
+	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // ErrNotFound is returned when a media server config does not exist.
@@ -157,6 +158,29 @@ func (s *Service) Test(ctx context.Context, id string) error {
 		return fmt.Errorf("instantiating media server plugin: %w", err)
 	}
 	return ms.Test(ctx)
+}
+
+// MovieListers returns every enabled media server that can list the
+// movies it holds. A server whose plugin can't be built is skipped.
+func (s *Service) MovieListers(ctx context.Context) ([]plugin.MovieLister, error) {
+	configs, err := s.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []plugin.MovieLister
+	for _, cfg := range configs {
+		if !cfg.Enabled {
+			continue
+		}
+		ms, err := s.reg.NewMediaServer(cfg.Kind, cfg.Settings)
+		if err != nil {
+			continue
+		}
+		if lister, ok := ms.(plugin.MovieLister); ok {
+			out = append(out, lister)
+		}
+	}
+	return out, nil
 }
 
 // rowToConfig converts a DB row into the domain Config type.

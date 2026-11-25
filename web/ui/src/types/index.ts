@@ -52,6 +52,8 @@ export interface Movie {
   poster_url?: string;
   fanart_url?: string;
   status: string;
+  availability?: string;        // where it stands: available, downloaded, downloading, wanted…
+  download_progress?: number;   // 0..1 while downloading
   monitored: boolean;
   library_id: string;
   quality_profile_id: string;

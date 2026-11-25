@@ -18,3 +18,16 @@ type MediaServer interface {
 	// are valid.
 	Test(ctx context.Context) error
 }
+
+// MediaItem identifies one movie held by a media server.
+type MediaItem struct {
+	TMDBID int // 0 when the server has no TMDB ID for it
+	Title  string
+	Year   int
+}
+
+// MovieLister is implemented by media servers that can say which movies
+// they hold, so the app can show what is ready to watch.
+type MovieLister interface {
+	ListMovieItems(ctx context.Context) ([]MediaItem, error)
+}

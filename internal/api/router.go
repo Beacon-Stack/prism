@@ -22,6 +22,7 @@ import (
 	v1 "github.com/beacon-stack/prism/internal/api/v1"
 	v3 "github.com/beacon-stack/prism/internal/api/v3"
 	"github.com/beacon-stack/prism/internal/api/ws"
+	"github.com/beacon-stack/prism/internal/availability"
 	"github.com/beacon-stack/prism/internal/config"
 	"github.com/beacon-stack/prism/internal/core/activity"
 	"github.com/beacon-stack/prism/internal/core/autosearch"
@@ -93,6 +94,7 @@ type RouterConfig struct {
 	AutoSearchService        *autosearch.Service
 	ActivityService          *activity.Service
 	WatchSyncService         *watchsync.Service
+	Availability             *availability.Service // nil: movies carry no availability
 	ImportListService        *importlist.Service
 	ImporterService          *importer.Service
 	ProviderResolver         *provider.Resolver
@@ -199,7 +201,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	}
 
 	if cfg.MovieService != nil {
-		v1.RegisterMovieRoutes(humaAPI, cfg.MovieService, cfg.TagService, cfg.WatchSyncService)
+		v1.RegisterMovieRoutes(humaAPI, cfg.MovieService, cfg.TagService, cfg.Availability, cfg.WatchSyncService)
 		v1.RegisterMovieFileRoutes(humaAPI, cfg.MovieService, cfg.MediaManagementService, cfg.MediaInfoService)
 		v1.RegisterMovieCreditsRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
 		v1.RegisterDiscoverRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
