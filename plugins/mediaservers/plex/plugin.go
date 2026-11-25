@@ -60,9 +60,29 @@ type Server struct {
 	client *http.Client
 }
 
+// serverAddress turns whatever was pasted into the URL field into the
+// server's base address. People copy the address from their browser,
+// which is the web app's page (http://host:32400/web/index.html#!/...),
+// not the server itself; requests built on that return the web app's
+// HTML instead of data.
+func serverAddress(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if i := strings.Index(raw, "#"); i >= 0 {
+		raw = raw[:i]
+	}
+	if i := strings.Index(raw, "?"); i >= 0 {
+		raw = raw[:i]
+	}
+	raw = strings.TrimRight(raw, "/")
+	if i := strings.Index(raw, "/web/"); i >= 0 {
+		raw = raw[:i]
+	}
+	return strings.TrimSuffix(raw, "/web")
+}
+
 // New creates a new Server from the given config.
 func New(cfg Config) *Server {
-	cfg.URL = strings.TrimRight(cfg.URL, "/")
+	cfg.URL = serverAddress(cfg.URL)
 	transport := safedialer.LANTransport()
 	if cfg.SkipTLSVerify {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // opt-in for self-signed certs
@@ -182,23 +202,12 @@ func (s *Server) refreshSection(ctx context.Context, key string) error {
 }
 
 // Test verifies that the Plex server is reachable with the configured token.
+// Test checks the address and token by asking the server for its
+// libraries. Any page that answers 200 is not enough: the reply has to be
+// Plex's own.
 func (s *Server) Test(ctx context.Context) error {
-	url := s.cfg.URL
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return fmt.Errorf("plex: building test request: %w", err)
-	}
-	req.Header.Set("X-Plex-Token", s.cfg.Token)
-
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("plex: test request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("plex: test returned %d: %s", resp.StatusCode, body)
+	if _, err := s.getSections(ctx); err != nil {
+		return fmt.Errorf("plex: no valid answer from %s (use the server's address, such as http://192.168.1.10:32400): %w", s.cfg.URL, err)
 	}
 	return nil
 }

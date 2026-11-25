@@ -155,9 +155,32 @@ func TestExtractTmdbID(t *testing.T) {
 	}
 }
 
-func TestNew_TrimsTrailingSlash(t *testing.T) {
-	s := New(Config{URL: "http://plex.local/", Token: "tok"})
-	if s.cfg.URL != "http://plex.local" {
-		t.Errorf("URL = %q, want no trailing slash", s.cfg.URL)
+func TestNew_UsesTheServerAddress(t *testing.T) {
+	cases := map[string]string{
+		"http://plex.local/":                             "http://plex.local",
+		"http://192.168.1.6:32400":                       "http://192.168.1.6:32400",
+		"http://192.168.1.6:32400/web/index.html#!/":     "http://192.168.1.6:32400",
+		"http://192.168.1.6:32400/web":                   "http://192.168.1.6:32400",
+		"https://plex.example.com/plex/web/index.html#!": "https://plex.example.com/plex",
+		" http://192.168.1.6:32400/?x=1 ":                "http://192.168.1.6:32400",
+	}
+	for in, want := range cases {
+		if got := New(Config{URL: in, Token: "tok"}).cfg.URL; got != want {
+			t.Errorf("New(%q).URL = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// A page that answers 200 but isn't Plex (the web app, a login page) must
+// not pass the test.
+func TestTest_RejectsAPageThatIsNotPlex(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte("<!doctype html><html><body>Plex Web</body></html>"))
+	}))
+	defer srv.Close()
+
+	s := &Server{cfg: Config{URL: srv.URL, Token: "test-token"}, client: srv.Client()}
+	if err := s.Test(context.Background()); err == nil {
+		t.Fatal("Test() = nil for an HTML page, want an error")
 	}
 }
