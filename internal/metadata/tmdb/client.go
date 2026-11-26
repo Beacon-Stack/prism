@@ -159,12 +159,30 @@ func (c *Client) GetMovieExtended(ctx context.Context, tmdbID int) (*MovieDetail
 		ReleaseDate   string `json:"release_date"`
 		Runtime       int    `json:"runtime"`
 		Genres        []struct {
+			ID   int    `json:"id"`
 			Name string `json:"name"`
 		} `json:"genres"`
-		PosterPath   string `json:"poster_path"`
-		BackdropPath string `json:"backdrop_path"`
-		Status       string `json:"status"`
-		Credits      struct {
+		PosterPath   string  `json:"poster_path"`
+		BackdropPath string  `json:"backdrop_path"`
+		Status       string  `json:"status"`
+		VoteAverage  float64 `json:"vote_average"`
+		Collection   *struct {
+			ID         int    `json:"id"`
+			Name       string `json:"name"`
+			PosterPath string `json:"poster_path"`
+		} `json:"belongs_to_collection"`
+		Companies []struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			LogoPath string `json:"logo_path"`
+		} `json:"production_companies"`
+		Keywords struct {
+			Keywords []struct {
+				ID   int    `json:"id"`
+				Name string `json:"name"`
+			} `json:"keywords"`
+		} `json:"keywords"`
+		Credits struct {
 			Cast []struct {
 				ID          int    `json:"id"`
 				Name        string `json:"name"`
@@ -191,7 +209,7 @@ func (c *Client) GetMovieExtended(ctx context.Context, tmdbID int) (*MovieDetail
 	}
 
 	params := url.Values{}
-	params.Set("append_to_response", "credits,recommendations")
+	params.Set("append_to_response", "credits,recommendations,keywords")
 
 	path := fmt.Sprintf("/movie/%d", tmdbID)
 	if err := c.get(ctx, path, params, &raw); err != nil {
@@ -199,8 +217,22 @@ func (c *Client) GetMovieExtended(ctx context.Context, tmdbID int) (*MovieDetail
 	}
 
 	genres := make([]string, 0, len(raw.Genres))
+	genreRefs := make([]Genre, 0, len(raw.Genres))
 	for _, g := range raw.Genres {
 		genres = append(genres, g.Name)
+		genreRefs = append(genreRefs, Genre{ID: g.ID, Name: g.Name})
+	}
+	keywords := make([]Keyword, 0, len(raw.Keywords.Keywords))
+	for _, k := range raw.Keywords.Keywords {
+		keywords = append(keywords, Keyword{ID: k.ID, Name: k.Name})
+	}
+	companies := make([]Company, 0, len(raw.Companies))
+	for _, co := range raw.Companies {
+		companies = append(companies, Company{ID: co.ID, Name: co.Name, LogoPath: co.LogoPath})
+	}
+	var franchise *FranchiseSearchResult
+	if raw.Collection != nil {
+		franchise = &FranchiseSearchResult{ID: raw.Collection.ID, Name: raw.Collection.Name, PosterPath: raw.Collection.PosterPath}
 	}
 
 	// Top 10 cast by billing order.
@@ -270,6 +302,11 @@ func (c *Client) GetMovieExtended(ctx context.Context, tmdbID int) (*MovieDetail
 		Cast:            cast,
 		Crew:            crew,
 		Recommendations: recs,
+		Rating:          raw.VoteAverage,
+		GenreRefs:       genreRefs,
+		Keywords:        keywords,
+		Companies:       companies,
+		Franchise:       franchise,
 	}, nil
 }
 

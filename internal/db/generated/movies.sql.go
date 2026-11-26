@@ -648,6 +648,34 @@ func (q *Queries) ListMovieFilesByLibrary(ctx context.Context, libraryID string)
 	return items, nil
 }
 
+const listMovieGenres = `-- name: ListMovieGenres :many
+SELECT genres_json FROM movies
+`
+
+// Every movie's genre list, to work out which genres the library leans to.
+func (q *Queries) ListMovieGenres(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listMovieGenres)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var genres_json string
+		if err := rows.Scan(&genres_json); err != nil {
+			return nil, err
+		}
+		items = append(items, genres_json)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMovieIDsByTMDBIDs = `-- name: ListMovieIDsByTMDBIDs :many
 SELECT id, tmdb_id FROM movies WHERE tmdb_id IN (/*SLICE:tmdb_ids*/?)
 `
@@ -838,6 +866,44 @@ func (q *Queries) ListMoviesByLibrary(ctx context.Context, arg ListMoviesByLibra
 			&i.PreferredEdition,
 			&i.RowID,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRecentlyAddedMovies = `-- name: ListRecentlyAddedMovies :many
+SELECT id, tmdb_id, title FROM movies
+WHERE tmdb_id != 0
+ORDER BY added_at DESC
+LIMIT ?
+`
+
+type ListRecentlyAddedMoviesRow struct {
+	ID     string `json:"id"`
+	TmdbID int64  `json:"tmdbId"`
+	Title  string `json:"title"`
+}
+
+// The newest additions, as starting points for Discover's "Because you
+// have ..." rows.
+func (q *Queries) ListRecentlyAddedMovies(ctx context.Context, limit int64) ([]ListRecentlyAddedMoviesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listRecentlyAddedMovies, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRecentlyAddedMoviesRow
+	for rows.Next() {
+		var i ListRecentlyAddedMoviesRow
+		if err := rows.Scan(&i.ID, &i.TmdbID, &i.Title); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -69,11 +69,29 @@ type MovieDetail struct {
 	// TMDB "Released" → "released"; "In Production" / "Post Production" / anything else → "announced".
 	Status string
 
-	// Credits and recommendations are populated only when fetched via
-	// GetMovieExtended (append_to_response=credits,recommendations).
+	// The rest is populated only when fetched via GetMovieExtended
+	// (append_to_response=credits,recommendations,keywords).
 	Cast            []CastMember          `json:"cast,omitempty"`
 	Crew            []CrewMember          `json:"crew,omitempty"`
 	Recommendations []MovieRecommendation `json:"recommendations,omitempty"`
+	Rating          float64               // TMDB vote average, 0-10
+	GenreRefs       []Genre               // Genres with their TMDB IDs
+	Keywords        []Keyword
+	Companies       []Company              // production companies
+	Franchise       *FranchiseSearchResult // the collection this movie belongs to, if any
+}
+
+// Keyword is a TMDB keyword ("heist", "time travel").
+type Keyword struct {
+	ID   int
+	Name string
+}
+
+// Company is a TMDB production company.
+type Company struct {
+	ID       int
+	Name     string
+	LogoPath string
 }
 
 // Genre is a TMDB movie genre.

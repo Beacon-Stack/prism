@@ -179,3 +179,15 @@ SELECT id, tmdb_id, title, year, status FROM movies WHERE tmdb_id != 0;
 -- Batched tmdb_id -> library movie id lookup, so Discover can flag which
 -- results are already in the library in one query instead of one per result.
 SELECT id, tmdb_id FROM movies WHERE tmdb_id IN (sqlc.slice('tmdb_ids'));
+
+-- name: ListRecentlyAddedMovies :many
+-- The newest additions, as starting points for Discover's "Because you
+-- have ..." rows.
+SELECT id, tmdb_id, title FROM movies
+WHERE tmdb_id != 0
+ORDER BY added_at DESC
+LIMIT ?;
+
+-- name: ListMovieGenres :many
+-- Every movie's genre list, to work out which genres the library leans to.
+SELECT genres_json FROM movies;
