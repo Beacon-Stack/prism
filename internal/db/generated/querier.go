@@ -132,6 +132,8 @@ type Querier interface {
 	ListMovieFileQualitiesWithIDs(ctx context.Context) ([]ListMovieFileQualitiesWithIDsRow, error)
 	ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error)
 	ListMovieFilesByLibrary(ctx context.Context, libraryID string) ([]MovieFile, error)
+	// Every movie's genre list, to work out which genres the library leans to.
+	ListMovieGenres(ctx context.Context) ([]string, error)
 	ListMovieGenresJSON(ctx context.Context) ([]string, error)
 	// Batched tmdb_id -> library movie id lookup, so Discover can flag which
 	// results are already in the library in one query instead of one per result.
@@ -146,6 +148,9 @@ type Querier interface {
 	ListNotificationConfigs(ctx context.Context) ([]NotificationConfig, error)
 	ListQualityDefinitions(ctx context.Context) ([]QualityDefinition, error)
 	ListQualityProfiles(ctx context.Context) ([]QualityProfile, error)
+	// The newest additions, as starting points for Discover's "Because you
+	// have ..." rows.
+	ListRecentlyAddedMovies(ctx context.Context, limit int64) ([]ListRecentlyAddedMoviesRow, error)
 	ListRemotePathMappings(ctx context.Context) ([]RemotePathMapping, error)
 	ListStorageSnapshots(ctx context.Context, limit int64) ([]StorageSnapshot, error)
 	ListTags(ctx context.Context) ([]Tag, error)

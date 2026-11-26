@@ -204,7 +204,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		v1.RegisterMovieRoutes(humaAPI, cfg.MovieService, cfg.TagService, cfg.Availability, cfg.WatchSyncService)
 		v1.RegisterMovieFileRoutes(humaAPI, cfg.MovieService, cfg.MediaManagementService, cfg.MediaInfoService)
 		v1.RegisterMovieCreditsRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
-		v1.RegisterDiscoverRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
+		v1.RegisterDiscoverRoutes(humaAPI, cfg.MovieService, cfg.CollectionService, cfg.TMDBClient)
 		v1.RegisterPeopleRoutes(humaAPI, cfg.MovieService, cfg.TMDBClient)
 		v1.RegisterWantedRoutes(humaAPI, cfg.MovieService)
 	}

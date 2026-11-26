@@ -579,6 +579,46 @@ func (s *Service) LibraryIDsByTMDBIDs(ctx context.Context, tmdbIDs []int) (map[i
 	return out, nil
 }
 
+// Seed is a library movie Discover can base recommendations on.
+type Seed struct {
+	ID     string
+	TMDBID int
+	Title  string
+}
+
+// RecentlyAdded returns up to limit of the newest library movies that have
+// a TMDB ID, newest first.
+func (s *Service) RecentlyAdded(ctx context.Context, limit int) ([]Seed, error) {
+	rows, err := s.q.ListRecentlyAddedMovies(ctx, int64(limit))
+	if err != nil {
+		return nil, fmt.Errorf("listing recently added movies: %w", err)
+	}
+	out := make([]Seed, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, Seed{ID: r.ID, TMDBID: int(r.TmdbID), Title: r.Title})
+	}
+	return out, nil
+}
+
+// GenreCounts returns how many library movies carry each genre name.
+func (s *Service) GenreCounts(ctx context.Context) (map[string]int, error) {
+	rows, err := s.q.ListMovieGenres(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing movie genres: %w", err)
+	}
+	counts := make(map[string]int)
+	for _, raw := range rows {
+		var genres []string
+		if err := json.Unmarshal([]byte(raw), &genres); err != nil {
+			continue // one unreadable row shouldn't hide the rest
+		}
+		for _, g := range genres {
+			counts[g]++
+		}
+	}
+	return counts, nil
+}
+
 // GetByFilePath returns the movie that owns the given file path, or
 // ErrNotFound if no movie_files row exists for that path. If the
 // movie_files row exists but the parent movie has been deleted

@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 
+	"github.com/beacon-stack/prism/internal/core/collection"
 	"github.com/beacon-stack/prism/internal/core/movie"
 	"github.com/beacon-stack/prism/internal/metadata/tmdb"
 )
@@ -58,12 +60,19 @@ type discoverGenreInput struct {
 }
 
 type discoverBrowseInput struct {
-	Category  string  `query:"category" default:"trending" enum:"trending,popular,top-rated,new,coming-soon" doc:"Which list"`
-	Page      int     `query:"page" default:"1" minimum:"1" maximum:"500" doc:"Page number (1-based)"`
-	Genre     int     `query:"genre" doc:"TMDB genre ID; 0 for any"`
-	Provider  int     `query:"provider" doc:"TMDB streaming service ID; 0 for any"`
-	MinRating float64 `query:"min_rating" minimum:"0" maximum:"10" doc:"Minimum TMDB rating (0-10)"`
-	Region    string  `query:"region" default:"US" doc:"Country for release dates and streaming services (ISO 3166-1)"`
+	Category   string  `query:"category" default:"trending" enum:"trending,popular,top-rated,new,coming-soon" doc:"Which list"`
+	Page       int     `query:"page" default:"1" minimum:"1" maximum:"500" doc:"Page number (1-based)"`
+	Genre      []int   `query:"genre" doc:"TMDB genre IDs, comma-separated; movies must be in every one"`
+	Provider   int     `query:"provider" doc:"TMDB streaming service ID; 0 for any"`
+	MinRating  float64 `query:"min_rating" minimum:"0" maximum:"10" doc:"Minimum TMDB rating (0-10)"`
+	Region     string  `query:"region" default:"US" doc:"Country for release dates and streaming services (ISO 3166-1)"`
+	Sort       string  `query:"sort" enum:"rating,newest,revenue" doc:"Order that replaces the list's own: highest rated, newest or biggest box office"`
+	Decade     int     `query:"decade" doc:"First year of a decade (1990 = 1990-1999); 0 for any"`
+	Runtime    string  `query:"runtime" enum:"short,medium,long" doc:"Under 90 minutes, 90-120 minutes, or over two hours"`
+	Language   string  `query:"language" maxLength:"2" doc:"Original language (ISO 639-1)"`
+	Keyword    int     `query:"keyword" doc:"TMDB keyword ID; 0 for any"`
+	Company    int     `query:"company" doc:"TMDB production company ID; 0 for any"`
+	Collection int     `query:"collection" doc:"TMDB collection ID: lists that collection's movies and ignores everything else"`
 }
 
 type discoverRegionInput struct {
@@ -109,6 +118,33 @@ type discoverMovieDetailBody struct {
 	Cast            []discoverCastBody           `json:"cast,omitempty"            doc:"Top billed cast"`
 	Crew            []discoverCrewBody           `json:"crew,omitempty"            doc:"Key crew members"`
 	Recommendations []discoverRecommendationBody `json:"recommendations,omitempty" doc:"Recommended movies"`
+	GenreRefs       []genreBody                  `json:"genre_refs"       doc:"Genres with their TMDB IDs"`
+	Keywords        []discoverRefBody            `json:"keywords"         doc:"TMDB keywords"`
+	Companies       []discoverRefBody            `json:"companies"        doc:"Production companies"`
+	Collection      *discoverRefBody             `json:"collection,omitempty" doc:"The collection this movie is part of"`
+}
+
+// discoverRefBody names something a list of movies can be built from.
+type discoverRefBody struct {
+	ID        int    `json:"id"                   doc:"TMDB ID"`
+	Name      string `json:"name"                 doc:"Name"`
+	ImagePath string `json:"image_path,omitempty" doc:"TMDB image path, if it has one"`
+	Detail    string `json:"detail,omitempty"     doc:"What a person is known for"`
+}
+
+type discoverSuggestInput struct {
+	Query string `query:"q" maxLength:"200" doc:"Text to match"`
+}
+
+type discoverSuggestBody struct {
+	People      []discoverRefBody `json:"people"      doc:"Matching people"`
+	Collections []discoverRefBody `json:"collections" doc:"Matching movie collections"`
+	Keywords    []discoverRefBody `json:"keywords"    doc:"Matching keywords"`
+	Companies   []discoverRefBody `json:"companies"   doc:"Matching production companies"`
+}
+
+type discoverSuggestOutput struct {
+	Body *discoverSuggestBody
 }
 
 type discoverCastBody struct {
@@ -136,43 +172,61 @@ type discoverMovieDetailOutput struct {
 	Body *discoverMovieDetailBody
 }
 
+// enrichDiscover turns TMDB results into response items, marking the ones
+// already in the library and dropping those with no usable title.
+func enrichDiscover(ctx context.Context, movieSvc *movie.Service, results []tmdb.SearchResult) []discoverResultBody {
+	// Resolve library membership for the whole page in one query rather
+	// than one GetByTMDBID per result.
+	var inLibrary map[int]string
+	if movieSvc != nil && len(results) > 0 {
+		ids := make([]int, len(results))
+		for i, r := range results {
+			ids[i] = r.ID
+		}
+		inLibrary, _ = movieSvc.LibraryIDsByTMDBIDs(ctx, ids)
+	}
+
+	out := make([]discoverResultBody, 0, len(results))
+	for _, r := range results {
+		title, ok := displayTitle(r.Title, r.OriginalTitle)
+		if !ok {
+			continue
+		}
+		item := discoverResultBody{
+			TMDBID:     r.ID,
+			Title:      title,
+			Year:       r.Year,
+			Overview:   r.Overview,
+			PosterPath: r.PosterPath,
+			Rating:     r.Popularity, // PaginatedResults stores vote_average here
+		}
+		if movieID, ok := inLibrary[r.ID]; ok {
+			item.InLibrary = true
+			item.LibraryMovieID = movieID
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+// maxSuggestions is how many of each kind a search suggests.
+const maxSuggestions = 6
+
+// firstN returns at most the first n items.
+func firstN[T any](items []T, n int) []T {
+	if len(items) > n {
+		return items[:n]
+	}
+	return items
+}
+
 // Registration
 
 // RegisterDiscoverRoutes registers the /api/v1/discover/* endpoints.
-func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *tmdb.Client) {
+// collectionSvc may be nil; the shelves then leave out collection rows.
+func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, collectionSvc *collection.Service, tmdbClient *tmdb.Client) {
 	enrich := func(ctx context.Context, results []tmdb.SearchResult) []discoverResultBody {
-		// Resolve library membership for the whole page in one query rather
-		// than one GetByTMDBID per result.
-		var inLibrary map[int]string
-		if movieSvc != nil && len(results) > 0 {
-			ids := make([]int, len(results))
-			for i, r := range results {
-				ids[i] = r.ID
-			}
-			inLibrary, _ = movieSvc.LibraryIDsByTMDBIDs(ctx, ids)
-		}
-
-		out := make([]discoverResultBody, 0, len(results))
-		for _, r := range results {
-			title, ok := displayTitle(r.Title, r.OriginalTitle)
-			if !ok {
-				continue
-			}
-			item := discoverResultBody{
-				TMDBID:     r.ID,
-				Title:      title,
-				Year:       r.Year,
-				Overview:   r.Overview,
-				PosterPath: r.PosterPath,
-				Rating:     r.Popularity, // PaginatedResults stores vote_average here
-			}
-			if movieID, ok := inLibrary[r.ID]; ok {
-				item.InLibrary = true
-				item.LibraryMovieID = movieID
-			}
-			out = append(out, item)
-		}
-		return out
+		return enrichDiscover(ctx, movieSvc, results)
 	}
 
 	registerList := func(opID, path, summary string, fetch func(context.Context, int) (*tmdb.PaginatedResults, error)) {
@@ -229,21 +283,33 @@ func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *t
 		Method:      http.MethodGet,
 		Path:        "/api/v1/discover/browse",
 		Summary:     "Browse movies by category with optional filters",
-		Description: "Categories: trending, popular, top-rated, new (released to streaming, rent or buy in the last 60 days), coming-soon. Filters are ignored for trending.",
+		Description: "Categories: trending, popular, top-rated, new (released to streaming, rent or buy in the last 60 days), coming-soon. Filters are ignored for trending. decade is ignored for new and coming-soon, which set their own dates; sort by rating or revenue is ignored for coming-soon.",
 		Tags:        []string{"Discover"},
 	}, func(ctx context.Context, input *discoverBrowseInput) (*discoverListOutput, error) {
 		if tmdbClient == nil {
 			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB is not configured")
 		}
-		pr, err := tmdbClient.Browse(ctx, tmdb.BrowseFilter{
-			Category:   input.Category,
-			Page:       input.Page,
-			GenreID:    input.Genre,
-			ProviderID: input.Provider,
-			MinRating:  input.MinRating,
-			Region:     input.Region,
-			Today:      time.Now(),
-		})
+		var pr *tmdb.PaginatedResults
+		var err error
+		if input.Collection > 0 {
+			pr, err = tmdbClient.FranchiseMovies(ctx, input.Collection)
+		} else {
+			pr, err = tmdbClient.Browse(ctx, tmdb.BrowseFilter{
+				Category:   input.Category,
+				Page:       input.Page,
+				GenreIDs:   input.Genre,
+				ProviderID: input.Provider,
+				MinRating:  input.MinRating,
+				Region:     input.Region,
+				Sort:       input.Sort,
+				Decade:     input.Decade,
+				Runtime:    input.Runtime,
+				Language:   input.Language,
+				KeywordID:  input.Keyword,
+				CompanyID:  input.Company,
+				Today:      time.Now(),
+			})
+		}
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "unknown category") {
 				return nil, huma.NewError(http.StatusBadRequest, err.Error())
@@ -304,6 +370,73 @@ func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *t
 			TotalPages: pr.TotalPages,
 		}}, nil
 	})
+
+	// People, collections, keywords and studios matching a search, so a
+	// search can lead somewhere other than a title.
+	huma.Register(api, huma.Operation{
+		OperationID: "discover-suggest",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/discover/suggest",
+		Summary:     "Find people, collections, keywords and studios by name",
+		Description: "A kind that TMDB fails to answer for comes back empty rather than failing the request.",
+		Tags:        []string{"Discover"},
+	}, func(ctx context.Context, input *discoverSuggestInput) (*discoverSuggestOutput, error) {
+		if tmdbClient == nil {
+			return nil, huma.NewError(http.StatusServiceUnavailable, "TMDB is not configured")
+		}
+		body := &discoverSuggestBody{
+			People:      []discoverRefBody{},
+			Collections: []discoverRefBody{},
+			Keywords:    []discoverRefBody{},
+			Companies:   []discoverRefBody{},
+		}
+		q := strings.TrimSpace(input.Query)
+		if q == "" {
+			return &discoverSuggestOutput{Body: body}, nil
+		}
+
+		var wg sync.WaitGroup
+		wg.Go(func() {
+			people, err := tmdbClient.SearchPeople(ctx, q)
+			if err != nil {
+				return
+			}
+			for _, p := range firstN(people, maxSuggestions) {
+				body.People = append(body.People, discoverRefBody{ID: p.ID, Name: p.Name, ImagePath: p.ProfilePath, Detail: p.KnownForDepartment})
+			}
+		})
+		wg.Go(func() {
+			franchises, err := tmdbClient.SearchFranchises(ctx, q)
+			if err != nil {
+				return
+			}
+			for _, f := range firstN(franchises, maxSuggestions) {
+				body.Collections = append(body.Collections, discoverRefBody{ID: f.ID, Name: f.Name, ImagePath: f.PosterPath})
+			}
+		})
+		wg.Go(func() {
+			keywords, err := tmdbClient.SearchKeywords(ctx, q)
+			if err != nil {
+				return
+			}
+			for _, k := range firstN(keywords, maxSuggestions) {
+				body.Keywords = append(body.Keywords, discoverRefBody{ID: k.ID, Name: k.Name})
+			}
+		})
+		wg.Go(func() {
+			companies, err := tmdbClient.SearchCompanies(ctx, q)
+			if err != nil {
+				return
+			}
+			for _, c := range firstN(companies, maxSuggestions) {
+				body.Companies = append(body.Companies, discoverRefBody{ID: c.ID, Name: c.Name, ImagePath: c.LogoPath})
+			}
+		})
+		wg.Wait()
+		return &discoverSuggestOutput{Body: body}, nil
+	})
+
+	registerDiscoverShelves(api, movieSvc, collectionSvc, tmdbClient)
 
 	// Genre browse
 	huma.Register(api, huma.Operation{
@@ -386,6 +519,22 @@ func RegisterDiscoverRoutes(api huma.API, movieSvc *movie.Service, tmdbClient *t
 			PosterPath:     detail.PosterPath,
 			BackdropPath:   detail.BackdropPath,
 			Status:         detail.Status,
+			Rating:         detail.Rating,
+			GenreRefs:      make([]genreBody, 0, len(detail.GenreRefs)),
+			Keywords:       make([]discoverRefBody, 0, len(detail.Keywords)),
+			Companies:      make([]discoverRefBody, 0, len(detail.Companies)),
+		}
+		for _, g := range detail.GenreRefs {
+			body.GenreRefs = append(body.GenreRefs, genreBody{ID: g.ID, Name: g.Name})
+		}
+		for _, k := range detail.Keywords {
+			body.Keywords = append(body.Keywords, discoverRefBody{ID: k.ID, Name: k.Name})
+		}
+		for _, c := range detail.Companies {
+			body.Companies = append(body.Companies, discoverRefBody{ID: c.ID, Name: c.Name, ImagePath: c.LogoPath})
+		}
+		if f := detail.Franchise; f != nil {
+			body.Collection = &discoverRefBody{ID: f.ID, Name: f.Name, ImagePath: f.PosterPath}
 		}
 
 		// Check library status.

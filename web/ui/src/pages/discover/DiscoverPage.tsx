@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Star } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  markAddedInDiscover,
   useDiscoverBrowse,
   useDiscoverProviders,
   useDiscoverSearch,
+  useDiscoverShelves,
+  useDiscoverSuggest,
   useGenreList,
   type DiscoverResult,
 } from "@/api/discover";
@@ -23,8 +25,10 @@ import { discoverRegion, useDiscoverState } from "@beacon-shared/discoverState";
 import { useAddMovie } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
-import { Poster } from "@/components/Poster";
 import Modal from "@beacon-shared/Modal";
+import DiscoverCard from "./DiscoverCard";
+import DiscoverShelves from "./DiscoverShelves";
+import SearchSuggestions from "./SearchSuggestions";
 
 // Add Movie Modal
 
@@ -38,6 +42,7 @@ function QuickAddModal({
   const { data: libraries } = useLibraries();
   const { data: profiles } = useQualityProfiles();
   const addMovie = useAddMovie();
+  const qc = useQueryClient();
 
   const [libraryId, setLibraryId] = useState("");
   const [profileId, setProfileId] = useState("");
@@ -56,7 +61,8 @@ function QuickAddModal({
         monitored: true,
       },
       {
-        onSuccess: () => {
+        onSuccess: (added) => {
+          markAddedInDiscover(qc, movie.tmdb_id, added.id);
           toast.success(`Added ${movie.title}`);
           onClose();
         },
@@ -206,151 +212,44 @@ function QuickAddModal({
   );
 }
 
-// Movie Card
-
-function DiscoverCard({
-  movie,
-  onAdd,
-}: {
-  movie: DiscoverResult;
-  onAdd: (m: DiscoverResult) => void;
-}) {
-  const navigate = useNavigate();
-
-  return (
-    <div style={{ width: "100%" }}>
-      <Link to={`/discover/${movie.tmdb_id}`} style={{ textDecoration: "none", color: "inherit", display: "block", cursor: "pointer" }}>
-        <div style={{ position: "relative" }}>
-          <Poster
-            src={
-              movie.poster_path
-                ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
-                : undefined
-            }
-            title={movie.title}
-            year={movie.year}
-          />
-
-          {/* Rating badge */}
-          {movie.rating > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: 6,
-                right: 6,
-                display: "flex",
-                alignItems: "center",
-                gap: 3,
-                padding: "2px 6px",
-                borderRadius: 4,
-                background: "rgba(0,0,0,0.7)",
-                backdropFilter: "blur(4px)",
-                fontSize: 11,
-                fontWeight: 600,
-                color: "#fbbf24",
-              }}
-            >
-              <Star size={10} fill="#fbbf24" stroke="none" />
-              {movie.rating.toFixed(1)}
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginTop: 8 }}>
-          <span
-            style={{
-              display: "block",
-              fontSize: 12,
-              fontWeight: 500,
-              color: "var(--color-text-primary)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {movie.title}
-          </span>
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-            {movie.year > 0 && movie.year}
-          </span>
-        </div>
-      </Link>
-
-      {/* Action badge */}
-      <div style={{ marginTop: 6 }}>
-        {movie.in_library ? (
-          <button
-            onClick={() =>
-              movie.library_movie_id &&
-              navigate(`/movies/${movie.library_movie_id}`)
-            }
-            data-testid={`in-library-${movie.tmdb_id}`}
-            style={{
-              fontSize: 10,
-              padding: "3px 8px",
-              borderRadius: 4,
-              border: "none",
-              background:
-                "color-mix(in srgb, var(--color-success) 15%, transparent)",
-              color: "var(--color-success)",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            In Library
-          </button>
-        ) : movie.excluded ? (
-          <span
-            style={{
-              fontSize: 10,
-              padding: "3px 8px",
-              borderRadius: 4,
-              background: "var(--color-bg-subtle)",
-              color: "var(--color-text-muted)",
-              fontWeight: 500,
-            }}
-          >
-            Excluded
-          </span>
-        ) : (
-          <button
-            onClick={() => onAdd(movie)}
-            data-testid={`add-${movie.tmdb_id}`}
-            style={{
-              fontSize: 10,
-              padding: "3px 8px",
-              borderRadius: 4,
-              border: "none",
-              background:
-                "color-mix(in srgb, var(--color-accent) 15%, transparent)",
-              color: "var(--color-accent)",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            + Add
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // Page
 
 const region = discoverRegion();
 
 export default function DiscoverPage() {
-  const s = useDiscoverState();
+  const s = useDiscoverState({ home: true });
   const [addingMovie, setAddingMovie] = useState<DiscoverResult | null>(null);
-  const browse = useDiscoverBrowse({ category: s.category, page: s.page, region, ...s.filters }, !s.searching);
+  const shelves = useDiscoverShelves(region, s.home);
+  const browse = useDiscoverBrowse(
+    {
+      category: s.category,
+      page: s.page,
+      region,
+      genres: s.filters.genres,
+      provider: s.filters.provider,
+      minRating: s.filters.minRating,
+      sort: s.filters.sort,
+      decade: s.filters.decade,
+      runtime: s.filters.runtime,
+      language: s.filters.language,
+      pivot: s.pivot,
+    },
+    !s.searching && !s.home
+  );
   const search = useDiscoverSearch(s.query, s.page, s.searching);
+  const suggest = useDiscoverSuggest(s.query, s.searching);
   const { data: genres } = useGenreList();
   const { data: providers } = useDiscoverProviders(region);
 
-  const active = s.searching ? search : browse;
-  const data = active.data;
+  const active = s.searching ? search : s.home ? shelves : browse;
+  const data = s.home ? undefined : (s.searching ? search : browse).data;
   const unavailable = active.error instanceof APIError && active.error.status === 503 ? active.error : null;
+
+  // "Hide what I have" is applied to the page TMDB returned, so a page can
+  // come up short, or empty while later pages still have movies.
+  const hiding = s.filters.hideOwned && !s.searching;
+  const shown = data ? (hiding ? data.results.filter((m) => !m.in_library) : data.results) : [];
+  const linkButton: React.CSSProperties = { background: "none", border: "none", color: "var(--color-accent)", fontSize: 13, cursor: "pointer" };
 
   return (
     <div style={{ padding: 24, maxWidth: 1200 }}>
@@ -370,10 +269,27 @@ export default function DiscoverPage() {
         genres={genres}
         providers={providers}
         region={region}
+        more
+        home={s.home}
+        onHome={s.goHome}
+        pivot={s.pivot}
+        onClearPivot={s.clearPivot}
       />
+
+      {s.searching && suggest.data && <SearchSuggestions suggestions={suggest.data} />}
 
       {unavailable ? (
         <DiscoverUnavailable app="Prism" message={unavailable.detail} />
+      ) : s.home ? (
+        <DiscoverShelves
+          shelves={shelves.data?.shelves}
+          loading={shelves.isLoading}
+          failed={shelves.isError}
+          shuffling={shelves.isPlaceholderData}
+          onShuffle={shelves.shuffle}
+          onAdd={setAddingMovie}
+          onBrowse={() => s.setCategory("trending")}
+        />
       ) : active.isLoading ? (
         <DiscoverLoading />
       ) : active.isError ? (
@@ -387,7 +303,7 @@ export default function DiscoverPage() {
             hint={s.filterCount ? "Try fewer filters or a different list." : undefined}
             action={
               s.filterCount ? (
-                <button type="button" onClick={s.clearFilters} style={{ background: "none", border: "none", color: "var(--color-accent)", fontSize: 13, cursor: "pointer" }}>
+                <button type="button" onClick={s.clearFilters} style={linkButton}>
                   Clear filters
                 </button>
               ) : undefined
@@ -396,11 +312,23 @@ export default function DiscoverPage() {
         )
       ) : data ? (
         <div style={{ opacity: active.isPlaceholderData ? 0.6 : 1, transition: "opacity 120ms" }}>
-          <DiscoverGrid>
-            {data.results.map((movie) => (
-              <DiscoverCard key={movie.tmdb_id} movie={movie} onAdd={setAddingMovie} />
-            ))}
-          </DiscoverGrid>
+          {shown.length === 0 ? (
+            <DiscoverEmpty
+              title="You have everything on this page"
+              hint={data.page < data.total_pages ? "There may be more on the next page." : undefined}
+              action={
+                <button type="button" onClick={() => s.setFilter("hideOwned", false)} style={linkButton}>
+                  Show what I have
+                </button>
+              }
+            />
+          ) : (
+            <DiscoverGrid>
+              {shown.map((movie) => (
+                <DiscoverCard key={movie.tmdb_id} movie={movie} onAdd={setAddingMovie} />
+              ))}
+            </DiscoverGrid>
+          )}
           <DiscoverPager page={data.page} totalPages={data.total_pages} onPage={s.setPage} />
         </div>
       ) : null}

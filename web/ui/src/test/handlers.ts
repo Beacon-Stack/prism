@@ -73,6 +73,10 @@ const handlers = [
   http.get("/api/v1/discover/search", () =>
     HttpResponse.json({ results: [], page: 1, total_pages: 0 })
   ),
+  http.get("/api/v1/discover/shelves", () => HttpResponse.json({ shelves: [] })),
+  http.get("/api/v1/discover/suggest", () =>
+    HttpResponse.json({ people: [], collections: [], keywords: [], companies: [] })
+  ),
   http.get("/api/v1/discover/providers", () =>
     HttpResponse.json([
       { id: 8, name: "Netflix", logo_path: "/n.jpg" },

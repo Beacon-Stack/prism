@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Star, Clock, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { useDiscoverMovie } from "@/api/discover";
+import { pivotLink, useDiscoverMovie } from "@/api/discover";
 import { useAddMovie, useAutoSearch } from "@/api/movies";
 import { useLibraries } from "@/api/libraries";
 import { useQualityProfiles } from "@/api/quality-profiles";
@@ -11,6 +11,29 @@ import Modal from "@beacon-shared/Modal";
 import { ManualSearchModal } from "@/components/ManualSearchModal";
 
 type PostAddAction = "none" | "interactive" | "auto";
+
+/** A movie can carry dozens of keywords; the first ones are the most telling. */
+const MAX_KEYWORDS = 14;
+
+const pivotChip: React.CSSProperties = {
+  fontSize: 11,
+  padding: "3px 10px",
+  borderRadius: 4,
+  background: "var(--color-bg-elevated)",
+  border: "1px solid var(--color-border-subtle)",
+  color: "var(--color-text-secondary)",
+  fontWeight: 500,
+  textDecoration: "none",
+};
+
+const sectionHeading: React.CSSProperties = {
+  margin: "0 0 10px",
+  fontSize: 13,
+  fontWeight: 600,
+  color: "var(--color-text-primary)",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+};
 
 function formatRuntime(minutes: number): string {
   if (!minutes) return "";
@@ -391,24 +414,13 @@ export default function DiscoverDetailPage() {
             )}
           </div>
 
-          {/* Genres */}
-          {movie.genres?.length > 0 && (
+          {/* Genres: each opens that genre in Discover */}
+          {movie.genre_refs?.length > 0 && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-              {movie.genres.map((g) => (
-                <span
-                  key={g}
-                  style={{
-                    fontSize: 11,
-                    padding: "3px 10px",
-                    borderRadius: 4,
-                    background: "var(--color-bg-elevated)",
-                    border: "1px solid var(--color-border-subtle)",
-                    color: "var(--color-text-secondary)",
-                    fontWeight: 500,
-                  }}
-                >
-                  {g}
-                </span>
+              {movie.genre_refs.map((g) => (
+                <Link key={g.id} to={`/discover?category=popular&genre=${g.id}`} title={`More ${g.name} movies`} style={pivotChip}>
+                  {g.name}
+                </Link>
               ))}
             </div>
           )}
@@ -417,6 +429,15 @@ export default function DiscoverDetailPage() {
           {movie.overview && (
             <p style={{ margin: "0 0 24px", fontSize: 14, lineHeight: 1.7, color: "var(--color-text-secondary)" }}>
               {movie.overview}
+            </p>
+          )}
+
+          {movie.collection && (
+            <p style={{ margin: "0 0 24px", fontSize: 13, color: "var(--color-text-muted)" }}>
+              Part of{" "}
+              <Link to={pivotLink("collection", movie.collection)} style={{ color: "var(--color-accent)", textDecoration: "none", fontWeight: 500 }}>
+                {movie.collection.name}
+              </Link>
             </p>
           )}
 
@@ -480,6 +501,36 @@ export default function DiscoverDetailPage() {
           )}
         </div>
       </div>
+
+      {/* More like this: keywords and studios, each a list in Discover */}
+      {(movie.keywords?.length > 0 || movie.companies?.length > 0) && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 16 }}>
+          {movie.keywords?.length > 0 && (
+            <div>
+              <h3 style={sectionHeading}>Keywords</h3>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {movie.keywords.slice(0, MAX_KEYWORDS).map((k) => (
+                  <Link key={k.id} to={pivotLink("keyword", k)} style={pivotChip}>
+                    {k.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          {movie.companies?.length > 0 && (
+            <div>
+              <h3 style={sectionHeading}>Studios</h3>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {movie.companies.map((c) => (
+                  <Link key={c.id} to={pivotLink("company", c)} style={pivotChip}>
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Recommendations */}
       {movie.recommendations?.length > 0 && (
