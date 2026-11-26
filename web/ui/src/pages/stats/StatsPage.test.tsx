@@ -241,6 +241,26 @@ describe("StatsPage", () => {
     expect(screen.getByRole("link", { name: "Heat" })).toHaveAttribute("href", "/movies/m-heat");
   });
 
+  it("leaves out a resolution that isn't known instead of printing 'unknown'", async () => {
+    serveBreakdown({
+      ...breakdown,
+      by_resolution: [slice("unknown", 80, 1, 100), slice("sd", 1, 1, 90)],
+      largest: [
+        { movie_id: "m-thing", title: "The Thing", year: 1982, bytes: 80 * GB, resolution: "unknown", runtime_minutes: 109 },
+        { movie_id: "m-clerks", title: "Clerks", year: 1994, bytes: GB, resolution: "sd", runtime_minutes: 92 },
+      ],
+    });
+    renderPage();
+
+    const largest = await screen.findByTestId("largest-movies");
+    expect(largest).toHaveTextContent("The Thing 198280 GB");
+    expect(largest).toHaveTextContent("Clerks 1994 · SD1 GB");
+    expect(largest).not.toHaveTextContent("unknown");
+    const slices = screen.getByTestId("storage-slices");
+    expect(slices).toHaveTextContent("Not known80 GB");
+    expect(slices).toHaveTextContent("SD1 GB");
+  });
+
   it("regroups the space by genre and decade", async () => {
     serveBreakdown();
     renderPage();

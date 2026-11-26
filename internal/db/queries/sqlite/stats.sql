@@ -28,7 +28,7 @@ FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id;
 
 -- name: ListMovieFileQualitiesWithIDs :many
-SELECT mf.movie_id, mf.quality_json FROM movie_files mf
+SELECT mf.movie_id, mf.quality_json, mf.mediainfo_json FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id;
 
 -- name: GetGrabStats :one
@@ -72,7 +72,7 @@ SELECT genres_json FROM movies WHERE genres_json IS NOT NULL AND genres_json != 
 
 -- name: ListMovieFileStorage :many
 -- One row per file with what the storage breakdown groups by.
-SELECT m.id AS movie_id, m.title, m.year, m.runtime_minutes, m.genres_json, mf.size_bytes, mf.quality_json
+SELECT m.id AS movie_id, m.title, m.year, m.runtime_minutes, m.genres_json, mf.size_bytes, mf.quality_json, mf.mediainfo_json
 FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id;
 

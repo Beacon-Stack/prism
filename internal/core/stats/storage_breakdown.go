@@ -8,8 +8,6 @@ import (
 	"sort"
 	"syscall"
 	"time"
-
-	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // StorageSlice is the space taken by one group of movie files.
@@ -123,8 +121,7 @@ func (s *Service) StorageBreakdown(ctx context.Context) (StorageBreakdown, error
 		if r.RuntimeMinutes != nil {
 			runtime = *r.RuntimeMinutes
 		}
-		var q plugin.Quality
-		_ = json.Unmarshal([]byte(r.QualityJson), &q)
+		q, _ := fileQuality(r.QualityJson, r.MediainfoJson)
 		resolution := string(q.Resolution)
 		if resolution == "" {
 			resolution = "unknown"
