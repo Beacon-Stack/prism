@@ -204,6 +204,74 @@ func (q *Queries) GetTopIndexers(ctx context.Context) ([]GetTopIndexersRow, erro
 	return items, nil
 }
 
+const getWatchTotals = `-- name: GetWatchTotals :one
+SELECT
+    (SELECT COUNT(*) FROM movies WHERE path IS NOT NULL AND path != '') AS owned,
+    (SELECT COUNT(*) FROM movies m
+       WHERE m.path IS NOT NULL AND m.path != ''
+         AND EXISTS (SELECT 1 FROM watch_history wh WHERE wh.movie_id = m.id)) AS watched,
+    (SELECT COUNT(*) FROM watch_history) AS plays,
+    (SELECT COALESCE(SUM(m.runtime_minutes), 0)
+       FROM watch_history wh JOIN movies m ON m.id = wh.movie_id) AS minutes
+`
+
+type GetWatchTotalsRow struct {
+	Owned   int64       `json:"owned"`
+	Watched int64       `json:"watched"`
+	Plays   int64       `json:"plays"`
+	Minutes interface{} `json:"minutes"`
+}
+
+// "Owned" is a movie with a file: the share watched is of what can be watched.
+func (q *Queries) GetWatchTotals(ctx context.Context) (GetWatchTotalsRow, error) {
+	row := q.db.QueryRowContext(ctx, getWatchTotals)
+	var i GetWatchTotalsRow
+	err := row.Scan(
+		&i.Owned,
+		&i.Watched,
+		&i.Plays,
+		&i.Minutes,
+	)
+	return i, err
+}
+
+const getWatchesByMonth = `-- name: GetWatchesByMonth :many
+SELECT
+    strftime('%Y-%m', watched_at) AS month,
+    COUNT(*)                      AS plays
+FROM watch_history
+GROUP BY strftime('%Y-%m', watched_at)
+ORDER BY month ASC
+`
+
+type GetWatchesByMonthRow struct {
+	Month interface{} `json:"month"`
+	Plays int64       `json:"plays"`
+}
+
+func (q *Queries) GetWatchesByMonth(ctx context.Context) ([]GetWatchesByMonthRow, error) {
+	rows, err := q.db.QueryContext(ctx, getWatchesByMonth)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWatchesByMonthRow
+	for rows.Next() {
+		var i GetWatchesByMonthRow
+		if err := rows.Scan(&i.Month, &i.Plays); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertStorageSnapshot = `-- name: InsertStorageSnapshot :exec
 INSERT INTO storage_snapshots (id, captured_at, total_bytes, file_count)
 VALUES (?, ?, ?, ?)
@@ -226,6 +294,97 @@ func (q *Queries) InsertStorageSnapshot(ctx context.Context, arg InsertStorageSn
 	return err
 }
 
+const listLongestUnwatchedMovies = `-- name: ListLongestUnwatchedMovies :many
+SELECT m.id, m.title, m.year, m.added_at
+FROM movies m
+WHERE m.path IS NOT NULL AND m.path != ''
+  AND NOT EXISTS (SELECT 1 FROM watch_history wh WHERE wh.movie_id = m.id)
+ORDER BY m.added_at ASC
+LIMIT ?
+`
+
+type ListLongestUnwatchedMoviesRow struct {
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Year    int64  `json:"year"`
+	AddedAt string `json:"addedAt"`
+}
+
+// Movies with a file that nobody has watched, longest in the library first.
+func (q *Queries) ListLongestUnwatchedMovies(ctx context.Context, limit int64) ([]ListLongestUnwatchedMoviesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLongestUnwatchedMovies, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLongestUnwatchedMoviesRow
+	for rows.Next() {
+		var i ListLongestUnwatchedMoviesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Year,
+			&i.AddedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMostWatchedMovies = `-- name: ListMostWatchedMovies :many
+SELECT m.id, m.title, m.year, COUNT(*) AS plays, MAX(wh.watched_at) AS last_watched_at
+FROM watch_history wh
+JOIN movies m ON m.id = wh.movie_id
+GROUP BY m.id, m.title, m.year
+ORDER BY plays DESC, last_watched_at DESC
+LIMIT ?
+`
+
+type ListMostWatchedMoviesRow struct {
+	ID            string      `json:"id"`
+	Title         string      `json:"title"`
+	Year          int64       `json:"year"`
+	Plays         int64       `json:"plays"`
+	LastWatchedAt interface{} `json:"lastWatchedAt"`
+}
+
+func (q *Queries) ListMostWatchedMovies(ctx context.Context, limit int64) ([]ListMostWatchedMoviesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMostWatchedMovies, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMostWatchedMoviesRow
+	for rows.Next() {
+		var i ListMostWatchedMoviesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Year,
+			&i.Plays,
+			&i.LastWatchedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMovieFileQualitiesWithIDs = `-- name: ListMovieFileQualitiesWithIDs :many
 SELECT mf.movie_id, mf.quality_json FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id
@@ -246,6 +405,54 @@ func (q *Queries) ListMovieFileQualitiesWithIDs(ctx context.Context) ([]ListMovi
 	for rows.Next() {
 		var i ListMovieFileQualitiesWithIDsRow
 		if err := rows.Scan(&i.MovieID, &i.QualityJson); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMovieFileStorage = `-- name: ListMovieFileStorage :many
+SELECT m.id AS movie_id, m.title, m.year, m.runtime_minutes, m.genres_json, mf.size_bytes, mf.quality_json
+FROM movie_files mf
+JOIN movies m ON m.id = mf.movie_id
+`
+
+type ListMovieFileStorageRow struct {
+	MovieID        string `json:"movieId"`
+	Title          string `json:"title"`
+	Year           int64  `json:"year"`
+	RuntimeMinutes *int64 `json:"runtimeMinutes"`
+	GenresJson     string `json:"genresJson"`
+	SizeBytes      int64  `json:"sizeBytes"`
+	QualityJson    string `json:"qualityJson"`
+}
+
+// One row per file with what the storage breakdown groups by.
+func (q *Queries) ListMovieFileStorage(ctx context.Context) ([]ListMovieFileStorageRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMovieFileStorage)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMovieFileStorageRow
+	for rows.Next() {
+		var i ListMovieFileStorageRow
+		if err := rows.Scan(
+			&i.MovieID,
+			&i.Title,
+			&i.Year,
+			&i.RuntimeMinutes,
+			&i.GenresJson,
+			&i.SizeBytes,
+			&i.QualityJson,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

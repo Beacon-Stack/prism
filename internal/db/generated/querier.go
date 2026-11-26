@@ -89,6 +89,9 @@ type Querier interface {
 	GetSyncState(ctx context.Context, mediaServerID string) (string, error)
 	GetTag(ctx context.Context, id string) (Tag, error)
 	GetTopIndexers(ctx context.Context) ([]GetTopIndexersRow, error)
+	// "Owned" is a movie with a file: the share watched is of what can be watched.
+	GetWatchTotals(ctx context.Context) (GetWatchTotalsRow, error)
+	GetWatchesByMonth(ctx context.Context) ([]GetWatchesByMonthRow, error)
 	InsertActivity(ctx context.Context, arg InsertActivityParams) error
 	InsertStorageSnapshot(ctx context.Context, arg InsertStorageSnapshotParams) error
 	InsertWatchEvent(ctx context.Context, arg InsertWatchEventParams) error
@@ -124,12 +127,17 @@ type Querier interface {
 	ListIndexerTagIDs(ctx context.Context, indexerID string) ([]string, error)
 	ListLibraries(ctx context.Context) ([]Library, error)
 	ListLibraryFileCandidates(ctx context.Context, libraryID string) ([]LibraryFileCandidate, error)
+	// Movies with a file that nobody has watched, longest in the library first.
+	ListLongestUnwatchedMovies(ctx context.Context, limit int64) ([]ListLongestUnwatchedMoviesRow, error)
 	ListManagedQualityProfiles(ctx context.Context) ([]QualityProfile, error)
 	ListMediaServerConfigs(ctx context.Context) ([]MediaServerConfig, error)
 	ListMonitoredMovies(ctx context.Context) ([]Movie, error)
 	ListMonitoredMoviesWithFiles(ctx context.Context) ([]ListMonitoredMoviesWithFilesRow, error)
 	ListMonitoredMoviesWithoutFile(ctx context.Context, arg ListMonitoredMoviesWithoutFileParams) ([]Movie, error)
+	ListMostWatchedMovies(ctx context.Context, limit int64) ([]ListMostWatchedMoviesRow, error)
 	ListMovieFileQualitiesWithIDs(ctx context.Context) ([]ListMovieFileQualitiesWithIDsRow, error)
+	// One row per file with what the storage breakdown groups by.
+	ListMovieFileStorage(ctx context.Context) ([]ListMovieFileStorageRow, error)
 	ListMovieFiles(ctx context.Context, movieID string) ([]MovieFile, error)
 	ListMovieFilesByLibrary(ctx context.Context, libraryID string) ([]MovieFile, error)
 	// Every movie's genre list, to work out which genres the library leans to.

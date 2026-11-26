@@ -285,6 +285,38 @@ func RegisterStatsRoutes(api huma.API, svc *stats.Service) {
 		return out, nil
 	})
 
+	// GET /api/v1/stats/storage/breakdown
+	huma.Register(api, huma.Operation{
+		OperationID: "get-stats-storage-breakdown",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/stats/storage/breakdown",
+		Summary:     "Where the disk space goes",
+		Description: "Space by resolution, genre and decade, the largest movies, and a projection of when the library disks fill at the recent growth rate. The forecast is left out until there is a week of storage snapshots.",
+		Tags:        []string{"Statistics"},
+	}, func(ctx context.Context, _ *struct{}) (*struct{ Body stats.StorageBreakdown }, error) {
+		b, err := svc.StorageBreakdown(ctx)
+		if err != nil {
+			return nil, huma.NewError(http.StatusInternalServerError, "failed to get storage breakdown", err)
+		}
+		return &struct{ Body stats.StorageBreakdown }{Body: b}, nil
+	})
+
+	// GET /api/v1/stats/watching
+	huma.Register(api, huma.Operation{
+		OperationID: "get-stats-watching",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/stats/watching",
+		Summary:     "What has been watched",
+		Description: "From the watch history synced from media servers: the share of movies with a file that have been played, plays per month for the last twelve months, the most played movies and the ones waiting longest unwatched.",
+		Tags:        []string{"Statistics"},
+	}, func(ctx context.Context, _ *struct{}) (*struct{ Body stats.Watching }, error) {
+		w, err := svc.Watch(ctx)
+		if err != nil {
+			return nil, huma.NewError(http.StatusInternalServerError, "failed to get watch stats", err)
+		}
+		return &struct{ Body stats.Watching }{Body: w}, nil
+	})
+
 	// GET /api/v1/stats/quality/movies — list movie IDs matching a quality tier.
 	huma.Register(api, huma.Operation{
 		OperationID: "stats-quality-movies",
