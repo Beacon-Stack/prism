@@ -198,4 +198,144 @@ describe("StatsPage", () => {
     expect(screen.queryByText("By Dimension")).not.toBeInTheDocument();
     expect(screen.queryByText("By Tier")).not.toBeInTheDocument();
   });
+  // Where the space goes
+
+  const GB = 1024 ** 3;
+  const slice = (label: string, gb: number, movies: number, minutes: number) => ({
+    label,
+    bytes: gb * GB,
+    movies,
+    timed_bytes: gb * GB,
+    runtime_minutes: minutes,
+  });
+  const breakdown = {
+    total: slice("", 120, 3, 480),
+    by_resolution: [slice("2160p", 100, 2, 300), slice("1080p", 20, 2, 180)],
+    by_genre: [slice("Drama", 110, 2, 400), slice("Comedy", 10, 1, 0)],
+    by_decade: [slice("1990s", 80, 2, 300), slice("2020s", 40, 1, 180)],
+    largest: [
+      { movie_id: "m-heat", title: "Heat", year: 1995, bytes: 70 * GB, resolution: "2160p", runtime_minutes: 170 },
+      { movie_id: "m-dune", title: "Dune", year: 2021, bytes: 40 * GB, resolution: "2160p", runtime_minutes: 155 },
+    ],
+  };
+
+  function serveBreakdown(data: object = breakdown) {
+    useFullStatsHandlers();
+    server.use(http.get("/api/v1/stats/storage/breakdown", () => HttpResponse.json(data)));
+  }
+
+  it("shows where the space goes, by resolution first", async () => {
+    serveBreakdown();
+    renderPage();
+
+    const slices = await screen.findByTestId("storage-slices");
+    // 100 GB over 5 hours of video.
+    expect(slices).toHaveTextContent("2160p100 GB · 2 movies · 20 GB/h");
+    expect(slices).toHaveTextContent("1080p20 GB · 2 movies");
+    // 120 GB over 8 hours, and over 3 movies.
+    expect(screen.getByText("15 GB/h")).toBeInTheDocument();
+    expect(screen.getByText("Average per movie").previousSibling).toHaveTextContent("40 GB");
+
+    const largest = screen.getByTestId("largest-movies");
+    expect(largest).toHaveTextContent("Heat 1995 · 2160p70 GB");
+    expect(screen.getByRole("link", { name: "Heat" })).toHaveAttribute("href", "/movies/m-heat");
+  });
+
+  it("regroups the space by genre and decade", async () => {
+    serveBreakdown();
+    renderPage();
+    await screen.findByTestId("storage-slices");
+
+    fireEvent.click(screen.getByRole("button", { name: "Genre" }));
+    const slices = screen.getByTestId("storage-slices");
+    expect(slices).toHaveTextContent("Drama110 GB · 2 movies");
+    // No runtime known for the one comedy: no per-hour figure for it.
+    expect(slices).toHaveTextContent(/Comedy10 GB · 1 movie$/);
+    expect(screen.getByText(/counts toward each of its genres/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Decade" }));
+    expect(screen.getByTestId("storage-slices")).toHaveTextContent("1990s80 GB · 2 movies");
+    expect(screen.queryByText(/counts toward each of its genres/)).not.toBeInTheDocument();
+  });
+
+  it("says when the disk fills at the current rate", async () => {
+    serveBreakdown({ ...breakdown, forecast: { bytes_per_day: GB, free_bytes: 420 * GB, days_until_full: 420, full_on: "2028-01-20T00:00:00Z" } });
+    renderPage();
+    expect(await screen.findByText("about 14 months")).toBeInTheDocument();
+    expect(screen.getByText("Until the disk is full: 420 GB free, growing 7 GB a week")).toBeInTheDocument();
+  });
+
+  it("says so when the library isn't growing, and nothing when there is no forecast", async () => {
+    serveBreakdown({ ...breakdown, forecast: { bytes_per_day: 0, free_bytes: 420 * GB } });
+    const first = renderPage();
+    expect(await screen.findByText("Free, and the library isn't growing")).toBeInTheDocument();
+    expect(screen.getByText("420 GB")).toBeInTheDocument();
+    first.unmount();
+
+    serveBreakdown();
+    renderPage();
+    await screen.findByTestId("storage-slices");
+    expect(screen.queryByText(/Until the disk is full/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/isn't growing/)).not.toBeInTheDocument();
+  });
+
+  it("has its own empty state for a library with no files", async () => {
+    useFullStatsHandlers();
+    renderPage();
+    expect(await screen.findByText("Nothing on disk yet.")).toBeInTheDocument();
+  });
+
+  // Watching
+
+  const watching = {
+    owned: 40,
+    watched: 10,
+    plays: 23,
+    minutes_watched: 3000,
+    by_month: [
+      { month: "2026-10", plays: 4 },
+      { month: "2026-11", plays: 7 },
+    ],
+    most_watched: [
+      { movie_id: "m-heat", title: "Heat", year: 1995, plays: 3, last_watched_at: "2026-11-02T20:00:00Z" },
+      { movie_id: "m-dune", title: "Dune", year: 2021, plays: 1, last_watched_at: "2026-09-12T20:00:00Z" },
+    ],
+    longest_unwatched: [{ movie_id: "m-alien", title: "Alien", year: 1979, added_at: "2020-01-15T12:00:00Z" }],
+  };
+
+  function serveWatching(data: object = watching) {
+    useFullStatsHandlers();
+    server.use(http.get("/api/v1/stats/watching", () => HttpResponse.json(data)));
+  }
+
+  it("shows what has been watched and what is still waiting", async () => {
+    serveWatching();
+    renderPage();
+
+    expect(await screen.findByText("25%")).toBeInTheDocument();
+    expect(screen.getByText("Watched: 10 of 40 movies")).toBeInTheDocument();
+    expect(screen.getByText("23")).toBeInTheDocument();
+    expect(screen.getByText("2d 2h")).toBeInTheDocument();
+
+    const most = screen.getByTestId("most-watched");
+    expect(most).toHaveTextContent(/Heat 19953 plays · last Nov 2026/);
+    expect(most).toHaveTextContent(/Dune 20211 play · last Sep 2026/);
+
+    const waiting = screen.getByTestId("longest-unwatched");
+    expect(waiting).toHaveTextContent(/Alien 1979added Jan 2020/);
+    expect(waiting.querySelector("a")).toHaveAttribute("href", "/movies/m-alien");
+  });
+
+  it("says so when everything has been watched", async () => {
+    serveWatching({ ...watching, longest_unwatched: [] });
+    renderPage();
+    expect(await screen.findByText("Nothing. Every movie here has been watched.")).toBeInTheDocument();
+  });
+
+  it("points to Media Servers when there is no watch history", async () => {
+    useFullStatsHandlers();
+    renderPage();
+    expect(await screen.findByText(/No watch history yet/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Settings → Media Servers" })).toHaveAttribute("href", "/settings/media-servers");
+  });
 });

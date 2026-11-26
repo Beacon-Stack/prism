@@ -65,6 +65,18 @@ const handlers = [
   http.get("/api/v1/stats/watch", () =>
     HttpResponse.json({ watched_count: 0, total_count: 0, percentage: 0 })
   ),
+  http.get("/api/v1/stats/watching", () =>
+    HttpResponse.json({ owned: 0, watched: 0, plays: 0, minutes_watched: 0, by_month: [], most_watched: [], longest_unwatched: [] })
+  ),
+  http.get("/api/v1/stats/storage/breakdown", () =>
+    HttpResponse.json({
+      total: { label: "", bytes: 0, movies: 0, timed_bytes: 0, runtime_minutes: 0 },
+      by_resolution: [],
+      by_genre: [],
+      by_decade: [],
+      largest: [],
+    })
+  ),
 
   // Discover
   http.get("/api/v1/discover/browse", () =>
