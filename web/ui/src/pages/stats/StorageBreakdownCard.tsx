@@ -15,6 +15,12 @@ const GROUPS = [
 
 type GroupKey = (typeof GROUPS)[number]["key"];
 
+/** How a resolution reads on screen; nothing when it isn't known. */
+function resolutionLabel(resolution: string): string {
+  if (resolution === "unknown") return "";
+  return resolution === "sd" ? "SD" : resolution;
+}
+
 /** Bytes per hour of video, or null when no runtime is known. */
 function perHour(s: StorageSlice): string | null {
   return s.runtime_minutes > 0 ? `${formatBytes(Math.round(s.timed_bytes / (s.runtime_minutes / 60)))}/h` : null;
@@ -103,7 +109,9 @@ export default function StorageBreakdownCard({ data }: { data: StorageBreakdown 
             {slices.map((s) => (
               <li key={s.label}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, marginBottom: 4 }}>
-                  <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{s.label}</span>
+                  <span style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>
+                    {group === "by_resolution" ? resolutionLabel(s.label) || "Not known" : s.label}
+                  </span>
                   <span style={{ color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
                     {formatBytes(s.bytes)} · {s.movies.toLocaleString()} {s.movies === 1 ? "movie" : "movies"}
                     {perHour(s) && ` · ${perHour(s)}`}
@@ -132,7 +140,8 @@ export default function StorageBreakdownCard({ data }: { data: StorageBreakdown 
                     {m.title}
                   </Link>
                   <span style={{ color: "var(--color-text-muted)" }}>
-                    {m.year > 0 && ` ${m.year}`} · {m.resolution}
+                    {m.year > 0 && ` ${m.year}`}
+                    {resolutionLabel(m.resolution) && ` · ${resolutionLabel(m.resolution)}`}
                   </span>
                 </span>
                 <span style={{ color: "var(--color-text-secondary)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{formatBytes(m.bytes)}</span>

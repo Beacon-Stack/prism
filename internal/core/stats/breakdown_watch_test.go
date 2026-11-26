@@ -139,6 +139,102 @@ func TestStorageBreakdown(t *testing.T) {
 	}
 }
 
+// scan records what ffprobe found in the movie's one file.
+func (f *fixture) scan(m dbgen.Movie, mediainfoJSON string) {
+	f.t.Helper()
+	ctx := context.Background()
+	files, err := f.q.ListMovieFiles(ctx, m.ID)
+	if err != nil || len(files) != 1 {
+		f.t.Fatalf("ListMovieFiles: %d files, err=%v", len(files), err)
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	if err := f.q.UpdateMovieFileMediainfo(ctx, dbgen.UpdateMovieFileMediainfoParams{MediainfoJson: mediainfoJSON, MediainfoScannedAt: &now, ID: files[0].ID}); err != nil {
+		f.t.Fatalf("UpdateMovieFileMediainfo: %v", err)
+	}
+}
+
+// A file renamed to "Title (Year).mkv" has no quality from its name; the
+// statistics take what the ffprobe scan found instead.
+func TestStats_UnknownQualityFilledFromScan(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+
+	renamed := f.movie("The Thing", 1982, 109, `["Horror"]`, "")
+	f.file(renamed, "The Thing (1982).mkv", 80*gb, "")
+	f.scan(renamed, `{"codec":"x265","resolution":"2160p","hdr_format":"Dolby Vision"}`)
+
+	named := f.movie("Heat", 1995, 170, `["Crime"]`, "")
+	f.file(named, "Heat.1995.1080p.BluRay.mkv", 20*gb, "1080p")
+	f.scan(named, `{"codec":"x264","resolution":"720p","hdr_format":"SDR"}`) // the name's 1080p stands
+
+	lowRes := f.movie("Clerks", 1994, 92, `["Comedy"]`, "")
+	f.file(lowRes, "Clerks (1994).avi", 1*gb, "")
+	f.scan(lowRes, `{"codec":"XviD","resolution":"SD","hdr_format":"SDR"}`)
+
+	unscanned := f.movie("Dune", 2021, 155, `["Sci-Fi"]`, "")
+	f.file(unscanned, "Dune (2021).mkv", 40*gb, "")
+
+	b, err := f.svc.StorageBreakdown(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, m := range b.Largest {
+		got[m.Title] = m.Resolution
+	}
+	want := map[string]string{"The Thing": "2160p", "Heat": "1080p", "Clerks": "sd", "Dune": "unknown"}
+	for title, res := range want {
+		if got[title] != res {
+			t.Errorf("largest: %s is %q, want %q", title, got[title], res)
+		}
+	}
+	bytes := map[string]int64{}
+	for _, s := range b.ByResolution {
+		bytes[s.Label] = s.Bytes
+	}
+	if bytes["2160p"] != 80*gb || bytes["1080p"] != 20*gb || bytes["sd"] != 1*gb || bytes["unknown"] != 40*gb {
+		t.Errorf("by resolution = %v", bytes)
+	}
+
+	// The Quality Distribution card and its tier filter agree.
+	buckets, err := f.svc.QualityDistribution(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, q := range buckets {
+		if q.Resolution == "2160p" {
+			found = true
+			if q.Codec != "x265" || q.HDR != "dolby_vision" || q.Source != "unknown" || q.Count != 1 {
+				t.Errorf("2160p bucket = %+v: codec and HDR come from the scan, the source can't", q)
+			}
+		}
+		// Heat's name gave only the resolution; the scan supplies the rest.
+		if q.Resolution == "1080p" && (q.Codec != "x264" || q.HDR != "none") {
+			t.Errorf("1080p bucket = %+v, want codec x264 and no HDR from the scan", q)
+		}
+	}
+	if !found {
+		t.Errorf("no 2160p bucket in %+v", buckets)
+	}
+
+	ids, err := f.svc.MovieIDsByQualityTier(ctx, "2160p", "")
+	if err != nil || len(ids) != 1 || ids[0] != renamed.ID {
+		t.Errorf("2160p tier movies = %v err=%v", ids, err)
+	}
+	tiers, err := f.svc.QualityTiers(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tierCount := map[string]int64{}
+	for _, tr := range tiers {
+		tierCount[tr.Resolution] += tr.Count
+	}
+	if tierCount["2160p"] != 1 || tierCount["unknown"] != 1 {
+		t.Errorf("tiers = %+v", tiers)
+	}
+}
+
 func TestStorageBreakdown_ListsAreCapped(t *testing.T) {
 	f := newFixture(t)
 	for i := range 14 {

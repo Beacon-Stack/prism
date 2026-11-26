@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	dbgen "github.com/beacon-stack/prism/internal/db/generated"
-	"github.com/beacon-stack/prism/pkg/plugin"
 )
 
 // CollectionStats is a summary of the movie library.
@@ -137,8 +136,8 @@ func (s *Service) QualityDistribution(ctx context.Context) ([]QualityBucket, err
 	movieSets := make(map[key]map[string]bool)
 
 	for _, row := range rows {
-		var q plugin.Quality
-		if err := json.Unmarshal([]byte(row.QualityJson), &q); err != nil {
+		q, ok := fileQuality(row.QualityJson, row.MediainfoJson)
+		if !ok {
 			continue
 		}
 		res := string(q.Resolution)
@@ -191,8 +190,8 @@ func (s *Service) MovieIDsByQualityTier(ctx context.Context, resolution, source 
 	matched := make(map[string]bool)
 
 	for _, row := range rows {
-		var q plugin.Quality
-		if err := json.Unmarshal([]byte(row.QualityJson), &q); err != nil {
+		q, ok := fileQuality(row.QualityJson, row.MediainfoJson)
+		if !ok {
 			continue
 		}
 		// Apply the same normalization as QualityDistribution.
@@ -232,8 +231,8 @@ func (s *Service) QualityTiers(ctx context.Context) ([]QualityTier, error) {
 	tierMovies := make(map[tierKey]map[string]bool)
 
 	for _, row := range rows {
-		var q plugin.Quality
-		if err := json.Unmarshal([]byte(row.QualityJson), &q); err != nil {
+		q, ok := fileQuality(row.QualityJson, row.MediainfoJson)
+		if !ok {
 			continue
 		}
 		res := string(q.Resolution)

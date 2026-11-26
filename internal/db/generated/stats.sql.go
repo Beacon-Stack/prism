@@ -386,13 +386,14 @@ func (q *Queries) ListMostWatchedMovies(ctx context.Context, limit int64) ([]Lis
 }
 
 const listMovieFileQualitiesWithIDs = `-- name: ListMovieFileQualitiesWithIDs :many
-SELECT mf.movie_id, mf.quality_json FROM movie_files mf
+SELECT mf.movie_id, mf.quality_json, mf.mediainfo_json FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id
 `
 
 type ListMovieFileQualitiesWithIDsRow struct {
-	MovieID     string `json:"movieId"`
-	QualityJson string `json:"qualityJson"`
+	MovieID       string `json:"movieId"`
+	QualityJson   string `json:"qualityJson"`
+	MediainfoJson string `json:"mediainfoJson"`
 }
 
 func (q *Queries) ListMovieFileQualitiesWithIDs(ctx context.Context) ([]ListMovieFileQualitiesWithIDsRow, error) {
@@ -404,7 +405,7 @@ func (q *Queries) ListMovieFileQualitiesWithIDs(ctx context.Context) ([]ListMovi
 	var items []ListMovieFileQualitiesWithIDsRow
 	for rows.Next() {
 		var i ListMovieFileQualitiesWithIDsRow
-		if err := rows.Scan(&i.MovieID, &i.QualityJson); err != nil {
+		if err := rows.Scan(&i.MovieID, &i.QualityJson, &i.MediainfoJson); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -419,7 +420,7 @@ func (q *Queries) ListMovieFileQualitiesWithIDs(ctx context.Context) ([]ListMovi
 }
 
 const listMovieFileStorage = `-- name: ListMovieFileStorage :many
-SELECT m.id AS movie_id, m.title, m.year, m.runtime_minutes, m.genres_json, mf.size_bytes, mf.quality_json
+SELECT m.id AS movie_id, m.title, m.year, m.runtime_minutes, m.genres_json, mf.size_bytes, mf.quality_json, mf.mediainfo_json
 FROM movie_files mf
 JOIN movies m ON m.id = mf.movie_id
 `
@@ -432,6 +433,7 @@ type ListMovieFileStorageRow struct {
 	GenresJson     string `json:"genresJson"`
 	SizeBytes      int64  `json:"sizeBytes"`
 	QualityJson    string `json:"qualityJson"`
+	MediainfoJson  string `json:"mediainfoJson"`
 }
 
 // One row per file with what the storage breakdown groups by.
@@ -452,6 +454,7 @@ func (q *Queries) ListMovieFileStorage(ctx context.Context) ([]ListMovieFileStor
 			&i.GenresJson,
 			&i.SizeBytes,
 			&i.QualityJson,
+			&i.MediainfoJson,
 		); err != nil {
 			return nil, err
 		}
