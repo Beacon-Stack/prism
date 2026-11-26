@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Loader2, Search, X } from "lucide-react";
-import { DISCOVER_CATEGORIES, MIN_SEARCH, type DiscoverCategory, type DiscoverFilters } from "./discoverState";
+import { AlertTriangle, ChevronDown, Loader2, Search, X } from "lucide-react";
+import {
+  DISCOVER_CATEGORIES,
+  DISCOVER_LANGUAGES,
+  DISCOVER_RUNTIMES,
+  DISCOVER_SORTS,
+  MIN_SEARCH,
+  type DiscoverCategory,
+  type DiscoverFilters,
+  type DiscoverFilterValue,
+  type DiscoverPivot,
+} from "./discoverState";
 
 // Shared pieces of the Discover page in Pilot and Prism: the search box,
 // list buttons and filters, plus the grid, loading, empty and paging
@@ -24,14 +34,36 @@ interface DiscoverControlsProps {
   onCategory: (c: DiscoverCategory) => void;
   filters: DiscoverFilters;
   filterCount: number;
-  onFilter: (key: keyof DiscoverFilters, value: number) => void;
+  onFilter: (key: keyof DiscoverFilters, value: DiscoverFilterValue) => void;
   onClearFilters: () => void;
   genres?: Option[];
   providers?: Option[];
   region: string;
+  /**
+   * Also offer several genres at once, decade, runtime, language, sort
+   * order and hiding what's in the library. The app's browse endpoint
+   * has to accept them.
+   */
+  more?: boolean;
+  /** The home view is showing, so no list is selected. */
+  home?: boolean;
+  /** Adds a "For you" button before the lists that opens the home view. */
+  onHome?: () => void;
+  /** The keyword, studio or collection the list is narrowed to. */
+  pivot?: DiscoverPivot | null;
+  onClearPivot?: () => void;
 }
 
 const RATINGS = [6, 7, 8];
+
+const PIVOT_LABELS: Record<DiscoverPivot["kind"], string> = { keyword: "Keyword", company: "Studio", collection: "Collection" };
+
+/** This decade back to the 1950s, newest first. */
+function decades(): number[] {
+  const out: number[] = [];
+  for (let d = Math.floor(new Date().getFullYear() / 10) * 10; d >= 1950; d -= 10) out.push(d);
+  return out;
+}
 
 const pill = (active: boolean) => ({
   padding: "5px 12px",
@@ -56,7 +88,9 @@ const select = (active: boolean) => ({
 
 export function DiscoverControls(props: DiscoverControlsProps) {
   const { noun, query, onQuery, busy, category, onCategory, filters, filterCount, onFilter, onClearFilters, genres, providers, region } = props;
+  const { more, home, onHome, pivot, onClearPivot } = props;
   const [text, setText] = useState(query);
+  const [genresOpen, setGenresOpen] = useState(false);
   const sent = useRef(query);
   // The parent's callback changes every render; keep the latest without
   // restarting the typing timer each time results load.
@@ -64,6 +98,14 @@ export function DiscoverControls(props: DiscoverControlsProps) {
   useEffect(() => {
     onQueryRef.current = onQuery;
   }, [onQuery]);
+
+  // The query can be cleared from outside (opening the home view).
+  useEffect(() => {
+    if (query === "" && sent.current !== "") {
+      sent.current = "";
+      setText("");
+    }
+  }, [query]);
 
   // Search as you type, a moment after typing stops.
   useEffect(() => {
@@ -82,6 +124,14 @@ export function DiscoverControls(props: DiscoverControlsProps) {
   }
 
   const searching = query.trim().length >= MIN_SEARCH;
+  // A collection is a fixed set of titles: no list or filter applies.
+  const fixed = pivot?.kind === "collection";
+  const picked = genres?.filter((g) => filters.genres.includes(g.id)) ?? [];
+  const genreLabel = picked.length === 0 ? "Any genre" : picked.length <= 2 ? picked.map((g) => g.name).join(" + ") : `${picked.length} genres`;
+
+  function toggleGenre(id: number) {
+    onFilter("genres", filters.genres.includes(id) ? filters.genres.filter((g) => g !== id) : [...filters.genres, id]);
+  }
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -128,23 +178,63 @@ export function DiscoverControls(props: DiscoverControlsProps) {
         )}
       </div>
 
-      {!searching && (
+      {!searching && pivot && (
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ ...pill(true), display: "inline-flex", alignItems: "center", gap: 6, cursor: "default" }}>
+            {PIVOT_LABELS[pivot.kind]}
+            {pivot.name ? `: ${pivot.name}` : ""}
+            {onClearPivot && (
+              <button
+                type="button"
+                onClick={onClearPivot}
+                aria-label={`Remove ${PIVOT_LABELS[pivot.kind].toLowerCase()} ${pivot.name}`.trim()}
+                style={{ background: "none", border: "none", padding: 0, display: "flex", color: "inherit", cursor: "pointer" }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </span>
+        </div>
+      )}
+
+      {!searching && !fixed && (
         <>
           <div role="group" aria-label="List" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-            {DISCOVER_CATEGORIES.map((c) => (
-              <button key={c.value} type="button" aria-pressed={category === c.value} onClick={() => onCategory(c.value)} style={pill(category === c.value)}>
-                {c.label}
+            {onHome && (
+              <button type="button" aria-pressed={!!home} onClick={onHome} style={pill(!!home)}>
+                For you
               </button>
-            ))}
+            )}
+            {DISCOVER_CATEGORIES.map((c) => {
+              const active = !home && category === c.value;
+              return (
+                <button key={c.value} type="button" aria-pressed={active} onClick={() => onCategory(c.value)} style={pill(active)}>
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
 
           <div role="group" aria-label="Filters" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <select aria-label="Genre" value={filters.genre} onChange={(e) => onFilter("genre", Number(e.target.value))} style={select(filters.genre > 0)}>
-              <option value={0}>Any genre</option>
-              {genres?.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
+            {more ? (
+              <button
+                type="button"
+                aria-expanded={genresOpen}
+                aria-controls="discover-genres"
+                onClick={() => setGenresOpen((o) => !o)}
+                style={{ ...select(picked.length > 0), display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+              >
+                {genreLabel}
+                <ChevronDown size={13} aria-hidden style={{ transform: genresOpen ? "rotate(180deg)" : undefined, transition: "transform 120ms" }} />
+              </button>
+            ) : (
+              <select aria-label="Genre" value={filters.genre} onChange={(e) => onFilter("genre", Number(e.target.value))} style={select(filters.genre > 0)}>
+                <option value={0}>Any genre</option>
+                {genres?.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            )}
             <select aria-label="Streaming service" value={filters.provider} onChange={(e) => onFilter("provider", Number(e.target.value))} style={select(filters.provider > 0)}>
               <option value={0}>Any service ({region})</option>
               {providers?.map((p) => (
@@ -157,12 +247,57 @@ export function DiscoverControls(props: DiscoverControlsProps) {
                 <option key={r} value={r}>{r}+ rating</option>
               ))}
             </select>
+            {more && (
+              <>
+                <select aria-label="Decade" value={filters.decade} onChange={(e) => onFilter("decade", Number(e.target.value))} style={select(filters.decade > 0)}>
+                  <option value={0}>Any decade</option>
+                  {decades().map((d) => (
+                    <option key={d} value={d}>{d}s</option>
+                  ))}
+                </select>
+                <select aria-label="Runtime" value={filters.runtime} onChange={(e) => onFilter("runtime", e.target.value)} style={select(!!filters.runtime)}>
+                  <option value="">Any length</option>
+                  {DISCOVER_RUNTIMES.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <select aria-label="Language" value={filters.language} onChange={(e) => onFilter("language", e.target.value)} style={select(!!filters.language)}>
+                  <option value="">Any language</option>
+                  {DISCOVER_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>{l.name}</option>
+                  ))}
+                </select>
+                <select aria-label="Sort" value={filters.sort} onChange={(e) => onFilter("sort", e.target.value)} style={select(!!filters.sort)}>
+                  <option value="">List order</option>
+                  {DISCOVER_SORTS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--color-text-secondary)", cursor: "pointer" }}>
+                  <input type="checkbox" checked={filters.hideOwned} onChange={(e) => onFilter("hideOwned", e.target.checked)} />
+                  Hide what I have
+                </label>
+              </>
+            )}
             {filterCount > 0 && (
               <button type="button" onClick={onClearFilters} style={{ background: "none", border: "none", padding: "4px 6px", fontSize: 12, color: "var(--color-accent)", cursor: "pointer" }}>
                 Clear filters
               </button>
             )}
           </div>
+
+          {more && genresOpen && (
+            <div id="discover-genres" role="group" aria-label="Genres" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+              {genres?.map((g) => {
+                const on = filters.genres.includes(g.id);
+                return (
+                  <button key={g.id} type="button" aria-pressed={on} onClick={() => toggleGenre(g.id)} style={pill(on)}>
+                    {g.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </div>
